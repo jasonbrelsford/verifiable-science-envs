@@ -63,14 +63,24 @@ jobs:
       - name: Baselines
         run: hla-bench run oracle baseline-naive-string baseline-confident-guesser baseline-cautious-abstainer --split ${{ inputs.split }}
 
-      - name: Models
+      - name: Models (log captured to runs/hla-bench-a/results/tower-log.txt)
         if: ${{ inputs.models != '' }}
-        run: hla-bench run ${{ inputs.models }} --split ${{ inputs.split }}
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force runs/hla-bench-a/results | Out-Null
+          $log = "runs/hla-bench-a/results/tower-log.txt"
+          "== $(Get-Date -Format o) run ${{ github.run_id }} models=${{ inputs.models }} split=${{ inputs.split }}" | Out-File $log
+          try { (Invoke-WebRequest -UseBasicParsing http://localhost:11434/api/tags -TimeoutSec 5).Content | Out-File -Append $log } catch { "ollama /api/tags unreachable: $_" | Out-File -Append $log }
+          & hla-bench run ${{ inputs.models }} --split ${{ inputs.split }} 2>&1 | Tee-Object -FilePath $log -Append
+          "exit=$LASTEXITCODE" | Out-File -Append $log
+          exit $LASTEXITCODE
 
       - name: Report
+        if: always()
         run: hla-bench report
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: tower-results-${{ github.run_id }}
           path: |
@@ -78,7 +88,7 @@ jobs:
             bench/HLA-Bench-A.md
 
       - name: Commit results
-        if: ${{ inputs.commit == 'true' }}
+        if: ${{ always() && inputs.commit == 'true' }}
         run: |
           git config user.name "hla-bench bot"
           git config user.email "bot@users.noreply.github.com"
