@@ -20,12 +20,22 @@ def test_normalize_rules():
 def test_expected_matches_rules_and_solution_passes_verifier(tmp_path):
     ref = ImgtReference.load("v3.65.0-alpha")
     rows = list(csv.DictReader(open(TASK / "environment/data/typing_reports.csv", newline="")))
-    exp = list(csv.DictReader(open(TASK / "tests/expected.csv", newline="")))
-    assert len(rows) == len(exp) == 200
+    assert len(rows) == 200
+    assert (TASK / "tests/typing_reports.csv").read_bytes() == (TASK / "environment/data/typing_reports.csv").read_bytes()
+    # the verifier rebuilds truth at build time; run its builder here with --selfcheck
+    out = tmp_path / "expected.csv"
+    subprocess.run([sys.executable, str(TASK / "tests/build_truth.py"), "--imgt", str(Path.home() / ".cache/sci_envs/imgt/v3.65.0-alpha"),
+                    "--typing", str(TASK / "tests/typing_reports.csv"), "--out", str(out), "--selfcheck"], check=True)
+    exp = list(csv.DictReader(open(out, newline="")))
     for r, e in zip(rows, exp):
         n = normalize(ref, r["typing_as_reported"])
         assert {k: e[k] for k in n} == n, r
-    # vendored solution files are byte-identical to the package versions (modulo the import rewrite)
-    assert (TASK / "solution/imgt.py").read_text() == Path("sci_envs/reference/imgt.py").read_text()
-    vend = (TASK / "solution/normalize.py").read_text().replace("from imgt import", "from sci_envs.reference.imgt import")
-    assert vend == Path("sci_envs/families/nomenclature/normalize.py").read_text()
+    # vendored files are byte-identical to the package versions (modulo the import rewrite)
+    for d in ("solution", "tests"):
+        assert (TASK / d / "imgt.py").read_text() == Path("sci_envs/reference/imgt.py").read_text()
+        vend = (TASK / d / "normalize.py").read_text().replace("from imgt import", "from sci_envs.reference.imgt import")
+        assert vend == Path("sci_envs/families/nomenclature/normalize.py").read_text()
+    # canary present in all three places
+    guid = [l for l in (TASK / "task.toml").read_text().splitlines() if "harbor-canary" in l][0].split()[-1]
+    for f in ("tests/test.sh", "tests/Dockerfile", "environment/Dockerfile"):
+        assert guid in (TASK / f).read_text(), f

@@ -1,28 +1,35 @@
-"""Verifier: /root/normalized.csv must match expected.csv exactly on every row."""
-import csv, sys
+"""Verifier: /app/results/normalized.csv must match the rebuilt expected.csv on every row."""
+import csv
 from pathlib import Path
 
-OUT = Path("/root/normalized.csv")
+OUT = Path("/app/results/normalized.csv")
 EXP = Path(__file__).with_name("expected.csv")
 COLS = ["sample_id", "locus", "allele_2field", "g_group", "flags"]
 
-if not OUT.exists():
-    print("FAIL: /root/normalized.csv not found"); sys.exit(1)
-with open(OUT, newline="") as fh:
-    got = list(csv.DictReader(fh))
-with open(EXP, newline="") as fh:
-    exp = list(csv.DictReader(fh))
-if got and list(got[0].keys()) != COLS:
-    print(f"FAIL: columns {list(got[0].keys())} != {COLS}"); sys.exit(1)
-if len(got) != len(exp):
-    print(f"FAIL: {len(got)} rows, expected {len(exp)}"); sys.exit(1)
-ok = 0; bad = []
-for g, e in zip(got, exp):
-    match = all((g.get(c) or "").strip() == e[c] for c in COLS)
-    ok += match
-    if not match and len(bad) < 15:
-        bad.append((e["sample_id"], {c: (g.get(c), e[c]) for c in COLS if (g.get(c) or "").strip() != e[c]}))
-print(f"rows correct: {ok}/{len(exp)} ({100*ok/len(exp):.1f}%)")
-for sid, diff in bad:
-    print(f"  {sid}: {diff}")
-sys.exit(0 if ok == len(exp) else 1)
+
+def _load(p):
+    with open(p, newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def test_output_exists():
+    assert OUT.exists(), "/app/results/normalized.csv not found"
+
+
+def test_columns_and_row_count():
+    got, exp = _load(OUT), _load(EXP)
+    assert list(got[0].keys()) == COLS, f"columns {list(got[0].keys())} != {COLS}"
+    assert len(got) == len(exp) == 200
+
+
+def test_every_row_matches():
+    got, exp = _load(OUT), _load(EXP)
+    bad = []
+    for g, e in zip(got, exp):
+        diff = {c: (g.get(c), e[c]) for c in COLS if (g.get(c) or "").strip() != e[c]}
+        if diff:
+            bad.append((e["sample_id"], diff))
+    print(f"rows correct: {len(exp) - len(bad)}/{len(exp)}")
+    for sid, diff in bad[:20]:
+        print(f"  {sid}: {diff}")
+    assert not bad, f"{len(bad)} rows differ"

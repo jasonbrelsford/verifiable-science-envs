@@ -1,15 +1,15 @@
 # Normalize a legacy HLA typing report to the current IPD-IMGT/HLA release
 
-A transplant immunogenetics laboratory has exported 200 HLA typing results for 200 samples (one locus per sample) from systems of different eras. The file `/root/data/typing_reports.csv` has columns `sample_id`, `locus`, `typing_as_reported`. The reported strings are a mixture of:
+A transplant immunogenetics laboratory has exported 200 HLA typing results for 200 samples (one locus per sample) from systems of different eras. The file `/app/data/typing_reports.csv` has columns `sample_id`, `locus`, `typing_as_reported`. The reported strings are a mixture of:
 
 - current colon-delimited names at 2-, 3- or 4-field resolution (`A*02:01`, `C*01:02:93`, `DRB1*07:01:01:03`), possibly with an expression suffix (`A*33:282N`);
 - pre-2010 colon-less names (`A*0201`, `Cw*0702`);
 - names that have since been deleted or renamed by the IPD-IMGT/HLA database;
 - a few strings that are not, and never were, assigned allele names.
 
-The official nomenclature files for IPD-IMGT/HLA release **3.65.0** are in `/root/imgt/` (`Allelelist.txt`, `Allelelist_history.txt`, `Deleted_alleles.txt`, `Allele_status.txt`, `wmda/hla_nom_g.txt`, `wmda/hla_nom_p.txt`, `wmda/rel_dna_ser.txt`, `wmda/rel_ser_ser.txt`). Use only these files as ground truth; there is no internet access.
+The official nomenclature files for IPD-IMGT/HLA release **3.65.0** are in `/app/imgt/` (`Allelelist.txt`, `Allelelist_history.txt`, `Deleted_alleles.txt`, `Allele_status.txt`, `wmda/hla_nom_g.txt`, `wmda/hla_nom_p.txt`, `wmda/rel_dna_ser.txt`, `wmda/rel_ser_ser.txt`). Use only these files as ground truth; there is no internet access.
 
-Write `/root/normalized.csv` with exactly these columns, one row per input row, in the input order:
+Write `/app/results/normalized.csv` with exactly these columns, one row per input row, in the input order:
 
 `sample_id,locus,allele_2field,g_group,flags`
 

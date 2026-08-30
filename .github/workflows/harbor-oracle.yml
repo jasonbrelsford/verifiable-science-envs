@@ -1,0 +1,26 @@
+# Validate Harbor tasks the way Terminal-Bench-Science's review automation does:
+# build both containers with Docker and run the oracle solution through the real verifier.
+name: harbor-oracle
+on:
+  workflow_dispatch:
+  push:
+    paths: ["harbor/**", ".github/workflows/harbor-oracle.yml"]
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv tool install harbor && harbor --version
+      - name: Oracle run through the verifier
+        run: |
+          set -o pipefail
+          harbor run -p harbor/hla-typing-report-normalize -a oracle --jobs-dir ./harbor-jobs 2>&1 | tee harbor-oracle.log
+      - name: Reward must be 1
+        run: |
+          find harbor-jobs -name reward.txt -exec sh -c 'echo "$1: $(cat $1)"' _ {} \;
+          test "$(find harbor-jobs -name reward.txt -exec cat {} \; | sort -u)" = "1"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: harbor-oracle-logs, path: "harbor-jobs/**/*.txt" }
