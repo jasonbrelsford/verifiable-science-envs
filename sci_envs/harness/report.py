@@ -13,7 +13,7 @@ def _pct(cell: dict | None) -> str:
     if not cell or cell.get("acc") is None:
         return "—"
     lo, hi = cell["ci95"]
-    return f"{100*cell['acc']:.0f}% <sub>[{100*lo:.0f}–{100*hi:.0f}]</sub>"
+    return f"{100*cell['acc']:.0f}% <sub>[{max(0.0, 100*lo):.0f}–{min(100.0, 100*hi):.0f}]</sub>"
 
 
 def render(suite_dir: Path, out: Path) -> Path:
@@ -38,7 +38,7 @@ def render(suite_dir: Path, out: Path) -> Path:
     L.append("| Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |")
     L.append("|---|---|---:|---:|---:|---:|---:|---|")
     for r in results:
-        h = r["hallucination"]; top = next(iter(r["primary_failure_modes"]), "—")
+        h = r["hallucination"]; top = max(r["primary_failure_modes"], key=r["primary_failure_modes"].get, default="—")
         L.append(f"| `{r['model']}` | {r['split']} | {r['n']} | {_pct(r['overall'])} | {h['tasks_with_hallucinated_names']} | "
                  f"{h['rate_per_task']:.2f} | {100*r['calibration']['calibrated_fraction']:.0f}% | `{top}` |")
     L.append("")

@@ -1,0 +1,8 @@
+
+[adapters]
+verifiers>=0.3
+datasets
+inspect-ai>=0.3
+
+[dev]
+pytest>=8

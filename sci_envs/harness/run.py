@@ -72,13 +72,17 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
     # A small, committable sample of wrong answers so grader strictness can be audited without the raw dump.
     logs = suite_dir.parent.parent / "logs" if suite_dir.name == "hla-bench-a" else suite_dir / "logs"
     logs.mkdir(parents=True, exist_ok=True)
+    # Stratified: up to 3 wrong answers per subtype, so every subtype's failure shape is visible.
+    per: dict[str, int] = {}
     sample = []
     for tid, s in zip(ids, scores):
-        if not s.correct and len(sample) < 60:
-            raw = json.loads((rdir / f"{tid}.json").read_text())["raw"]
-            sample.append({"task_id": tid, "subtype": s.subtype, "input": full[tid]["input"],
-                           "canonical": full[tid]["answer"]["canonical"], "raw": raw if isinstance(raw, str) else json.dumps(raw),
-                           "primary_failure_mode": s.primary_failure_mode, "hallucinated": s.hallucinated_names})
+        if s.correct or per.get(s.subtype, 0) >= 3:
+            continue
+        per[s.subtype] = per.get(s.subtype, 0) + 1
+        raw = json.loads((rdir / f"{tid}.json").read_text())["raw"]
+        sample.append({"task_id": tid, "subtype": s.subtype, "input": full[tid]["input"],
+                       "canonical": full[tid]["answer"]["canonical"], "raw": raw if isinstance(raw, str) else json.dumps(raw),
+                       "primary_failure_mode": s.primary_failure_mode, "hallucinated": s.hallucinated_names})
     (logs / f"{safe}.{split}.wrong-sample.json").write_text(dumps(sample))
     return scores, summary
 
