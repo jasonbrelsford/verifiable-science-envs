@@ -1,0 +1,44 @@
+# Jobs for the self-hosted Windows runner "TOWER" (labels: self-hosted, Windows, X64).
+# Manual only. Step 1 is a Windows smoke test of the package; step 2 (local open-weight
+# models via Ollama) is enabled by setting `models` to e.g. "ollama/llama3.1:8b".
+name: tower
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "space-separated model specs to run after the smoke test (blank = baselines only)"
+        default: ""
+      split:
+        description: "dev | test | all"
+        default: "dev"
+jobs:
+  smoke:
+    runs-on: [self-hosted, Windows, X64]
+    defaults:
+      run: { shell: pwsh }
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python on PATH
+        run: python --version
+      - name: Install
+        run: python -m pip install --quiet -e ".[dev]"
+      - name: Tests (fetches IPD-IMGT/HLA into the runner's cache on first run)
+        run: python -m pytest -q
+      - name: Generate suite + baselines
+        run: |
+          hla-bench generate
+          hla-bench run baseline-naive-string baseline-cautious-abstainer --split ${{ inputs.split }}
+      - name: Models (optional)
+        if: ${{ inputs.models != '' }}
+        run: hla-bench run ${{ inputs.models }} --split ${{ inputs.split }}
+      - name: Report
+        run: hla-bench report --out bench/HLA-Bench-A.tower.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tower-results
+          path: |
+            runs/hla-bench-a/results/
+            bench/HLA-Bench-A.tower.md
