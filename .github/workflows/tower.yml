@@ -14,6 +14,8 @@ on:
       commit:
         description: "commit results + page to main (true/false)"
         default: "true"
+permissions:
+  contents: write
 jobs:
   run:
     runs-on: [self-hosted, Windows, X64]
@@ -27,6 +29,7 @@ jobs:
       OLLAMA_MAX_LOADED_MODELS: "1"
     steps:
       - uses: actions/checkout@v4
+        with: { clean: false }        # keep runs/hla-bench-a/responses between runs so re-runs are free
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: Install package
@@ -84,7 +87,7 @@ jobs:
         run: |
           git config user.name "hla-bench tower"
           git config user.email "tower@users.noreply.github.com"
-          git add runs/hla-bench-a/results bench/HLA-Bench-A.md logs/tower-models.log
+          git add runs/hla-bench-a/results bench/HLA-Bench-A.md; git add -f logs/tower-models.log
           git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [skip ci]"
           if ($LASTEXITCODE -ne 0) { Write-Host "nothing to commit"; exit 0 }
           git pull --rebase origin main
