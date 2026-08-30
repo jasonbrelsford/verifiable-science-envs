@@ -1,0 +1,19 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "locus": "DQA1",
+    "previous_release": "3.55.0",
+    "release": "3.56.0"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. How many new allele names at the locus below were added in IPD-IMGT/HLA release 3.56.0 relative to release 3.55.0? Answer with an integer. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [],
+  "subtype": "new_in_release",
+  "task_id": "hla_nomenclature.T3.new_in_release.0010",
+  "tier": 3
+}

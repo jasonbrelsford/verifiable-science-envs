@@ -1,0 +1,19 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "deleted_name": "C*07:235"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. The allele name below has been deleted from the IPD-IMGT/HLA database. Give its current name in this release, or DELETED_NO_SUCCESSOR if the sequence has no current name. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "deleted_name"
+  ],
+  "subtype": "renamed_to",
+  "task_id": "hla_nomenclature.T3.renamed_to.0015",
+  "tier": 3
+}

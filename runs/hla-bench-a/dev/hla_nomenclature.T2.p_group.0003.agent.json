@@ -1,0 +1,19 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "allele": "C*15:283"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. Give the P group of the allele below, or NONE if it is not a member of any P group in this release (null alleles have no P group). Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "unconfirmed"
+  ],
+  "subtype": "p_group",
+  "task_id": "hla_nomenclature.T2.p_group.0003",
+  "tier": 2
+}

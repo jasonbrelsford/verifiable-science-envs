@@ -1,0 +1,66 @@
+{
+  "base_seed": 20260830,
+  "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
+  "counts_per_subtype": {
+    "deleted_reason": 30,
+    "existed_at": 30,
+    "expand_ambiguity": 30,
+    "first_release": 30,
+    "g_group": 30,
+    "group_members_count": 30,
+    "locus_field": 30,
+    "name_at_release": 30,
+    "near_miss": 20,
+    "new_in_release": 30,
+    "null_trap": 20,
+    "p_group": 30,
+    "release_drift": 20,
+    "renamed_to": 30,
+    "resolve_chain": 20,
+    "same_group": 30,
+    "serology": 30,
+    "truncate": 30,
+    "typing_report_normalize": 20,
+    "valid_name": 30
+  },
+  "cutoff_assumption": {
+    "post_cutoff_share_T3T4_allele_tasks": 0.327,
+    "release": "3.58.0"
+  },
+  "reference": {
+    "attribution": "Barker DJ et al., Nucleic Acids Research 2025 (IPD-IMGT/HLA); CC-BY-ND",
+    "db": "IPD-IMGT/HLA",
+    "md5": {
+      "Allele_status.txt": "37a8505fed37e33f05d0e1b6546c762e",
+      "Allelelist.txt": "b9b22a0394436db7362ba6aa85a05855",
+      "Allelelist_history.txt": "39439ca911e37dc48d4bb22fc9b863c5",
+      "Deleted_alleles.txt": "e2f044117e14db8e3c67bb870cc652ae",
+      "wmda/hla_nom_g.txt": "b5adccceaeb2a0ae064fff037c0cfec6",
+      "wmda/hla_nom_p.txt": "7ceda6c89a7b5f9d4f44256e2d691fb2",
+      "wmda/rel_dna_ser.txt": "9abb2224d392cdec07b79bd5be1c902a",
+      "wmda/rel_ser_ser.txt": "e997431d41478aff70fd89ebd00ea7f3"
+    },
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slice_counts": {
+    "added_since_3.60": 58,
+    "class_II_secondary_locus": 137,
+    "deleted_name": 100,
+    "expression_suffix": 7,
+    "near_miss": 20,
+    "null_allele": 36,
+    "partial_sequence": 143,
+    "post_cutoff": 78,
+    "renamed": 20,
+    "renamed_since_3.50": 13,
+    "serology_uncertain": 15,
+    "typing_report": 20,
+    "unconfirmed": 248
+  },
+  "split": {
+    "dev": 112,
+    "test": 438
+  },
+  "total": 550
+}

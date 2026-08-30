@@ -1,0 +1,21 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "allele": "C*16:65"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. Give the WMDA serological equivalent(s) of the allele below as the bare antigen number(s) (e.g. 1, 0201, 0 for null/no antigen), joining alternatives with '/'. If the assignment is not unambiguous, raise the flag serology_uncertain and lower your confidence. Answer NONE if no serological assignment exists. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "partial_sequence",
+    "serology_uncertain",
+    "unconfirmed"
+  ],
+  "subtype": "serology",
+  "task_id": "hla_nomenclature.T2.serology.0001",
+  "tier": 2
+}

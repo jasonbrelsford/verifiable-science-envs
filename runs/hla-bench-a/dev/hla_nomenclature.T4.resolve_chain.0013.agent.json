@@ -1,0 +1,21 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "deleted_name": "C*02:67"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. Resolve the deleted allele name below in three steps and answer with an object {\"current_name\": ..., \"g_group\": ... or \"NONE\", \"serology\": bare antigen number(s) joined by \"/\" or \"NONE\"}. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "deleted_name",
+    "expression_suffix",
+    "partial_sequence"
+  ],
+  "subtype": "resolve_chain",
+  "task_id": "hla_nomenclature.T4.resolve_chain.0013",
+  "tier": 4
+}

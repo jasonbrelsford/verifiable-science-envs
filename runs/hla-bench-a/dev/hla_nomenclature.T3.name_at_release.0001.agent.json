@@ -1,0 +1,21 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "current_name": "DQA1*03:03:01:10",
+    "hla_id": "HLA24401",
+    "release": "3.27.0"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. The IPD-IMGT/HLA accession below is currently named DQA1*03:03:01:10. What was its allele name in the release stated? Answer NONE if it had not yet been named in that release. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "unconfirmed"
+  ],
+  "subtype": "name_at_release",
+  "task_id": "hla_nomenclature.T3.name_at_release.0001",
+  "tier": 3
+}

@@ -1,0 +1,24 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "allele_a": "DPA1*02:01:01:53",
+    "allele_b": "DPA1*02:01:01:31",
+    "group_kind": "P"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. Are the two alleles below members of the same P group in this release? Answer TRUE or FALSE. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "added_since_3.60",
+    "class_II_secondary_locus",
+    "post_cutoff",
+    "unconfirmed"
+  ],
+  "subtype": "same_group",
+  "task_id": "hla_nomenclature.T2.same_group.0017",
+  "tier": 2
+}

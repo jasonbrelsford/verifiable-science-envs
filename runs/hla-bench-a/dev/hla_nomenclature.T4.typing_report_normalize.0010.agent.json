@@ -1,0 +1,20 @@
+{
+  "family": "hla_nomenclature",
+  "input": {
+    "typing": "A*02:581, B*4001, C*08:224N, DRB1*04:94:02N, DQB1*0501, DPB1*566:01"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. The typing report below lists one allele per locus in mixed, partly outdated styles. Normalize every entry to its current 2-field name in this release and answer with an object keyed by locus, e.g. {\"A\": \"A*02:01\", \"B\": ..., \"C\": ..., \"DRB1\": ..., \"DQB1\": ..., \"DPB1\": ...}. Raise deprecated_name if any entry used legacy or deleted nomenclature. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "deleted_name",
+    "typing_report"
+  ],
+  "subtype": "typing_report_normalize",
+  "task_id": "hla_nomenclature.T4.typing_report_normalize.0010",
+  "tier": 4
+}
