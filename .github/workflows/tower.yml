@@ -65,8 +65,13 @@ jobs:
         run: hla-bench run baseline-naive-string baseline-cautious-abstainer --split ${{ inputs.split }}
       - name: Models
         if: ${{ inputs.models != '' }}
-        run: hla-bench run ${{ inputs.models }} --split ${{ inputs.split }}
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path logs | Out-Null
+          cmd /c "hla-bench run ${{ inputs.models }} --split ${{ inputs.split }} > logs\tower-models.log 2>&1"
+          Get-Content logs\tower-models.log -Tail 60
       - name: Report
+        continue-on-error: true
         run: hla-bench report
       - uses: actions/upload-artifact@v4
         with:
@@ -79,7 +84,7 @@ jobs:
         run: |
           git config user.name "hla-bench tower"
           git config user.email "tower@users.noreply.github.com"
-          git add runs/hla-bench-a/results bench/HLA-Bench-A.md
+          git add runs/hla-bench-a/results bench/HLA-Bench-A.md logs/tower-models.log
           git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [skip ci]"
           if ($LASTEXITCODE -ne 0) { Write-Host "nothing to commit"; exit 0 }
           git pull --rebase origin main
