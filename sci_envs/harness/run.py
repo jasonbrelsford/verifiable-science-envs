@@ -9,7 +9,6 @@ Layout under ``<suite_dir>``:
 from __future__ import annotations
 
 import json
-import re
 import sys
 import time
 from pathlib import Path
@@ -41,7 +40,7 @@ def _agent_view(t: dict) -> dict:
 
 def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path, split: str,
               limit: Optional[int] = None, verbose: bool = True) -> tuple[list[Score], dict]:
-    safe = re.sub(r"[^A-Za-z0-9._-]", "__", model.name)   # Windows forbids ":" in paths (ollama/qwen2.5:7b)
+    safe = model.name.replace("/", "__").replace(":", "_")   # ":" is illegal in Windows paths (ollama/qwen2.5:7b)
     rdir = suite_dir / "responses" / safe
     rdir.mkdir(parents=True, exist_ok=True)
     scores: list[Score] = []
@@ -70,6 +69,17 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
     (suite_dir / "results").mkdir(exist_ok=True)
     (suite_dir / "scores" / f"{safe}.{split}.json").write_text(dumps({"summary": summary, "scores": [s.to_dict() for s in scores]}))
     (suite_dir / "results" / f"{safe}.{split}.json").write_text(dumps(summary))
+    # A small, committable sample of wrong answers so grader strictness can be audited without the raw dump.
+    logs = suite_dir.parent.parent / "logs" if suite_dir.name == "hla-bench-a" else suite_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    sample = []
+    for tid, s in zip(ids, scores):
+        if not s.correct and len(sample) < 60:
+            raw = json.loads((rdir / f"{tid}.json").read_text())["raw"]
+            sample.append({"task_id": tid, "subtype": s.subtype, "input": full[tid]["input"],
+                           "canonical": full[tid]["answer"]["canonical"], "raw": raw if isinstance(raw, str) else json.dumps(raw),
+                           "primary_failure_mode": s.primary_failure_mode, "hallucinated": s.hallucinated_names})
+    (logs / f"{safe}.{split}.wrong-sample.json").write_text(dumps(sample))
     return scores, summary
 
 
