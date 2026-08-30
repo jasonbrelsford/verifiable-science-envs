@@ -9,6 +9,7 @@ Layout under ``<suite_dir>``:
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -40,7 +41,7 @@ def _agent_view(t: dict) -> dict:
 
 def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path, split: str,
               limit: Optional[int] = None, verbose: bool = True) -> tuple[list[Score], dict]:
-    safe = model.name.replace("/", "__")
+    safe = re.sub(r"[^A-Za-z0-9._-]", "__", model.name)   # Windows forbids ":" in paths (ollama/qwen2.5:7b)
     rdir = suite_dir / "responses" / safe
     rdir.mkdir(parents=True, exist_ok=True)
     scores: list[Score] = []
