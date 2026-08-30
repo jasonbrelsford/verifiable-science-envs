@@ -1,0 +1,737 @@
+[
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele name DQA1*05:01 is a valid 2-field name according to IPD-IMGT/HLA release 3.65.0, and it corresponds to a single null allele.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0000"
+  },
+  {
+    "canonical": "193",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*44:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The input allele name B*44:02 is a valid 2-field name according to the IPD-IMGT/HLA release 3.65.0, and it corresponds to a single null allele.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [
+      "DRB5*0101"
+    ],
+    "input": {
+      "allele": "DRB5*01:105"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele name DRB5*01:105 is a valid 2-field name in the IPD-IMGT/HLA release 3.65.0, and it corresponds to the null allele DRB5*0101.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0002"
+  },
+  {
+    "canonical": "A:I",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*23:129"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"A:II\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Resolved correctly using IPD-IMGT/HLA release 3.65.0\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0001"
+  },
+  {
+    "canonical": "DRB3:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:02:16"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB1:II\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB3*02:02:16 is a null allele, as indicated by the 'null_allele' flag.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0003"
+  },
+  {
+    "canonical": "DRB3:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:23"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB1:II\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB3*02:23 is a null allele, as indicated by the 'null_allele' flag.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0005"
+  },
+  {
+    "canonical": "DRB1*14:06",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*14:06:03",
+      "fields": 2
+    },
+    "primary_failure_mode": "legacy_nomenclature",
+    "raw": "{\"answer\": \"DRB1*1406\", \"confidence\": \"high\", \"flags\": [\"expression_suffix\"], \"reasoning\": \"Reduced to 2-field resolution, retained expression suffix as all alleles under this name carry it.\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0000"
+  },
+  {
+    "canonical": "B*15:504",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*15:504:01",
+      "fields": 2
+    },
+    "primary_failure_mode": "legacy_nomenclature",
+    "raw": "{\"answer\": \"B*1504\", \"confidence\": \"high\", \"flags\": [\"expression_suffix\"], \"reasoning\": \"Reduced 2-field resolution for B*15:504:01, as every allele under this name carries the '01' expression suffix.\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0001"
+  },
+  {
+    "canonical": "DPB1*01:01",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*01:01:01:22",
+      "fields": 2
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"DPB1*01\", \"confidence\": \"high\", \"flags\": [\"expression_suffix\"], \"reasoning\": \"Reduced to 2-field resolution, keeping expression suffix as all alleles under DPB1*01 carry this suffix.\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0002"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*33:14"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name 'A*33:14' is not a valid, currently assigned allele name in IPD-IMGT/HLA release 3.65.0. The allele name is not recognized in the current nomenclature, and the colon-delimited format is not used in this release.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0003"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*24:02:71"
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": false, \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name does not match the current nomenclature. The correct format should be A*02:02:01, not A*24:02:71.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0004"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*0212"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": true, \"confidence\": \"high\", \"flags\": null, \"reasoning\": \"Valid allele name in IPD-IMGT/HLA release 3.65.0\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0005"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:71N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB5*01:71N is a null allele, therefore it belongs to the G group.\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:65"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB5*01:65 is a null allele in the G group.\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*06:48"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"C*06:48 is a null allele in the G group.\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0002"
+  },
+  {
+    "canonical": "5",
+    "hallucinated": [],
+    "input": {
+      "group": "DPB1*23:01:01G"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele DPB1*23:01:01G is a null allele, which is a member of the G group.\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0000"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "group": "B*15:16:02G"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele name B*15:16:02G is a member of the G group in the IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "group": "B*15:83P"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele name is a member of the P group in the specified release.\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0002"
+  },
+  {
+    "canonical": "DQB1*06:02P",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:188"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"P\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele DQB1*06:188 is a null allele, which does not have a P group.\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:131"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"P\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB4*01:131 is a null allele, which does not have a P group.\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0001"
+  },
+  {
+    "canonical": "B*18:01P",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*18:01:01:58"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"P1\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"B*18:01:01:58 is a null allele, which does not belong to any P group.\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0002"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "DQB1*03:01:01:14",
+      "allele_b": "DQB1*03:426",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Allele DQB1*03:426 does not belong to the G group.\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0004"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [
+      "DPB1*1796"
+    ],
+    "input": {
+      "allele_a": "DPB1*1796:01",
+      "allele_b": "DPB1*942:01",
+      "group_kind": "P"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Allele DPB1*1796 is in P group, while allele DPB1*942 is in Q group.\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0005"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "C*06:287",
+      "allele_b": "C*06:02:01:20",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Allele C*06:287 belongs to G group, but allele C*06:02:01:20 belongs to G2 group.\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0007"
+  },
+  {
+    "canonical": "33",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*33:193"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"33/193\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Serological equivalent found in IPD-IMGT/HLA release 3.65.0\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0000"
+  },
+  {
+    "canonical": "16",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*16:65"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"C16:65\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Serological equivalent of C*16:65 is C16:65\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0001"
+  },
+  {
+    "canonical": "3",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:546"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"0201\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Serological equivalent of DQB1*03:546 is 0201\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0002"
+  },
+  {
+    "canonical": "identical_sequence",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DRB1*11:11:02"
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": \"never_assigned\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"The allele name was deleted because it does not conform to the current IPD-IMGT/HLA colon-delimited nomenclature. The correct format should be DRB1*11:11:02, but the input provided contains an ambiguous input.\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0000"
+  },
+  {
+    "canonical": "named_in_error",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*35:43:02"
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": \"never_assigned\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"The allele name B*35:43:02 does not match any known allele in the IPD-IMGT/HLA database. The input may be ambiguous or incorrect.\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0001"
+  },
+  {
+    "canonical": "named_in_error",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "E*01:21:02N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"renamed_extended\", \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"The allele name E*01:21:02N was deleted from the IPD-IMGT/HLA database because it was renamed to E*01:21:02N (no suffix) in release 3.65.0.\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0002"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:118",
+      "release": "3.56.0"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"release_mismatch\"], \"reasoning\": \"The allele name does not exist in the specified release. The allele name is correct, but the release is outdated.\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0009"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*07:01:16",
+      "release": "3.44.0"
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": false, \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name contains a colon-delimited nomenclature, but the release 3.44.0 does not support this format. The correct format for the allele name is 'DRB1*07:01:16' without the colon after the first colon.\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0010"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*11:155",
+      "release": "3.54.0"
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": false, \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name does not exist in the specified release. The allele name is A*11:155, but the release 3.54.0 only contains A*11:01.\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0011"
+  },
+  {
+    "canonical": "3.64.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*01:300"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"3.62.0\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele name 'C*01:300' first appeared in IPD-IMGT/HLA release 3.62.0.\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0000"
+  },
+  {
+    "canonical": "3.37.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*01:80"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"3.62.0\", \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name 'DRB3*01:80' is recognized in IPD-IMGT/HLA release 3.62.0, but the colon-delimited format was introduced in a later release. The input allele name is ambiguous because it uses both the legacy colon-less format and the current colon-delimited format.\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0001"
+  },
+  {
+    "canonical": "3.35.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:87"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"3.62.0\", \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The allele name DRB3*02:87 first appeared in IPD-IMGT/HLA release 3.62.0. However, the colon-delimited nomenclature was introduced in release 3.62.0, but the allele name itself was already present in release 3.62.0. The colon-delimited nomenclature was adopted in release 3.62.0, but the allele name was not changed. The input allele name is ambiguous because it uses both colon-delimited and legacy colon-less nomenclature.\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0002"
+  },
+  {
+    "canonical": "DQB1*05:113",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQB1*05:113",
+      "hla_id": "HLA14551",
+      "release": "3.63.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The current name DQB1*05:113 is from release 3.65.0, but the input release is 3.63.0, which is a different release. The input also contains an ambiguous input as the current name is not present in the 3.63.0 release.\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQA1*03:03:01:10",
+      "hla_id": "HLA24401",
+      "release": "3.27.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The current name DQA1*03:03:01:10 was introduced in a later release (3.65.0) than the specified release (3.27.0), and the allele name was not yet named in the specified release.\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "A*30:262",
+      "hla_id": "HLA45735",
+      "release": "3.46.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"release_mismatch\", \"ambiguous_input\"], \"reasoning\": \"The current name A*30:262 is from release 3.65.0, but the input release is 3.46.0, indicating a mismatch between the release of the current name and the input release. The input allele name could not be resolved from the IPD-IMGT/HLA release 3.46.0.\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0002"
+  },
+  {
+    "canonical": "148",
+    "hallucinated": [],
+    "input": {
+      "locus": "B",
+      "previous_release": "3.64.0",
+      "release": "3.65.0"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 0, \"confidence\": \"high\", \"flags\": [\"release_mismatch\"], \"reasoning\": \"The input locus and previous and current releases are valid. However, no new allele names were added in IPD-IMGT/HLA release 3.65.0 relative to release 3.64.0.\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0000"
+  },
+  {
+    "canonical": "5",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB4",
+      "previous_release": "3.56.0",
+      "release": "3.57.0"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"release_mismatch\"], \"reasoning\": \"Release 3.57.0 added a new allele name at the DRB4 locus compared to release 3.56.0.\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0002"
+  },
+  {
+    "canonical": "41",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB1",
+      "previous_release": "3.53.0",
+      "release": "3.54.0"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [\"release_mismatch\"], \"reasoning\": \"Release 3.54.0 added a new allele name at the DRB1 locus compared to release 3.53.0.\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0003"
+  },
+  {
+    "canonical": "A*24:135:02",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*24:211"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"A*24:211\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele name has been deleted from the IPD-IMGT/HLA database, but it still exists in the current release with no successor.\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0000"
+  },
+  {
+    "canonical": "DRB1*03:81",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DRB1*03:11:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB1*03:11:02\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele name has been deleted from the IPD-IMGT/HLA database, but it still exists in the current release with no successor.\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0001"
+  },
+  {
+    "canonical": "B*35:185",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*35:43:02"
+    },
+    "primary_failure_mode": "legacy_nomenclature",
+    "raw": "{\"answer\": \"B*3503\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The deleted allele B*35:43:02 has been replaced with B*3503 in the IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0002"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [
+      "DRB5*02:47"
+    ],
+    "input": {
+      "allele": "DRB5*02:47"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DRB5*02:47 is a null allele in the G group.\"}",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0000"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [
+      "DQA1*05:05:17:04"
+    ],
+    "input": {
+      "allele": "DQA1*05:05:17:04"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DQA1*05:05:17:04 is a null allele in the G group.\"}",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0001"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:02:01:106:99"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"G\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele C*07:02:01:106:99 is not a member of any G group.\"}",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0002"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:90N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"P\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele DQB1*03:90N has a P group of P.\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*1882:01N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"DPB1*1882:01N is a null allele in IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:54N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"P\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"The allele DQB1*06:54N has a P group of P.\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0002"
+  },
+  {
+    "canonical": "DPA1*01:11",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DPA1*01:11:01",
+      "release": "3.29.0"
+    },
+    "primary_failure_mode": "legacy_nomenclature",
+    "raw": "{\"answer\": \"DPA1*0101\", \"confidence\": \"high\", \"flags\": [\"release_mismatch\"], \"reasoning\": \"The allele name DPA1*01:11:01 was different in release 3.29.0, using the legacy colon-less naming convention.\"}",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0000"
+  },
+  {
+    "canonical": "DQA1*01:04:02",
+    "hallucinated": [
+      "DQA1*0102"
+    ],
+    "input": {
+      "current_name": "DQA1*01:04:02:01",
+      "release": "3.37.0"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": \"DQA1*0102\", \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"deprecated_name\"], \"reasoning\": \"The allele name DQA1*01:04:02:01 was deprecated in release 3.37.0 and replaced with DQA1*0102.\"}",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0001"
+  },
+  {
+    "canonical": "DRB5*01:08N",
+    "hallucinated": [
+      "DRB5*0108:01N"
+    ],
+    "input": {
+      "current_name": "DRB5*01:08:01N",
+      "release": "3.22.0"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": \"DRB5*0108:01N\", \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"deprecated_name\"], \"reasoning\": \"The allele DRB5*01:08:01N was known as DRB5*0108:01N in release 3.22.0, which is now deprecated.\"}",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0002"
+  },
+  {
+    "canonical": {
+      "current_name": "A*24:135:02",
+      "g_group": "NONE",
+      "serology": "24"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*24:211"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"A*24:211\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"Deleted allele name matches the format of null alleles in IPD-IMGT/HLA.\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0000"
+  },
+  {
+    "canonical": {
+      "current_name": "B*49:01:01:01",
+      "g_group": "B*49:01:01G",
+      "serology": "49"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*49:15"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"B*49:15\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"Deleted allele name matches current IPD-IMGT/HLA nomenclature\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0001"
+  },
+  {
+    "canonical": {
+      "current_name": "C*12:03:01:42Q",
+      "g_group": "C*12:03:01G",
+      "serology": "0/12"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "C*12:03:01:42"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"C*12:03:01:42\", \"confidence\": \"high\", \"flags\": [\"null_allele\"], \"reasoning\": \"Deleted allele name matches current IPD-IMGT/HLA nomenclature, no further resolution needed.\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0002"
+  },
+  {
+    "canonical": {
+      "A": "A*02:01",
+      "B": "B*35:43",
+      "C": "C*15:23",
+      "DPB1": "DPB1*1634:01",
+      "DQB1": "DQB1*04:02",
+      "DRB1": "DRB1*07:01"
+    },
+    "hallucinated": [
+      "A*0201",
+      "DPB1*16:34:01"
+    ],
+    "input": {
+      "typing": "A*0201, B*3543, C*15:23:02, DRB1*07:01:01:03, DQB1*04:02:23, DPB1*1634:01"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": {\"A\": \"A*02:01\", \"B\": \"B*35:43\", \"C\": \"C*15:23:02\", \"DRB1\": \"DRB1*07:01:01:03\", \"DQB1\": \"DQB1*04:02:23\", \"DPB1\": \"DPB1*16:34:01\"}, \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"Legacy nomenclature used for A*0201 and DPB1*1634:01, which have been updated to A*02:01 and DPB1*16:34:01, respectively.\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0000"
+  },
+  {
+    "canonical": {
+      "A": "A*68:01",
+      "B": "B*39:174",
+      "C": "C*15:176",
+      "DPB1": "DPB1*05:01",
+      "DQB1": "DQB1*05:58",
+      "DRB1": "DRB1*12:01"
+    },
+    "hallucinated": [],
+    "input": {
+      "typing": "A*68:01:59, B*38:159, C*15:176, DRB1*12031, DQB1*05:58, DPB1*0501"
+    },
+    "primary_failure_mode": "legacy_nomenclature",
+    "raw": "{\"answer\": {\"A\": \"A*68:01:59\", \"B\": \"B*38:159\", \"C\": \"C*15:176\", \"DRB1\": \"DRB1*12031\", \"DQB1\": \"DQB1*05:01\", \"DPB1\": \"DPB1*0501\"}, \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"Legacy nomenclature used for A*68:01:59 and DQB1*05:58\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0001"
+  },
+  {
+    "canonical": {
+      "A": "A*24:608N",
+      "B": "B*08:01",
+      "C": "C*15:142",
+      "DPB1": "DPB1*02:01",
+      "DQB1": "DQB1*02:238",
+      "DRB1": "DRB1*01:12"
+    },
+    "hallucinated": [],
+    "input": {
+      "typing": "A*24:459:02, B*08:01, C*15:142, DRB1*0112, DQB1*02:238, DPB1*02011"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"A\": \"A*02:01\", \"B\": \"B*08:01\", \"C\": \"C*15:142\", \"DRB1\": \"DRB1*01:02\", \"DQB1\": \"DQB1*02:01\", \"DPB1\": \"DPB1*02:01\"}, \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"Legacy nomenclature used for A*24:459:02, B*08:01, C*15:142, DRB1*0112, DQB1*02:238, DPB1*02011\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0002"
+  }
+]
