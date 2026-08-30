@@ -1,6 +1,6 @@
 # TASK_SPEC — Family A: HLA Allele Nomenclature Resolution
 
-*v0.1 · August 30, 2026 · Rung 1 of the credibility ladder. Companion: `GRADER_SPEC.md`. Reference facts verified against the ANHIG/IMGTHLA GitHub mirror on 2026-08-30: current release **3.65.0** (2026-07-14), **46,652** named alleles, **288** deleted alleles, `Allelelist_history.txt` columns back to 3.27.0.*
+*v0.1.1 · August 30, 2026 · Rung 1 of the credibility ladder. Companion: `GRADER_SPEC.md`. Reference facts verified against the ANHIG/IMGTHLA GitHub mirror on 2026-08-30: current release **3.65.0** (2026-07-14), **46,652** named alleles, **288** deleted alleles, `Allelelist_history.txt` columns back to 3.27.0.*
 
 ## 1. Purpose
 
@@ -75,7 +75,7 @@ Each subtype is a generator function `gen_<subtype>(ref, rng) -> Task`. Difficul
 | `existed_at` | allele + release R → did this name exist in release R (boolean) |
 | `first_release` | allele → first release in which the name appears |
 | `name_at_release` | HLA ID + release R → the name at that release |
-| `deleted_reason` | deleted name → categorical reason: `identical_sequence`, `renamed_extended`, `named_in_error`, `low_expression_renamed`, `other` (mapped from `Deleted_alleles.txt` description by regex; the mapping table is part of the grader) |
+| `deleted_reason` | deleted name → categorical reason: `identical_sequence`, `renamed_extended`, `named_in_error`, `low_expression_renamed`, `suffix_changed`, `never_assigned`, `other` (mapped from `Deleted_alleles.txt` description by regex in `DeletedAllele.reason`; at 3.65.0: 106/47/32/1/91/9/2; `other` is excluded from generation) |
 | `new_in_release` | release R → how many alleles at locus L were added vs R−1 (integer) |
 
 ### Tier 4 — Compositional and adversarial

@@ -197,9 +197,9 @@ def test_status(ref):
 # ---------------------------------------------------------------- hallucination
 def test_classify_tokens(ref):
     text = ("The allele HLA-A*01:01:01:01 belongs to A*01:01:01G; A*0105N was deleted; "
-            "A*02:1041 does not exist and neither does B*99:99:99.")
+            "A*02:9999 does not exist and neither does B*99:99:99.")
     c = ref.classify_tokens(text)
     assert c["valid"] == ["A*01:01:01:01"]
     assert c["group"] == ["A*01:01:01G"]
     assert c["deleted"] == ["A*0105N"]
-    assert c["hallucinated"] == ["A*02:1041", "B*99:99:99"]
+    assert c["hallucinated"] == ["A*02:9999", "B*99:99:99"]

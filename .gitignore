@@ -9,3 +9,7 @@ node_modules/
 .DS_Store
 data/raw/
 *.log
+# sealed test split and model runs never leave the machine
+runs/*/full/
+runs/*/responses/
+runs/*/scores/

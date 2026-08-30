@@ -54,7 +54,7 @@ ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLS
 GROUP_RE = re.compile(r"^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$")
 
 _SUCCESSOR_RE = re.compile(
-    r"(?:identical to|renamed(?: as| to)?|renamed and extended to|is identical to)\s+([A-Z]+[0-9]*\*[0-9:]+[NLSCAQ]?)"
+    r"(?:identical to|renamed(?: as| to)?|renamed and extended to|is identical to|becoming)\s+([A-Z]+[0-9]*\*[0-9:]+[NLSCAQ]?)"
 )
 
 
@@ -104,9 +104,13 @@ class DeletedAllele:
         d = self.description.lower()
         if "low levels" in d or "low expression" in d:
             return "low_expression_renamed"
+        if d.startswith("suffix"):
+            return "suffix_changed"
+        if "never assigned" in d:
+            return "never_assigned"
         if "identical" in d:
             return "identical_sequence"
-        if "in error" in d and "renamed" in d:
+        if "in error" in d or "contain errors" in d or "assigned in error" in d:
             return "named_in_error"
         if "extended" in d and "renamed" in d:
             return "renamed_extended"
@@ -569,13 +573,17 @@ class ImgtReference:
     def classify_tokens(self, text: str) -> dict[str, list[str]]:
         """Split every allele-like token in free text into valid / deleted /
         group / hallucinated, per GRADER_SPEC §3.4."""
-        seen = {"valid": [], "deleted": [], "group": [], "hallucinated": []}
+        seen = {"valid": [], "deleted": [], "group": [], "fabricated_group": [], "hallucinated": []}
         for tok in set(ALLELE_TOKEN_RE.findall(text)):
             t = tok[4:] if tok.startswith("HLA-") else tok
             if self.exists(t):
                 seen["valid"].append(t)
             elif self.is_group_name(t):
                 seen["group"].append(t)
+            elif self._valid_prefix(t):
+                seen["valid"].append(t)
+            elif GROUP_RE.match(t):
+                seen["fabricated_group"].append(t)
             elif self.is_deleted(t) or (self.ids_for_name_ever(t) and not self.exists(t)):
                 seen["deleted"].append(t)
             else:
@@ -583,6 +591,23 @@ class ImgtReference:
         for k in seen:
             seen[k].sort()
         return seen
+
+    def _valid_prefix(self, name: str) -> bool:
+        """True if `name` is a lower-resolution name with at least one full
+        allele under it (suffix, if any, must be shared by all members)."""
+        try:
+            locus, fields, suffix = split_allele(name)
+        except ImgtError:
+            return False
+        if len(fields) >= 4:
+            return False
+        base = f"{locus}*{':'.join(fields)}"
+        members = self.expand(base)
+        if not members:
+            return False
+        if suffix:
+            return all(split_allele(m)[2] == suffix for m in members)
+        return True
 
     def assert_release(self, release: str) -> None:
         if release != self.release:
