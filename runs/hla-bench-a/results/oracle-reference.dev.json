@@ -1,0 +1,382 @@
+{
+  "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
+  "by_slice": {
+    "added_since_3.60": {
+      "acc": 1.0,
+      "ci95": [
+        0.7412,
+        1.0
+      ],
+      "correct": 11,
+      "n": 11
+    },
+    "class_II_secondary_locus": {
+      "acc": 1.0,
+      "ci95": [
+        0.8569,
+        1.0
+      ],
+      "correct": 23,
+      "n": 23
+    },
+    "deleted_name": {
+      "acc": 1.0,
+      "ci95": [
+        0.8454,
+        1.0
+      ],
+      "correct": 21,
+      "n": 21
+    },
+    "expression_suffix": {
+      "acc": 1.0,
+      "ci95": [
+        0.4385,
+        1.0
+      ],
+      "correct": 3,
+      "n": 3
+    },
+    "near_miss": {
+      "acc": 1.0,
+      "ci95": [
+        0.5101,
+        1.0
+      ],
+      "correct": 4,
+      "n": 4
+    },
+    "null_allele": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "partial_sequence": {
+      "acc": 1.0,
+      "ci95": [
+        0.8928,
+        1.0
+      ],
+      "correct": 32,
+      "n": 32
+    },
+    "post_cutoff": {
+      "acc": 1.0,
+      "ci95": [
+        0.8157,
+        1.0
+      ],
+      "correct": 17,
+      "n": 17
+    },
+    "renamed": {
+      "acc": 1.0,
+      "ci95": [
+        0.3424,
+        1.0
+      ],
+      "correct": 2,
+      "n": 2
+    },
+    "renamed_since_3.50": {
+      "acc": 1.0,
+      "ci95": [
+        0.2065,
+        1.0
+      ],
+      "correct": 1,
+      "n": 1
+    },
+    "serology_uncertain": {
+      "acc": 1.0,
+      "ci95": [
+        0.2065,
+        1.0
+      ],
+      "correct": 1,
+      "n": 1
+    },
+    "typing_report": {
+      "acc": 1.0,
+      "ci95": [
+        0.2065,
+        1.0
+      ],
+      "correct": 1,
+      "n": 1
+    },
+    "unconfirmed": {
+      "acc": 1.0,
+      "ci95": [
+        0.9312,
+        1.0
+      ],
+      "correct": 52,
+      "n": 52
+    }
+  },
+  "by_subtype": {
+    "deleted_reason": {
+      "acc": 1.0,
+      "ci95": [
+        0.5655,
+        1.0
+      ],
+      "correct": 5,
+      "n": 5
+    },
+    "existed_at": {
+      "acc": 1.0,
+      "ci95": [
+        0.5655,
+        1.0
+      ],
+      "correct": 5,
+      "n": 5
+    },
+    "expand_ambiguity": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "first_release": {
+      "acc": 1.0,
+      "ci95": [
+        0.7225,
+        1.0
+      ],
+      "correct": 10,
+      "n": 10
+    },
+    "g_group": {
+      "acc": 1.0,
+      "ci95": [
+        0.6457,
+        1.0
+      ],
+      "correct": 7,
+      "n": 7
+    },
+    "group_members_count": {
+      "acc": 1.0,
+      "ci95": [
+        0.5655,
+        1.0
+      ],
+      "correct": 5,
+      "n": 5
+    },
+    "locus_field": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "name_at_release": {
+      "acc": 1.0,
+      "ci95": [
+        0.6756,
+        1.0
+      ],
+      "correct": 8,
+      "n": 8
+    },
+    "near_miss": {
+      "acc": 1.0,
+      "ci95": [
+        0.5101,
+        1.0
+      ],
+      "correct": 4,
+      "n": 4
+    },
+    "new_in_release": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "null_trap": {
+      "acc": 1.0,
+      "ci95": [
+        0.4385,
+        1.0
+      ],
+      "correct": 3,
+      "n": 3
+    },
+    "p_group": {
+      "acc": 1.0,
+      "ci95": [
+        0.5655,
+        1.0
+      ],
+      "correct": 5,
+      "n": 5
+    },
+    "release_drift": {
+      "acc": 1.0,
+      "ci95": [
+        0.3424,
+        1.0
+      ],
+      "correct": 2,
+      "n": 2
+    },
+    "renamed_to": {
+      "acc": 1.0,
+      "ci95": [
+        0.6756,
+        1.0
+      ],
+      "correct": 8,
+      "n": 8
+    },
+    "resolve_chain": {
+      "acc": 1.0,
+      "ci95": [
+        0.6457,
+        1.0
+      ],
+      "correct": 7,
+      "n": 7
+    },
+    "same_group": {
+      "acc": 1.0,
+      "ci95": [
+        0.6457,
+        1.0
+      ],
+      "correct": 7,
+      "n": 7
+    },
+    "serology": {
+      "acc": 1.0,
+      "ci95": [
+        0.5101,
+        1.0
+      ],
+      "correct": 4,
+      "n": 4
+    },
+    "truncate": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "typing_report_normalize": {
+      "acc": 1.0,
+      "ci95": [
+        0.2065,
+        1.0
+      ],
+      "correct": 1,
+      "n": 1
+    },
+    "valid_name": {
+      "acc": 1.0,
+      "ci95": [
+        0.6457,
+        1.0
+      ],
+      "correct": 7,
+      "n": 7
+    }
+  },
+  "by_tier": {
+    "1": {
+      "acc": 1.0,
+      "ci95": [
+        0.8668,
+        1.0
+      ],
+      "correct": 25,
+      "n": 25
+    },
+    "2": {
+      "acc": 1.0,
+      "ci95": [
+        0.8794,
+        1.0
+      ],
+      "correct": 28,
+      "n": 28
+    },
+    "3": {
+      "acc": 1.0,
+      "ci95": [
+        0.9162,
+        1.0
+      ],
+      "correct": 42,
+      "n": 42
+    },
+    "4": {
+      "acc": 1.0,
+      "ci95": [
+        0.8157,
+        1.0
+      ],
+      "correct": 17,
+      "n": 17
+    }
+  },
+  "calibration": {
+    "calibrated_fraction": 1.0,
+    "stated_vs_expected": {
+      "high->high": 31,
+      "low->low": 3,
+      "medium->medium": 78
+    }
+  },
+  "contamination_resistant": {
+    "acc": 1.0,
+    "ci95": [
+      0.8569,
+      1.0
+    ],
+    "correct": 23,
+    "n": 23
+  },
+  "grader_version": "A-0.1",
+  "hallucination": {
+    "rate_per_task": 0.0,
+    "tasks_with_hallucinated_names": 0,
+    "top20": []
+  },
+  "model": "oracle-reference",
+  "n": 112,
+  "n_tasks": 112,
+  "overall": {
+    "acc": 1.0,
+    "ci95": [
+      0.9668,
+      1.0
+    ],
+    "correct": 112,
+    "n": 112
+  },
+  "primary_failure_modes": {
+    "clean_correct": 112
+  },
+  "run_at": "2026-08-30T14:06:22Z",
+  "split": "dev"
+}

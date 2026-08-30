@@ -1,0 +1,401 @@
+{
+  "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
+  "by_slice": {
+    "added_since_3.60": {
+      "acc": 0.3636,
+      "ci95": [
+        0.1517,
+        0.6462
+      ],
+      "correct": 4,
+      "n": 11
+    },
+    "class_II_secondary_locus": {
+      "acc": 0.3043,
+      "ci95": [
+        0.156,
+        0.5087
+      ],
+      "correct": 7,
+      "n": 23
+    },
+    "deleted_name": {
+      "acc": 0.1429,
+      "ci95": [
+        0.0498,
+        0.3464
+      ],
+      "correct": 3,
+      "n": 21
+    },
+    "expression_suffix": {
+      "acc": 0.3333,
+      "ci95": [
+        0.0615,
+        0.7923
+      ],
+      "correct": 1,
+      "n": 3
+    },
+    "near_miss": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.4899
+      ],
+      "correct": 0,
+      "n": 4
+    },
+    "null_allele": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.3903
+      ],
+      "correct": 0,
+      "n": 6
+    },
+    "partial_sequence": {
+      "acc": 0.2812,
+      "ci95": [
+        0.1556,
+        0.4537
+      ],
+      "correct": 9,
+      "n": 32
+    },
+    "post_cutoff": {
+      "acc": 0.2353,
+      "ci95": [
+        0.0955,
+        0.4726
+      ],
+      "correct": 4,
+      "n": 17
+    },
+    "renamed": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.6576
+      ],
+      "correct": 0,
+      "n": 2
+    },
+    "renamed_since_3.50": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.7935
+      ],
+      "correct": 0,
+      "n": 1
+    },
+    "serology_uncertain": {
+      "acc": 1.0,
+      "ci95": [
+        0.2065,
+        1.0
+      ],
+      "correct": 1,
+      "n": 1
+    },
+    "typing_report": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.7935
+      ],
+      "correct": 0,
+      "n": 1
+    },
+    "unconfirmed": {
+      "acc": 0.2692,
+      "ci95": [
+        0.1677,
+        0.4025
+      ],
+      "correct": 14,
+      "n": 52
+    }
+  },
+  "by_subtype": {
+    "deleted_reason": {
+      "acc": 0.6,
+      "ci95": [
+        0.2307,
+        0.8824
+      ],
+      "correct": 3,
+      "n": 5
+    },
+    "existed_at": {
+      "acc": 0.6,
+      "ci95": [
+        0.2307,
+        0.8824
+      ],
+      "correct": 3,
+      "n": 5
+    },
+    "expand_ambiguity": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.3903
+      ],
+      "correct": 0,
+      "n": 6
+    },
+    "first_release": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.2775
+      ],
+      "correct": 0,
+      "n": 10
+    },
+    "g_group": {
+      "acc": 0.1429,
+      "ci95": [
+        0.0257,
+        0.5131
+      ],
+      "correct": 1,
+      "n": 7
+    },
+    "group_members_count": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.4345
+      ],
+      "correct": 0,
+      "n": 5
+    },
+    "locus_field": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "name_at_release": {
+      "acc": 0.375,
+      "ci95": [
+        0.1368,
+        0.6943
+      ],
+      "correct": 3,
+      "n": 8
+    },
+    "near_miss": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.4899
+      ],
+      "correct": 0,
+      "n": 4
+    },
+    "new_in_release": {
+      "acc": 0.1667,
+      "ci95": [
+        0.0301,
+        0.5635
+      ],
+      "correct": 1,
+      "n": 6
+    },
+    "null_trap": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.5615
+      ],
+      "correct": 0,
+      "n": 3
+    },
+    "p_group": {
+      "acc": 0.2,
+      "ci95": [
+        0.0362,
+        0.6245
+      ],
+      "correct": 1,
+      "n": 5
+    },
+    "release_drift": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.6576
+      ],
+      "correct": 0,
+      "n": 2
+    },
+    "renamed_to": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.3244
+      ],
+      "correct": 0,
+      "n": 8
+    },
+    "resolve_chain": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.3543
+      ],
+      "correct": 0,
+      "n": 7
+    },
+    "same_group": {
+      "acc": 0.1429,
+      "ci95": [
+        0.0257,
+        0.5131
+      ],
+      "correct": 1,
+      "n": 7
+    },
+    "serology": {
+      "acc": 0.25,
+      "ci95": [
+        0.0456,
+        0.6994
+      ],
+      "correct": 1,
+      "n": 4
+    },
+    "truncate": {
+      "acc": 1.0,
+      "ci95": [
+        0.6097,
+        1.0
+      ],
+      "correct": 6,
+      "n": 6
+    },
+    "typing_report_normalize": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.7935
+      ],
+      "correct": 0,
+      "n": 1
+    },
+    "valid_name": {
+      "acc": 0.4286,
+      "ci95": [
+        0.1582,
+        0.7495
+      ],
+      "correct": 3,
+      "n": 7
+    }
+  },
+  "by_tier": {
+    "1": {
+      "acc": 0.6,
+      "ci95": [
+        0.4074,
+        0.766
+      ],
+      "correct": 15,
+      "n": 25
+    },
+    "2": {
+      "acc": 0.1429,
+      "ci95": [
+        0.057,
+        0.3149
+      ],
+      "correct": 4,
+      "n": 28
+    },
+    "3": {
+      "acc": 0.2381,
+      "ci95": [
+        0.1348,
+        0.3853
+      ],
+      "correct": 10,
+      "n": 42
+    },
+    "4": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.1843
+      ],
+      "correct": 0,
+      "n": 17
+    }
+  },
+  "calibration": {
+    "calibrated_fraction": 0.2768,
+    "stated_vs_expected": {
+      "high->high": 31,
+      "high->low": 3,
+      "high->medium": 78
+    }
+  },
+  "contamination_resistant": {
+    "acc": 0.1739,
+    "ci95": [
+      0.0698,
+      0.3714
+    ],
+    "correct": 4,
+    "n": 23
+  },
+  "grader_version": "A-0.1",
+  "hallucination": {
+    "rate_per_task": 0.0268,
+    "tasks_with_hallucinated_names": 3,
+    "top20": [
+      [
+        "C*12:03:01:42G",
+        1
+      ],
+      [
+        "H*02:01:01:02G",
+        1
+      ],
+      [
+        "DRB1*11:01:01:02G",
+        1
+      ]
+    ]
+  },
+  "model": "baseline-confident-guesser",
+  "n": 112,
+  "n_tasks": 112,
+  "overall": {
+    "acc": 0.2589,
+    "ci95": [
+      0.1868,
+      0.3471
+    ],
+    "correct": 29,
+    "n": 112
+  },
+  "primary_failure_modes": {
+    "clean_correct": 8,
+    "correct_but_overconfident": 21,
+    "fabricated_group": 16,
+    "hallucinated_answer": 3,
+    "legacy_nomenclature": 1,
+    "resolution_mismatch": 2,
+    "wrong_but_overconfident": 61
+  },
+  "run_at": "2026-08-30T14:06:24Z",
+  "split": "dev"
+}
