@@ -1,2 +1,0 @@
-[console_scripts]
-hla-bench = sci_envs.harness.run:main

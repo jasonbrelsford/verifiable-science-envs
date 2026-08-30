@@ -13,3 +13,4 @@ data/raw/
 runs/*/full/
 runs/*/responses/
 runs/*/scores/
+*.egg-info/
