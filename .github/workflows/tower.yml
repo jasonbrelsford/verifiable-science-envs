@@ -21,7 +21,9 @@ jobs:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Python on PATH
+      - uses: actions/setup-python@v5      # installs 3.12 into the runner's tool cache if the box has no Python on PATH
+        with: { python-version: "3.12" }
+      - name: Python
         run: python --version
       - name: Install
         run: python -m pip install --quiet -e ".[dev]"
