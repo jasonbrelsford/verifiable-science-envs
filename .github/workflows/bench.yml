@@ -1,0 +1,38 @@
+# Manual benchmark run. Keys live in GitHub → Settings → Secrets and variables → Actions.
+# Never runs on push (it costs money); trigger from the Actions tab.
+name: bench
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "space-separated model specs, or 'auto' for every vendor with a key"
+        default: "auto"
+      split:
+        description: "dev | test | all"
+        default: "dev"
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/cache@v4
+        with: { path: ~/.cache/sci_envs/imgt, key: imgt-v3.65.0-alpha }
+      - run: pip install -e .
+      - run: hla-bench generate            # sealed split is regenerated on the runner, never stored
+      - run: |
+          if [ "${{ inputs.models }}" = "auto" ]; then hla-bench auto --split ${{ inputs.split }}; \
+          else hla-bench run ${{ inputs.models }} --split ${{ inputs.split }}; fi
+      - run: hla-bench report
+      - uses: actions/upload-artifact@v4
+        with: { name: hla-bench-results, path: "runs/hla-bench-a/results/" }
+      - run: |
+          git config user.name "hla-bench bot" && git config user.email "bot@users.noreply.github.com"
+          git add runs/hla-bench-a/results bench/HLA-Bench-A.md
+          git commit -m "bench: ${{ inputs.models }} on ${{ inputs.split }} [skip ci]" || echo "nothing to commit"
+          git push

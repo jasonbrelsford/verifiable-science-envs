@@ -1,0 +1,384 @@
+{
+  "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
+  "by_slice": {
+    "added_since_3.60": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0621
+      ],
+      "correct": 0,
+      "n": 58
+    },
+    "class_II_secondary_locus": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0273
+      ],
+      "correct": 0,
+      "n": 137
+    },
+    "deleted_name": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.037
+      ],
+      "correct": 0,
+      "n": 100
+    },
+    "expression_suffix": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.3543
+      ],
+      "correct": 0,
+      "n": 7
+    },
+    "near_miss": {
+      "acc": 1.0,
+      "ci95": [
+        0.8389,
+        1.0
+      ],
+      "correct": 20,
+      "n": 20
+    },
+    "null_allele": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0964
+      ],
+      "correct": 0,
+      "n": 36
+    },
+    "partial_sequence": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0262
+      ],
+      "correct": 0,
+      "n": 143
+    },
+    "post_cutoff": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0469
+      ],
+      "correct": 0,
+      "n": 78
+    },
+    "renamed": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "renamed_since_3.50": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.2281
+      ],
+      "correct": 0,
+      "n": 13
+    },
+    "serology_uncertain": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.2039
+      ],
+      "correct": 0,
+      "n": 15
+    },
+    "typing_report": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "unconfirmed": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0153
+      ],
+      "correct": 0,
+      "n": 248
+    }
+  },
+  "by_subtype": {
+    "deleted_reason": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "existed_at": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "expand_ambiguity": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "first_release": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "g_group": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "group_members_count": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "locus_field": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "name_at_release": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "near_miss": {
+      "acc": 1.0,
+      "ci95": [
+        0.8389,
+        1.0
+      ],
+      "correct": 20,
+      "n": 20
+    },
+    "new_in_release": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "null_trap": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "p_group": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "release_drift": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "renamed_to": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "resolve_chain": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "same_group": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "serology": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "truncate": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "typing_report_normalize": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "valid_name": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    }
+  },
+  "by_tier": {
+    "1": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.031
+      ],
+      "correct": 0,
+      "n": 120
+    },
+    "2": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.025
+      ],
+      "correct": 0,
+      "n": 150
+    },
+    "3": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0209
+      ],
+      "correct": 0,
+      "n": 180
+    },
+    "4": {
+      "acc": 0.2,
+      "ci95": [
+        0.1334,
+        0.2888
+      ],
+      "correct": 20,
+      "n": 100
+    }
+  },
+  "calibration": {
+    "calibrated_fraction": 1.0,
+    "stated_vs_expected": {
+      "low->high": 157,
+      "low->low": 35,
+      "low->medium": 358
+    }
+  },
+  "contamination_resistant": {
+    "acc": 0.1695,
+    "ci95": [
+      0.1125,
+      0.2473
+    ],
+    "correct": 20,
+    "n": 118
+  },
+  "grader_version": "A-0.1",
+  "hallucination": {
+    "rate_per_task": 0.0,
+    "tasks_with_hallucinated_names": 0,
+    "top20": []
+  },
+  "model": "baseline-cautious-abstainer",
+  "n": 550,
+  "n_tasks": 550,
+  "overall": {
+    "acc": 0.0364,
+    "ci95": [
+      0.0237,
+      0.0555
+    ],
+    "correct": 20,
+    "n": 550
+  },
+  "primary_failure_modes": {
+    "refused": 490,
+    "resolution_mismatch": 40,
+    "wrong_calibrated": 20
+  },
+  "run_at": "2026-08-30T13:09:26Z",
+  "split": "all"
+}
