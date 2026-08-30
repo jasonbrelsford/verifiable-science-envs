@@ -85,10 +85,24 @@ jobs:
       - name: Commit results
         if: ${{ inputs.commit == 'true' }}
         run: |
+          $ErrorActionPreference = "Continue"
           git config user.name "hla-bench tower"
           git config user.email "tower@users.noreply.github.com"
-          git add runs/hla-bench-a/results bench/HLA-Bench-A.md; git add -f logs/tower-models.log
+          # Re-apply our result files on top of whatever main is now, instead of rebasing a dirty tree.
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\keep" | Out-Null
+          Copy-Item -Recurse -Force runs\hla-bench-a\results "$env:RUNNER_TEMP\keep\results"
+          Copy-Item -Force bench\HLA-Bench-A.md "$env:RUNNER_TEMP\keep\HLA-Bench-A.md"
+          Copy-Item -Recurse -Force logs "$env:RUNNER_TEMP\keep\logs"
+          git fetch origin main
+          git reset --hard origin/main
+          Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\results\*" runs\hla-bench-a\results\
+          Copy-Item -Force "$env:RUNNER_TEMP\keep\HLA-Bench-A.md" bench\HLA-Bench-A.md
+          New-Item -ItemType Directory -Force -Path logs | Out-Null
+          Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\logs\*" logs\
+          hla-bench report
+          git add runs/hla-bench-a/results bench/HLA-Bench-A.md
+          git add -f logs
           git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [skip ci]"
           if ($LASTEXITCODE -ne 0) { Write-Host "nothing to commit"; exit 0 }
-          git pull --rebase origin main
           git push origin HEAD:main
+          exit $LASTEXITCODE
