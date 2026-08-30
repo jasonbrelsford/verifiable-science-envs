@@ -1,0 +1,664 @@
+[
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*05:01 is a valid and distinct full allele name in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0000"
+  },
+  {
+    "canonical": "193",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*44:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name which matches a distinct full allele name in the IPD-IMGT/HLA database release 3.65.0.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:105"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB5*01:105 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0002"
+  },
+  {
+    "canonical": "16",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:09"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQB1*06:09 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0003"
+  },
+  {
+    "canonical": "91",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*12:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name without any expression suffixes or other modifiers, and this name exists in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0004"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*02:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB5*02:02 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0005"
+  },
+  {
+    "canonical": "89",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*04:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a full allele name within the 2-field naming convention, and this name is present in the specified release without any expression suffix or ambiguity.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0006"
+  },
+  {
+    "canonical": "389",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name without any expression suffixes or other modifiers, and this name exists in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0007"
+  },
+  {
+    "canonical": "32",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*04:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*04:01 is a valid and distinct full allele name in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0008"
+  },
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*01:03 is a valid and distinct full allele name in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0010"
+  },
+  {
+    "canonical": "20",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:06"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a full allele name 'C*07:06' which is present in the IPD-IMGT/HLA release 3.65.0 and has no expression suffix or other variants.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0011"
+  },
+  {
+    "canonical": "300",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*04:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPB1*04:01 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0012"
+  },
+  {
+    "canonical": "190",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*02:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPB1*02:01 is a valid and distinct entry in the IPD-IMGT/HLA database as of release 3.65.0, with no expression suffixes or other variants.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0013"
+  },
+  {
+    "canonical": "97",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:03 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0014"
+  },
+  {
+    "canonical": "166",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQB1*03:01 is a distinct full allele name in the given release and has no expression suffix.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0015"
+  },
+  {
+    "canonical": "36",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*01:01 is a valid and distinct full allele name in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0016"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*1765:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPB1*1765:01 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0017"
+  },
+  {
+    "canonical": "87",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*29:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name which matches exactly one entry in the IPD-IMGT/HLA database release 3.65.0.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0018"
+  },
+  {
+    "canonical": "35",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB5*01:01 is present in the specified release and has no expression suffixes or other variants.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0019"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*02:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a full allele name DPA1*02:03, which is unambiguous and present in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0020"
+  },
+  {
+    "canonical": "153",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*26:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name without any expression suffixes or other modifiers, and this name exists in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0021"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*01:137"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB3*01:137 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0022"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*55:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPB1*55:01 is a valid and distinct entry in the IPD-IMGT/HLA database as of release 3.65.0, with no expression suffixes or other variants.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0023"
+  },
+  {
+    "canonical": "43",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*02:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a full allele name DPA1*02:02, which is unambiguous and present in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0024"
+  },
+  {
+    "canonical": "189",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*35:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name which matches a distinct full allele name in the IPD-IMGT/HLA database release 3.65.0.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0025"
+  },
+  {
+    "canonical": "88",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*35:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a unique 2-field allele name without any expression suffixes or other modifiers, and this name exists in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0026"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:61"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:61 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0027"
+  },
+  {
+    "canonical": "88",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:05"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*05:05 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0028"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:17"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB3*02:17 is a valid and distinct entry in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0029"
+  },
+  {
+    "canonical": "229",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 1, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The query specifies a full allele name DPA1*01:03, which is unambiguous and present in the specified release.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0030"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*02:01:02:33"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"DPB1*02:01:02:33 is formatted as DPB1:02:01:02:33 in the current nomenclature, which is DPB1:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0000"
+  },
+  {
+    "canonical": "DQA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:83"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DQA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*01:83 is formatted according to the current IMGT/HLA nomenclature, where DQA1 refers to the locus and I refers to the class I region, which includes the alpha chain of the HLA complex.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0002"
+  },
+  {
+    "canonical": "DRB3:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:02:16"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB3:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB3*02:02:16 is formatted according to the current IPD-IMGT/HLA nomenclature and corresponds to locus DRB3 in class I, as DRB3 is a class II locus.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0003"
+  },
+  {
+    "canonical": "DRB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*09:01:02:04"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB1*09:01:02:04 is formatted according to the current IPD-IMGT/HLA nomenclature and belongs to the DRB1 locus, which is a class II HLA locus.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0004"
+  },
+  {
+    "canonical": "DRB3:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:23"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB3:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB3*02:23 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB3:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0005"
+  },
+  {
+    "canonical": "DQB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*05:01:01:44"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DQB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQB1*05:01:01:44 follows the current IMGT/HLA nomenclature and is formatted as Locus:Class.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0006"
+  },
+  {
+    "canonical": "DQA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:02:02:05"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DQA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*01:02:02:05 follows the current IMGT/HLA nomenclature and is formatted as Locus:Class.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0007"
+  },
+  {
+    "canonical": "A:I",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*33:194N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"null_allele\", \"ambiguous_input\"], \"reasoning\": \"The allele A*33:194N is not recognized in the current IPD-IMGT/HLA database and the suffix 'N' is ambiguous.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0008"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*02:01:02:113"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"DPB1*02:01:02:113 is formatted as DPB1:1, which corresponds to DPB1:I in current nomenclature.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0009"
+  },
+  {
+    "canonical": "DRB5:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*02:29"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB5:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB5*02:29 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB5:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0011"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*392:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"DPB1*392:01 is formatted as DPB1:01 in the current nomenclature, which is DPB1:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0012"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:01:01:08"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB4:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:01:01:08 follows the current IMGT/HLA nomenclature and is formatted as LOCUS:CLASS.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0015"
+  },
+  {
+    "canonical": "DPA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:189"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPA1*01:189 follows the current IMGT/HLA nomenclature and is correctly formatted as DPA1:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0016"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:137"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB4:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:137 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB4:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0017"
+  },
+  {
+    "canonical": "DRB3:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:172"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB3:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB3*02:172 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB3:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0018"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:01:04"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB4:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:01:04 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB4:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0019"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:172"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB4:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:172 is formatted correctly and corresponds to locus DRB4, which is a class II HLA locus.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0020"
+  },
+  {
+    "canonical": "DPA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:03:01:36"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPA1*01:03:01:36 is formatted according to the current IPD-IMGT/HLA nomenclature and falls under the DPA1 locus, which is class I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0021"
+  },
+  {
+    "canonical": "DRB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*01:87"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB1*01:87 follows the current IMGT/HLA nomenclature and is a class II allele.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0022"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*918:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPB1*918:01 follows the current IMGT/HLA nomenclature and is correctly formatted as DPB1:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0024"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*104:01:11"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"DPB1*104:01:11 is formatted as DPB1:1, which corresponds to DPB1:I in current nomenclature.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0025"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03:48"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB4:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DRB4*01:03:48 follows the current IMGT/HLA nomenclature and is correctly formatted as DRB4:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0026"
+  },
+  {
+    "canonical": "DQA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:02:02:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DQA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQA1*01:02:02:03 is formatted according to the current IPD-IMGT/HLA nomenclature, where DQA1 is the locus and I indicates class I, though DQA1 encodes the alpha chain of the DQ heterodimer, which is class II.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0027"
+  },
+  {
+    "canonical": "DQB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*02:102"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DQB1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DQB1*02:102 follows the current IMGT/HLA nomenclature and is correctly formatted as DQB1:I.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0028"
+  },
+  {
+    "canonical": "A*02:06",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*02:06:15",
+      "fields": 2
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"A*02:15\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The suffix :06 is removed as it is specific to only one allele and the primary name A*02 is kept.\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0022"
+  },
+  {
+    "canonical": "C*14:03:01",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*14:03:01:03",
+      "fields": 3
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"C*14:03\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Reduced to 3-field resolution as requested, and no expression suffix is present across all alleles.\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0025"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "DQB1*02:218"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"nonexistent_allele\"], \"reasoning\": \"The allele DQB1*02:218 does not exist in the IPD-IMGT/HLA database as of release 3.65.0.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0001"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*33:14"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"nonexistent_allele\"], \"reasoning\": \"A*33:14 is not a valid allele in the current release.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0003"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*24:02:71"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"release_mismatch\", \"nonexistent_allele\"], \"reasoning\": \"The allele name A*24:02:71 does not exist in IPD-IMGT/HLA release 3.65.0 and is not a valid allele name.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0004"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*01:99"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": false, \"confidence\": \"high\", \"flags\": [\"nonexistent_allele\"], \"reasoning\": \"DRB5*01:99 is not a valid allele name in the current release.\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0008"
+  }
+]

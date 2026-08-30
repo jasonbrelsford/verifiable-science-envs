@@ -1,0 +1,662 @@
+[
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0000"
+  },
+  {
+    "canonical": "193",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*44:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:105"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0002"
+  },
+  {
+    "canonical": "16",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:09"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0003"
+  },
+  {
+    "canonical": "91",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*12:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0004"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*02:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0005"
+  },
+  {
+    "canonical": "89",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*04:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0006"
+  },
+  {
+    "canonical": "389",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0007"
+  },
+  {
+    "canonical": "32",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*04:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0008"
+  },
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0010"
+  },
+  {
+    "canonical": "20",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:06"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0011"
+  },
+  {
+    "canonical": "300",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*04:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0012"
+  },
+  {
+    "canonical": "190",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*02:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0013"
+  },
+  {
+    "canonical": "97",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0014"
+  },
+  {
+    "canonical": "166",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0015"
+  },
+  {
+    "canonical": "36",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0016"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*1765:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0017"
+  },
+  {
+    "canonical": "87",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*29:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0018"
+  },
+  {
+    "canonical": "35",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0019"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*02:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0020"
+  },
+  {
+    "canonical": "153",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*26:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0021"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*01:137"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0022"
+  },
+  {
+    "canonical": "7",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*55:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0023"
+  },
+  {
+    "canonical": "43",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*02:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0024"
+  },
+  {
+    "canonical": "189",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*35:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0025"
+  },
+  {
+    "canonical": "88",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*35:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0026"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:61"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0027"
+  },
+  {
+    "canonical": "88",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:05"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0028"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:17"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0029"
+  },
+  {
+    "canonical": "229",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:03"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"1\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0030"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DPB1*1858010101"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0000"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB1*11:605"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0002"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*0212"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0005"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DPB1*700:01N:99"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0006"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB3*3:63"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0007"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DQA1*1:68"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0009"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*1:79Q"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0011"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*03:200Q"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0014"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB1*04:94:02N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0016"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*29:110:99"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0018"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*1:22:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0023"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DPA1*01240"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0024"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "B*1487"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0025"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DQA1*02:06"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"TRUE\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0026"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:71N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB5*01:71NG\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:65"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB5*01:65G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*06:48"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"C*06:48G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0002"
+  },
+  {
+    "canonical": "DRB4*01:01:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03:01:34"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB4*01:03:01G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0003"
+  },
+  {
+    "canonical": "DQA1*01:02:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:127"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DQA1*01:127G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0004"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:23"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB5*01:23G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0005"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*02:126"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DPA1*02:126G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0006"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*1521:01"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DPB1*1521:01G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0008"
+  },
+  {
+    "canonical": "DPB1*04:01:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*615:01"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DPB1*615:01G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0009"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*11:01:25"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB1*11:01:25G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0010"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*04:103"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB1*04:103G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0011"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:10N"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DRB5*01:10NG\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0012"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*02:248"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"C*02:248G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0013"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:100"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DQB1*06:100G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0014"
+  },
+  {
+    "canonical": "DRB1*08:02:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*08:02:06"
+    },
+    "primary_failure_mode": "fabricated_group",
+    "raw": "{\"answer\": \"DRB1*08:02:06G\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0015"
+  },
+  {
+    "canonical": "DPA1*01:03:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:87Q"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPA1*01:87QG\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"string heuristics only\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0016"
+  }
+]

@@ -2,39 +2,39 @@
   "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
   "by_slice": {
     "added_since_3.60": {
-      "acc": 0.2414,
+      "acc": 0.5862,
       "ci95": [
-        0.1496,
-        0.3653
+        0.458,
+        0.7037
       ],
-      "correct": 14,
+      "correct": 34,
       "n": 58
     },
     "class_II_secondary_locus": {
-      "acc": 0.2993,
+      "acc": 0.3723,
       "ci95": [
-        0.2289,
-        0.3806
+        0.2958,
+        0.4557
       ],
-      "correct": 41,
+      "correct": 51,
       "n": 137
     },
     "deleted_name": {
-      "acc": 0.18,
+      "acc": 0.08,
       "ci95": [
-        0.117,
-        0.2667
+        0.0411,
+        0.15
       ],
-      "correct": 18,
+      "correct": 8,
       "n": 100
     },
     "expression_suffix": {
-      "acc": 0.1429,
+      "acc": 0.0,
       "ci95": [
-        0.0257,
-        0.5131
+        0.0,
+        0.3543
       ],
-      "correct": 1,
+      "correct": 0,
       "n": 7
     },
     "near_miss": {
@@ -47,33 +47,60 @@
       "n": 20
     },
     "null_allele": {
-      "acc": 0.0556,
+      "acc": 0.8056,
       "ci95": [
-        0.0154,
-        0.1814
+        0.6497,
+        0.9025
       ],
-      "correct": 2,
+      "correct": 29,
       "n": 36
     },
     "partial_sequence": {
-      "acc": 0.3287,
+      "acc": 0.4476,
       "ci95": [
-        0.257,
-        0.4093
+        0.3685,
+        0.5294
       ],
-      "correct": 47,
+      "correct": 64,
       "n": 143
     },
     "post_cutoff": {
-      "acc": 0.2179,
+      "acc": 0.5897,
       "ci95": [
-        0.1408,
-        0.3216
+        0.4789,
+        0.6922
       ],
-      "correct": 17,
+      "correct": 46,
       "n": 78
     },
     "renamed": {
+      "acc": 0.4,
+      "ci95": [
+        0.2188,
+        0.6134
+      ],
+      "correct": 8,
+      "n": 20
+    },
+    "renamed_since_3.50": {
+      "acc": 0.3077,
+      "ci95": [
+        0.1268,
+        0.5763
+      ],
+      "correct": 4,
+      "n": 13
+    },
+    "serology_uncertain": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.2039
+      ],
+      "correct": 0,
+      "n": 15
+    },
+    "typing_report": {
       "acc": 0.0,
       "ci95": [
         -0.0,
@@ -82,60 +109,33 @@
       "correct": 0,
       "n": 20
     },
-    "renamed_since_3.50": {
-      "acc": 0.2308,
-      "ci95": [
-        0.0818,
-        0.5026
-      ],
-      "correct": 3,
-      "n": 13
-    },
-    "serology_uncertain": {
-      "acc": 1.0,
-      "ci95": [
-        0.7961,
-        1.0
-      ],
-      "correct": 15,
-      "n": 15
-    },
-    "typing_report": {
-      "acc": 0.3,
-      "ci95": [
-        0.1455,
-        0.519
-      ],
-      "correct": 6,
-      "n": 20
-    },
     "unconfirmed": {
-      "acc": 0.3548,
+      "acc": 0.4637,
       "ci95": [
-        0.2979,
-        0.4162
+        0.4027,
+        0.5259
       ],
-      "correct": 88,
+      "correct": 115,
       "n": 248
     }
   },
   "by_subtype": {
     "deleted_reason": {
-      "acc": 0.4,
+      "acc": 0.1,
       "ci95": [
-        0.2459,
-        0.5768
+        0.0346,
+        0.2562
       ],
-      "correct": 12,
+      "correct": 3,
       "n": 30
     },
     "existed_at": {
-      "acc": 0.3667,
+      "acc": 0.6333,
       "ci95": [
-        0.2187,
-        0.5449
+        0.4551,
+        0.7813
       ],
-      "correct": 11,
+      "correct": 19,
       "n": 30
     },
     "expand_ambiguity": {
@@ -148,21 +148,21 @@
       "n": 30
     },
     "first_release": {
-      "acc": 0.0,
+      "acc": 0.0333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.0059,
+        0.1667
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 30
     },
     "g_group": {
-      "acc": 0.1333,
+      "acc": 0.5667,
       "ci95": [
-        0.0531,
-        0.2968
+        0.392,
+        0.7262
       ],
-      "correct": 4,
+      "correct": 17,
       "n": 30
     },
     "group_members_count": {
@@ -175,21 +175,21 @@
       "n": 30
     },
     "locus_field": {
-      "acc": 1.0,
+      "acc": 0.2,
       "ci95": [
-        0.8865,
-        1.0
+        0.095,
+        0.3731
       ],
-      "correct": 30,
+      "correct": 6,
       "n": 30
     },
     "name_at_release": {
-      "acc": 0.3667,
+      "acc": 0.6,
       "ci95": [
-        0.2187,
-        0.5449
+        0.4232,
+        0.7541
       ],
-      "correct": 11,
+      "correct": 18,
       "n": 30
     },
     "near_miss": {
@@ -211,39 +211,39 @@
       "n": 30
     },
     "null_trap": {
-      "acc": 0.0,
+      "acc": 1.0,
       "ci95": [
-        -0.0,
-        0.1611
+        0.8389,
+        1.0
       ],
-      "correct": 0,
+      "correct": 20,
       "n": 20
     },
     "p_group": {
-      "acc": 0.3,
+      "acc": 0.4333,
       "ci95": [
-        0.1666,
-        0.4788
+        0.2738,
+        0.608
       ],
-      "correct": 9,
+      "correct": 13,
       "n": 30
     },
     "release_drift": {
-      "acc": 0.0,
+      "acc": 0.4,
       "ci95": [
-        -0.0,
-        0.1611
+        0.2188,
+        0.6134
       ],
-      "correct": 0,
+      "correct": 8,
       "n": 20
     },
     "renamed_to": {
-      "acc": 0.0,
+      "acc": 0.1667,
       "ci95": [
-        -0.0,
-        0.1135
+        0.0734,
+        0.3356
       ],
-      "correct": 0,
+      "correct": 5,
       "n": 30
     },
     "resolve_chain": {
@@ -265,153 +265,209 @@
       "n": 30
     },
     "serology": {
-      "acc": 0.5,
+      "acc": 0.2,
       "ci95": [
-        0.3315,
-        0.6685
+        0.095,
+        0.3731
       ],
-      "correct": 15,
+      "correct": 6,
       "n": 30
     },
     "truncate": {
-      "acc": 1.0,
+      "acc": 0.9333,
       "ci95": [
-        0.8865,
-        1.0
+        0.7868,
+        0.9815
       ],
-      "correct": 30,
+      "correct": 28,
       "n": 30
     },
     "typing_report_normalize": {
-      "acc": 0.3,
+      "acc": 0.0,
       "ci95": [
-        0.1455,
-        0.519
+        -0.0,
+        0.1611
       ],
-      "correct": 6,
+      "correct": 0,
       "n": 20
     },
     "valid_name": {
-      "acc": 0.5333,
+      "acc": 0.4333,
       "ci95": [
-        0.3614,
-        0.6977
+        0.2738,
+        0.608
       ],
-      "correct": 16,
+      "correct": 13,
       "n": 30
     }
   },
   "by_tier": {
     "1": {
-      "acc": 0.6333,
+      "acc": 0.3917,
       "ci95": [
-        0.5442,
-        0.7142
+        0.309,
+        0.4811
       ],
-      "correct": 76,
+      "correct": 47,
       "n": 120
     },
     "2": {
-      "acc": 0.26,
+      "acc": 0.3133,
       "ci95": [
-        0.1964,
-        0.3356
+        0.2445,
+        0.3914
       ],
-      "correct": 39,
+      "correct": 47,
       "n": 150
     },
     "3": {
-      "acc": 0.1944,
+      "acc": 0.2611,
       "ci95": [
-        0.1433,
-        0.2584
+        0.2024,
+        0.3298
       ],
-      "correct": 35,
+      "correct": 47,
       "n": 180
     },
     "4": {
-      "acc": 0.06,
+      "acc": 0.28,
       "ci95": [
-        0.0278,
-        0.1248
+        0.2014,
+        0.3749
       ],
-      "correct": 6,
+      "correct": 28,
       "n": 100
     }
   },
   "calibration": {
-    "calibrated_fraction": 0.2855,
+    "calibrated_fraction": 0.3145,
     "stated_vs_expected": {
-      "high->high": 157,
-      "high->low": 35,
-      "high->medium": 358
+      "high->high": 156,
+      "high->low": 32,
+      "high->medium": 345,
+      "low->high": 1,
+      "low->low": 3,
+      "low->medium": 13
     }
   },
   "contamination_resistant": {
-    "acc": 0.1441,
+    "acc": 0.4576,
     "ci95": [
-      0.0919,
-      0.2186
+      0.3705,
+      0.5474
     ],
-    "correct": 17,
+    "correct": 54,
     "n": 118
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0145,
-    "tasks_with_hallucinated_names": 8,
+    "rate_per_task": 0.0891,
+    "tasks_with_hallucinated_names": 47,
     "top20": [
       [
         "B*18:16",
-        2
+        3
       ],
       [
-        "C*12:03:01:42G",
+        "DRB1*11:605",
         1
       ],
       [
-        "H*02:01:01:02G",
+        "DRB5*0212",
         1
       ],
       [
-        "DRB1*11:01:01:02G",
+        "A*29:110:99",
         1
       ],
       [
-        "DRB1*07:02",
+        "DPA1*01240",
         1
       ],
       [
-        "B*51:47",
+        "B*1487",
         1
       ],
       [
-        "DPB1*43:01",
+        "P*1801",
+        1
+      ],
+      [
+        "P*55:02",
+        1
+      ],
+      [
+        "P*24:02",
+        1
+      ],
+      [
+        "B*1501:05",
+        1
+      ],
+      [
+        "B*18:01:02:01",
+        1
+      ],
+      [
+        "DRB5*02:47",
+        1
+      ],
+      [
+        "DQA1*05:05:17:04",
+        1
+      ],
+      [
+        "DPA1*02:127:99",
+        1
+      ],
+      [
+        "C*04:535:99",
+        1
+      ],
+      [
+        "DQB1*05:03:26:99",
+        1
+      ],
+      [
+        "A*03:322:99",
+        1
+      ],
+      [
+        "DRB4*01:03:15:99",
+        1
+      ],
+      [
+        "A*34:18:99",
+        1
+      ],
+      [
+        "DRB5*01:113:99",
         1
       ]
     ]
   },
-  "model": "baseline-naive-string",
+  "model": "ollama/qwen2.5:7b",
   "n": 550,
   "n_tasks": 550,
   "overall": {
-    "acc": 0.2836,
+    "acc": 0.3073,
     "ci95": [
-      0.2476,
-      0.3227
+      0.2702,
+      0.3471
     ],
-    "correct": 156,
+    "correct": 169,
     "n": 550
   },
   "primary_failure_modes": {
-    "clean_correct": 39,
-    "correct_but_overconfident": 117,
-    "fabricated_group": 71,
-    "hallucinated_answer": 8,
-    "legacy_nomenclature": 4,
-    "resolution_mismatch": 21,
-    "wrong_but_overconfident": 290
+    "clean_correct": 25,
+    "correct_but_overconfident": 124,
+    "correct_with_hallucinated_reasoning": 5,
+    "hallucinated_answer": 22,
+    "refused": 10,
+    "resolution_mismatch": 5,
+    "wrong_but_overconfident": 340,
+    "wrong_calibrated": 19
   },
-  "run_at": "2026-08-30T14:57:35Z",
+  "run_at": "2026-08-30T15:29:30Z",
   "split": "all"
 }
