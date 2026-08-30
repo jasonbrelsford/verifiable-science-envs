@@ -14,6 +14,9 @@ on:
       commit:
         description: "commit results/ and bench page to main (true/false)"
         default: "true"
+permissions:
+  contents: write      # the job commits results back to main
+
 jobs:
   bench:
     runs-on: [self-hosted, Windows, X64]

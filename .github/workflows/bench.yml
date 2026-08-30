@@ -10,6 +10,9 @@ on:
       split:
         description: "dev | test | all"
         default: "dev"
+permissions:
+  contents: write      # the job commits results back to main
+
 jobs:
   bench:
     runs-on: ubuntu-latest
