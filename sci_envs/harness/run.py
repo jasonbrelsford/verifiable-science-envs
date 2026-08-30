@@ -79,7 +79,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     g = sub.add_parser("generate", help="(re)generate the suite from the pinned reference")
     g.add_argument("--tag", default="v3.65.0-alpha"); g.add_argument("--out", default="runs/hla-bench-a")
     r = sub.add_parser("run", help="run one or more models")
-    r.add_argument("models", nargs="+", help="baseline-naive-string | baseline-confident-guesser | baseline-cautious-abstainer | oracle | anthropic/<m> | openai/<m> | google/<m>")
+    r.add_argument("models", nargs="+", help="baseline-naive-string | baseline-confident-guesser | baseline-cautious-abstainer | oracle | anthropic/<m> | openai/<m> | google/<m> | ollama/<m> (local, free)")
     r.add_argument("--suite", default="runs/hla-bench-a"); r.add_argument("--split", default="dev", choices=["dev", "test", "all"])
     r.add_argument("--limit", type=int); r.add_argument("--tag", default="v3.65.0-alpha")
     a = sub.add_parser("auto", help="run all baselines plus every API model whose key is in the environment")

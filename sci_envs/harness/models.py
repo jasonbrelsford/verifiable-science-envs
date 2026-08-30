@@ -205,6 +205,26 @@ class GeminiModel:
         return "".join(p.get("text", "") for p in r["candidates"][0]["content"]["parts"])
 
 
+class OllamaModel:
+    """Local open-weight models via Ollama (http://localhost:11434). Zero API cost.
+    Spec: ollama/<model>, e.g. ollama/llama3.1:8b, ollama/qwen2.5:14b, ollama/gemma3:12b.
+    Set OLLAMA_HOST to point at another machine on the LAN."""
+
+    def __init__(self, model: str, host: Optional[str] = None, max_tokens: int = 600):
+        self.model = model
+        self.host = (host or os.environ.get("OLLAMA_HOST") or "http://localhost:11434").rstrip("/")
+        self.max_tokens = max_tokens
+        self.name = f"ollama/{model}"
+
+    def answer(self, t: dict) -> str:
+        r = _post(f"{self.host}/api/chat", {},
+                  {"model": self.model, "stream": False, "format": "json",
+                   "options": {"temperature": 0, "num_predict": self.max_tokens},
+                   "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]},
+                  timeout=600)
+        return r["message"]["content"]
+
+
 BASELINES = {
     "baseline-naive-string": NaiveStringBaseline,
     "baseline-confident-guesser": ConfidentGuesser,
@@ -213,7 +233,7 @@ BASELINES = {
 
 
 def resolve(spec: str, full_by_id: Optional[dict] = None):
-    """'baseline-naive-string' | 'oracle' | 'anthropic/<model>' | 'openai/<model>' | 'google/<model>'."""
+    """'baseline-naive-string' | 'oracle' | 'anthropic/<model>' | 'openai/<model>' | 'google/<model>' | 'ollama/<model>'."""
     if spec in BASELINES:
         return BASELINES[spec]()
     if spec == "oracle":
@@ -225,6 +245,8 @@ def resolve(spec: str, full_by_id: Optional[dict] = None):
         return OpenAIModel(model)
     if vendor == "google":
         return GeminiModel(model)
+    if vendor == "ollama":
+        return OllamaModel(model)
     raise ValueError(f"unknown model spec {spec!r}")
 
 
@@ -237,4 +259,6 @@ def available_api_models() -> list[str]:
         out += [f"openai/{m}" for m in os.environ.get("HLA_BENCH_OPENAI_MODELS", "gpt-5").split(",")]
     if os.environ.get("GOOGLE_API_KEY"):
         out += [f"google/{m}" for m in os.environ.get("HLA_BENCH_GOOGLE_MODELS", "gemini-2.5-pro").split(",")]
+    if os.environ.get("HLA_BENCH_OLLAMA_MODELS"):          # e.g. "llama3.1:8b,qwen2.5:14b" on a box running Ollama
+        out += [f"ollama/{m}" for m in os.environ["HLA_BENCH_OLLAMA_MODELS"].split(",")]
     return out
