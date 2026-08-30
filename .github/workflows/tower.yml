@@ -15,7 +15,7 @@ jobs:
   smoke:
     runs-on: [self-hosted, Windows, X64]
     defaults:
-      run: { shell: pwsh }
+      run: { shell: powershell }   # Windows PowerShell 5.1 is always present; pwsh (7) is not
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PYTHONUTF8: "1"
