@@ -8,6 +8,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 adapters = ["verifiers>=0.3", "datasets", "inspect-ai>=0.3"]
+service = ["fastapi>=0.110", "uvicorn>=0.29", "httpx>=0.27"]
 
 [project.scripts]
 hla-bench = "sci_envs.harness.run:main"

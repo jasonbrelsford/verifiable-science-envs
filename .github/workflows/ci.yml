@@ -11,5 +11,5 @@ jobs:
         with:
           path: ~/.cache/sci_envs/imgt
           key: imgt-v3.65.0-alpha
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,service]"
       - run: pytest -q
