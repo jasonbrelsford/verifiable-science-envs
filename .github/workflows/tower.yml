@@ -74,8 +74,10 @@ jobs:
           $log = "runs/hla-bench-a/results/tower-log.txt"
           "== $(Get-Date -Format o) run ${{ github.run_id }} models=${{ inputs.models }} split=${{ inputs.split }}" | Out-File $log
           try { (Invoke-WebRequest -UseBasicParsing http://localhost:11434/api/tags -TimeoutSec 5).Content | Out-File -Append $log } catch { "ollama /api/tags unreachable: $_" | Out-File -Append $log }
-          & hla-bench run ${{ inputs.models }} --split ${{ inputs.split }} 2>&1 | Tee-Object -FilePath $log -Append
+          # run under cmd so native stderr (tracebacks, progress) lands in the log instead of PowerShell error records
+          cmd /c "hla-bench run ${{ inputs.models }} --split ${{ inputs.split }} >> $log 2>&1"
           "exit=$LASTEXITCODE" | Out-File -Append $log
+          Get-Content $log | Select-Object -Last 40
           exit $LASTEXITCODE
 
       - name: Report
