@@ -23,6 +23,11 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/cache@v4
         with: { path: ~/.cache/sci_envs/imgt, key: imgt-v3.65.0-alpha }
+      - uses: actions/cache@v4          # raw model responses: a re-run never re-pays for tasks already answered
+        with:
+          path: runs/hla-bench-a/responses
+          key: responses-v0.1-${{ inputs.split }}-${{ github.run_id }}
+          restore-keys: responses-v0.1-${{ inputs.split }}-
       - run: pip install -e .
       - run: hla-bench generate            # sealed split is regenerated on the runner, never stored
       - run: |
@@ -35,4 +40,5 @@ jobs:
           git config user.name "hla-bench bot" && git config user.email "bot@users.noreply.github.com"
           git add runs/hla-bench-a/results bench/HLA-Bench-A.md
           git commit -m "bench: ${{ inputs.models }} on ${{ inputs.split }} [skip ci]" || echo "nothing to commit"
+          git pull --rebase origin main    # main may have moved during a long run
           git push
