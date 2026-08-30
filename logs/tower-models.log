@@ -1,12 +1,6 @@
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\actions-runner\_work\_tool\Python\3.12.10\x64\Scripts\hla-bench.exe\__main__.py", line 5, in <module>
-  File "C:\actions-runner\_work\verifiable-science-envs\verifiable-science-envs\sci_envs\harness\run.py", line 113, in main
-    scores, summary = run_model(model, full, ref, suite_dir, args.split, args.limit)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\actions-runner\_work\verifiable-science-envs\verifiable-science-envs\sci_envs\harness\run.py", line 45, in run_model
-    rdir.mkdir(parents=True, exist_ok=True)
-  File "C:\actions-runner\_work\_tool\Python\3.12.10\x64\Lib\pathlib.py", line 1311, in mkdir
-    os.mkdir(self, mode)
-NotADirectoryError: [WinError 267] The directory name is invalid: 'runs\\hla-bench-a\\responses\\ollama__qwen2.5:7b'
+  ollama/qwen2.5:7b: 25/112 acc=0.440 halluc=1 (94s)
+  ollama/qwen2.5:7b: 50/112 acc=0.360 halluc=1 (177s)
+  ollama/qwen2.5:7b: 75/112 acc=0.320 halluc=1 (272s)
+  ollama/qwen2.5:7b: 100/112 acc=0.310 halluc=4 (383s)
+  ollama/qwen2.5:7b: 112/112 acc=0.304 halluc=6 (447s)
+ollama/qwen2.5:7b                        split=dev  n=112 acc=0.304 halluc_tasks=6 calibrated=0.30
