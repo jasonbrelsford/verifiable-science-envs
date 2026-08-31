@@ -22,4 +22,4 @@ Exact match on count + per-locus verdicts; partial credit structure like family 
 
 ## 5. Why C might ship before B
 
-B needs a synthetic-population design review; C needs only files we already load (rel_dna_ser, rel_ser_ser, Deleted_alleles, Allelelist) plus rule encoding — no new data, no licence questions, and it reuses family A's normalizer as step one. Estimated build: comparable to family A (spec → generators → oracle → 550 tasks). It also unlocks the `/v1/match-check` Verify endpoint, the single most lab-relevant feature in PRODUCT.md. Proposal: implement C next, B after the NMDP licence reply.
+B needs a synthetic-population design review; C needs only files we already load (rel_dna_ser, rel_ser_ser, Deleted_alleles, Allelelist) plus rule encoding — no new data, no licence questions, and it reuses family A's normalizer as step one. Estimated build: comparable to family A (spec → generators → oracle → 550 tasks). It also unlocks the `/v1/match-check` Verify endpoint — the single most lab-relevant HLA-Verify feature. Proposal: implement C next, B after the NMDP licence reply.
