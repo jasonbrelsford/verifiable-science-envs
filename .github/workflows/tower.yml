@@ -67,7 +67,20 @@ jobs:
           }
           ollama list
       - name: Generate suite (sealed split stays on this machine)
-        run: hla-bench generate --family $env:FAM
+        run: |
+          New-Item -ItemType Directory -Force -Path logs | Out-Null
+          cmd /c "hla-bench generate --family $env:FAM > logs\generate.log 2>&1"
+          Get-Content logs\generate.log -Tail 40
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Commit failure log
+        if: failure()
+        run: |
+          git config user.name "hla-bench tower"; git config user.email "tower@users.noreply.github.com"
+          git fetch origin main; git stash -u -q 2>$null
+          git checkout -q origin/main -- . 2>$null
+          git add -f logs/generate.log 2>$null
+          git commit -m "tower: failure log [skip ci]" 2>$null
+          git push origin HEAD:main 2>$null; exit 0
       - name: Baselines
         run: hla-bench run baseline-naive-string baseline-cautious-abstainer --suite "runs/hla-bench-$env:FAM" --split ${{ inputs.split }}
       - name: Models

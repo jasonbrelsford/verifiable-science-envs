@@ -168,7 +168,7 @@ def _post(url: str, headers: dict, body: dict, retries: int = 4, timeout: int = 
 
 
 class AnthropicModel:
-    def __init__(self, model: str, key: Optional[str] = None, max_tokens: int = 600):
+    def __init__(self, model: str, key: Optional[str] = None, max_tokens: int = 1600):
         self.model, self.key, self.max_tokens = model, key or os.environ["ANTHROPIC_API_KEY"], max_tokens
         self.name = f"anthropic/{model}"
 
@@ -181,7 +181,7 @@ class AnthropicModel:
 
 
 class OpenAIModel:
-    def __init__(self, model: str, key: Optional[str] = None, max_tokens: int = 600):
+    def __init__(self, model: str, key: Optional[str] = None, max_tokens: int = 1600):
         self.model, self.key, self.max_tokens = model, key or os.environ["OPENAI_API_KEY"], max_tokens
         self.name = f"openai/{model}"
 

@@ -4,10 +4,10 @@
   "family": "hla_matching",
   "rules_version": "C-v0.1.1 (rules.py R1-R6)",
   "split": {
-    "dev": 31,
-    "test": 174
+    "dev": 43,
+    "test": 162
   },
-  "suite_rev": "r2",
+  "suite_rev": "r3",
   "tag": "v3.65.0-alpha",
   "total": 205
 }

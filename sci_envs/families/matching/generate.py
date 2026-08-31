@@ -15,7 +15,7 @@ from .rules import FRAMEWORKS, UNCERTAIN, antigen_of, flat_answer, score, two_fi
 
 FAMILY = "hla_matching"
 BASE_SEED = 20260831
-SUITE_REV = "r2"   # bump on any generator change: task ids key the response cache
+SUITE_REV = "r3"   # bump on any generator change: task ids key the response cache
 COUNTS = {  # subtype -> (tier, n)
     "count_simple": (1, 30), "same_after_normalize": (1, 30),
     "antigen_vs_allele": (2, 30), "framework_shift": (2, 20),
@@ -219,7 +219,7 @@ def generate_suite(ref: ImgtReference, base_seed: int = BASE_SEED, dev_fraction:
         _, want = COUNTS[subtype]
         made, seed = 0, 0
         while made < want and seed < want * 20:
-            t = gen(ref, pools, random.Random((base_seed, subtype, seed).__hash__() & 0x7FFFFFFF), seed)
+            t = gen(ref, pools, random.Random(int(hashlib.sha256(f"{base_seed}:{subtype}:{seed}".encode()).hexdigest()[:12], 16)), seed)
             seed += 1
             if t.key() in seen:
                 continue

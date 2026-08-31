@@ -1,0 +1,55 @@
+{
+  "family": "hla_matching",
+  "input": {
+    "donor": {
+      "A": [
+        "A*68:98",
+        "A*03:120"
+      ],
+      "B": [
+        "B*35:366",
+        "B*44:450"
+      ],
+      "C": [
+        "C*07:647",
+        "C*03:734"
+      ],
+      "DRB1": [
+        "DRB1*17:91",
+        "DRB1*11:18"
+      ]
+    },
+    "framework": "8/8",
+    "recipient": {
+      "A": [
+        "A*68:98",
+        "A*03:120"
+      ],
+      "B": [
+        "B*35:366",
+        "B*44:450"
+      ],
+      "C": [
+        "C*07:647",
+        "C*03:734"
+      ],
+      "DRB1": [
+        "DRB1*11:233",
+        "DRB1*11:18"
+      ]
+    }
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.65.0. You are given a transplant recipient's and a donor's HLA typings (two reported alleles per locus, any nomenclature era) and a match framework. Normalize every name to the current release first, then score the pair. Answer with an object: {\"count\": \"<matched>/<total>\", \"verdict_<LOCUS>\": \"match\"|\"mismatch\"|\"potential\" for every framework locus}. A locus whose typing cannot be resolved is 'potential' and is excluded from the count's denominator. Frameworks: 6/6 = A,B at antigen level + DRB1 at allele level; 8/8 = A,B,C,DRB1 at allele (2-field) level; 10/10 adds DQB1; 12/12 adds DPB1; 'antigen' = A,B,C,DRB1,DQB1 at antigen level. Null alleles express no antigen. Respond with ONLY a JSON object: {\"answer\": <string, integer, boolean, or object as the task specifies>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. Recognized flags: null_allele, expression_suffix, deprecated_name, nonexistent_allele, serology_uncertain, release_mismatch, ambiguous_input, unconfirmed_allele. If the input cannot be resolved, answer \"UNRESOLVABLE\" and explain in flags/reasoning. Use current IPD-IMGT/HLA colon-delimited nomenclature only; legacy colon-less names (A*0101) are not accepted.",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "b9b22a0394436db7362ba6aa85a05855",
+    "release": "3.65.0",
+    "tag": "v3.65.0-alpha"
+  },
+  "slices": [
+    "resolution_insufficient"
+  ],
+  "subtype": "resolution_insufficient",
+  "task_id": "hla_matching.r3.T3.resolution_insufficient.0021",
+  "tier": 3
+}
