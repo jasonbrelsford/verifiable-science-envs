@@ -8,6 +8,9 @@ on:
       redirect_to:
         description: "where hlaverify.com should 302 for now"
         default: "https://github.com/jasonbrelsford/verifiable-science-envs"
+      deploy_worker:
+        description: "serve assets/landing.html from a Worker (1 = yes)"
+        default: "1"
 permissions: { contents: write }
 jobs:
   setup:
@@ -19,6 +22,7 @@ jobs:
         env:
           CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           REDIRECT_TO: ${{ inputs.redirect_to }}
+          DEPLOY_WORKER: ${{ inputs.deploy_worker }}
         run: |
           mkdir -p logs
           python .github/workflows/cloudflare_setup.py 2>&1 | tee logs/cloudflare.log

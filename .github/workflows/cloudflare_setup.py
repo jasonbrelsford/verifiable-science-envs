@@ -71,13 +71,54 @@ if not any(m.get("value") == "hello@hlaverify.com" for rule in rules for m in ru
 else:
     print("hello@ rule exists")
 
-# 3. Redirect: dynamic-redirect entrypoint ruleset -> 302 everything to TARGET.
+# 3. Landing worker (if the token can): serve assets/landing.html at hlaverify.com.
+worker_ok = False
+if os.environ.get("DEPLOY_WORKER") == "1":
+    html = open("assets/landing.html", encoding="utf-8").read()
+    js = ('const HTML = ' + json.dumps(html) + ';\n'
+          'export default { async fetch(req) {\n'
+          '  const u = new URL(req.url);\n'
+          '  if (u.pathname === "/healthz") return new Response("ok");\n'
+          '  return new Response(HTML, { headers: { "content-type": "text/html; charset=utf-8",\n'
+          '    "cache-control": "public, max-age=300" } });\n} };')
+    import urllib.request as _u
+    boundary = "----hlavb"
+    meta = json.dumps({"main_module": "worker.js", "compatibility_date": "2026-01-01"})
+    parts = (f'--{boundary}\r\nContent-Disposition: form-data; name="metadata"\r\nContent-Type: application/json\r\n\r\n{meta}\r\n'
+             f'--{boundary}\r\nContent-Disposition: form-data; name="worker.js"; filename="worker.js"\r\nContent-Type: application/javascript+module\r\n\r\n{js}\r\n'
+             f'--{boundary}--\r\n').encode()
+    req = _u.Request(f"https://api.cloudflare.com/client/v4/accounts/{acct}/workers/scripts/hlaverify-landing",
+                     method="PUT", data=parts,
+                     headers={"Authorization": "Bearer " + TOK,
+                              "Content-Type": f"multipart/form-data; boundary={boundary}"})
+    try:
+        import json as _j
+        with _u.urlopen(req, timeout=30) as resp_:
+            up = _j.loads(resp_.read())
+    except Exception as e:
+        up = _j.loads(e.read()) if hasattr(e, "read") else {"success": False, "errors": [{"message": str(e)}]}
+    print("worker upload:", up.get("success"), errs(up))
+    if up.get("success"):
+        routes = cf(f"/zones/{zid}/workers/routes").get("result") or []
+        for pat in ("hlaverify.com/*", "www.hlaverify.com/*"):
+            hit = [r for r in routes if r.get("pattern") == pat]
+            if hit:
+                r = cf(f"/zones/{zid}/workers/routes/{hit[0]['id']}", "PUT", {"pattern": pat, "script": "hlaverify-landing"})
+            else:
+                r = cf(f"/zones/{zid}/workers/routes", "POST", {"pattern": pat, "script": "hlaverify-landing"})
+            print("route", pat, r.get("success"), errs(r))
+        r = cf(f"/zones/{zid}/rulesets/phases/http_request_dynamic_redirect/entrypoint", "PUT", {"rules": []})
+        print("redirect cleared (worker serves the site):", r.get("success"), errs(r))
+        worker_ok = True
+
+# 3b. Redirect fallback: dynamic-redirect entrypoint ruleset -> 302 everything to TARGET.
 expr = '(http.host eq "hlaverify.com") or (http.host eq "www.hlaverify.com")'
 body = {"rules": [{
     "expression": expr, "enabled": True, "action": "redirect",
     "description": "temporary: send visitors to the current product surface",
     "action_parameters": {"from_value": {"status_code": 302,
         "target_url": {"value": TARGET}, "preserve_query_string": False}}}]}
-r = cf(f"/zones/{zid}/rulesets/phases/http_request_dynamic_redirect/entrypoint", "PUT", body)
-print("redirect →", TARGET, ":", r["success"], errs(r))
+if not worker_ok:
+    r = cf(f"/zones/{zid}/rulesets/phases/http_request_dynamic_redirect/entrypoint", "PUT", body)
+    print("redirect →", TARGET, ":", r["success"], errs(r))
 print("done; zone status:", status, "(rules take effect once the zone is active)")

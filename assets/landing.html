@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLA-Verify — deterministic HLA nomenclature verification</title>
+<meta name="description" content="Check every HLA allele name in a typing report or AI output against a pinned IPD-IMGT/HLA release. Fabricated, deleted, legacy — caught deterministically. No LLM.">
+<style>
+:root{--green:#2F5D3A;--dark:#1E4028;--ink:#1E3A28;--mint:#8FD69B;--paper:#FAFAF4;--mut:#5A6B5D}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding:0 24px}
+header{display:flex;align-items:center;gap:14px;padding:28px 0}
+header svg{width:52px;height:52px;flex:none}
+header .name{font-family:Georgia,serif;font-weight:bold;font-size:1.5rem}
+.hero{padding:36px 0 8px}
+h1{font-family:Georgia,serif;font-size:clamp(1.8rem,4.5vw,2.8rem);line-height:1.15;margin:0 0 18px}
+h1 em{font-style:normal;color:var(--green)}
+.lead{font-size:1.12rem;color:var(--mut);max-width:640px}
+.sample{background:#fff;border:1px solid #DDD9CC;border-radius:14px;padding:20px 22px;margin:34px 0;font:14px/2 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto}
+.tok{padding:2px 9px;border-radius:6px;white-space:nowrap}
+.ok{background:#DCEFDC}.old{background:#FDEECE}.bad{background:#F8D7D7;font-weight:bold}
+.why{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin:38px 0}
+.card{background:#fff;border:1px solid #E4E0D4;border-radius:14px;padding:20px}
+.card h3{margin:0 0 8px;font-size:1.02rem;color:var(--green)}
+.card p{margin:0;font-size:.95rem;color:var(--mut)}
+.cta{margin:44px 0 12px;display:flex;gap:14px;flex-wrap:wrap}
+.btn{display:inline-block;padding:13px 26px;border-radius:10px;text-decoration:none;font-weight:600}
+.btn.p{background:var(--green);color:#fff}.btn.s{border:2px solid var(--green);color:var(--green)}
+footer{margin:60px 0 30px;font-size:.85rem;color:var(--mut);border-top:1px solid #E4E0D4;padding-top:22px}
+footer a{color:var(--green)}
+</style></head><body>
+<div class="wrap">
+<header>
+<svg viewBox="0 0 512 512" role="img" aria-label="HLA-Verify logo"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F5D3A"/><stop offset="1" stop-color="#1E4028"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="104" fill="url(#bg)"/><g transform="translate(218,242)" stroke="#FAFAF4" stroke-width="52" stroke-linecap="round"><line x1="0" y1="-118" x2="0" y2="118"/><line x1="-102" y1="-59" x2="102" y2="59"/><line x1="-102" y1="59" x2="102" y2="-59"/></g><circle cx="366" cy="356" r="98" fill="#8FD69B" stroke="#1E4028" stroke-width="14"/><path d="M318 356 l36 38 l64 -74" fill="none" stroke="#123420" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="name">HLA-Verify</span>
+</header>
+
+<div class="hero">
+<h1>Every HLA allele name, checked against the source. <em>Deterministically.</em></h1>
+<p class="lead">AI assistants are entering transplant and immunogenetics workflows — and they fabricate allele names, resurrect deleted ones, and slip into 1990s formats. HLA-Verify checks every allele-shaped token in a typing report, EHR fragment, or model output against a pinned IPD-IMGT/HLA release. No LLM anywhere in the loop: every verdict is computed, versioned, and reproducible.</p>
+</div>
+
+<div class="sample">
+Patient typing: <span class="tok old" title="legacy format → A*01:01">A*0101 → A*01:01</span>
+<span class="tok ok">B*15:504:01</span>
+<span class="tok ok">DRB1*14:06</span> &nbsp;Assistant suggested:
+<span class="tok bad" title="no such allele in any release since 1.05.0">DQB1*05:03:26:99 ✗ fabricated</span>
+</div>
+
+<div class="why">
+<div class="card"><h3>Fabrication caught</h3><p>A 7B open model fabricates allele names in 9% of benchmark tasks and answers 62% of them wrongly with high confidence. Our benchmark, HLA-Bench-A, measures it; this engine catches it at runtime.</p></div>
+<div class="card"><h3>Versioned to the release</h3><p>Pinned to an exact IPD-IMGT/HLA release (46,652 alleles in 3.65.0, ~600 added per quarter). Deleted names resolve to their successors across 110 releases of history.</p></div>
+<div class="card"><h3>Nothing stored</h3><p>Reports are processed in memory and discarded; we log counts, not content. Reference data are fetched from the official source under CC-BY-ND and never redistributed.</p></div>
+</div>
+
+<div class="cta">
+<a class="btn p" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20pilot">Talk to us — hello@hlaverify.com</a>
+<a class="btn s" href="https://github.com/jasonbrelsford/verifiable-science-envs">Benchmark &amp; code</a>
+</div>
+<p class="lead" style="font-size:.95rem">API + interactive demo launching shortly. Labs and LIMS vendors: pilot slots open.</p>
+
+<footer>
+Computed from IPD-IMGT/HLA (Barker DJ et&nbsp;al., Nucleic Acids Research 2025), fetched at runtime under CC-BY-ND — never redistributed. HLA-Verify is a research-and-evaluation tool and is not a medical device; verification output supports, and does not replace, clinical judgment. © 2026 Jason Brelsford · <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>
+</footer>
+</div></body></html>

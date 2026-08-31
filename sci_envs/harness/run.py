@@ -93,6 +93,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("generate", help="(re)generate the suite from the pinned reference")
     g.add_argument("--tag", default="v3.65.0-alpha"); g.add_argument("--out", default="runs/hla-bench-a")
+    g.add_argument("--seed", type=int, default=None, help="base seed; a different seed gives a disjoint suite (e.g. a training split)")
     r = sub.add_parser("run", help="run one or more models")
     r.add_argument("models", nargs="+", help="baseline-naive-string | baseline-confident-guesser | baseline-cautious-abstainer | oracle | anthropic/<m> | openai/<m> | google/<m> | ollama/<m> (local, free)")
     r.add_argument("--suite", default="runs/hla-bench-a"); r.add_argument("--split", default="dev", choices=["dev", "test", "all"])
@@ -107,7 +108,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.cmd == "generate":
         from sci_envs.families.nomenclature.generate import generate_suite, write_suite
         ref = ImgtReference.load(args.tag)
-        tasks, manifest = generate_suite(ref)
+        tasks, manifest = generate_suite(ref, **({"base_seed": args.seed} if args.seed else {}))
         write_suite(tasks, manifest, args.out)
         print(json.dumps({k: manifest[k] for k in ("benchmark", "total", "split")}))
         return 0
