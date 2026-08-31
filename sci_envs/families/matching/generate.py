@@ -241,6 +241,14 @@ def write_suite(tasks, manifest, out_dir):
     out = Path(out_dir)
     (out / "dev").mkdir(parents=True, exist_ok=True)
     (out / "full").mkdir(parents=True, exist_ok=True)
+    # A suite dir may hold task files from an earlier SUITE_REV (runners keep
+    # their tree between runs to preserve the response cache). Stale ids would
+    # be silently run alongside the current rev, so clear them first — the
+    # current rev is regenerated deterministically; only responses/ is a cache.
+    for old in (out / "full").glob("*.full.json"):
+        old.unlink()
+    for old in (out / "dev").glob("*.agent.json"):
+        old.unlink()
     for t in tasks:
         (out / "full" / f"{t.task_id}.full.json").write_text(dumps(t.full()))
         if t.scorer_notes["split"] == "dev":

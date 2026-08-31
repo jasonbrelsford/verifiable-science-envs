@@ -532,6 +532,12 @@ def write_suite(tasks: list[Task], manifest: dict, out_dir: str | Path) -> None:
     out = Path(out_dir)
     (out / "full").mkdir(parents=True, exist_ok=True)
     (out / "dev").mkdir(parents=True, exist_ok=True)
+    # Clear task files from any earlier suite revision (runners keep their
+    # tree between runs for the response cache; stale ids must not be run).
+    for old_file in (out / "full").glob("*.full.json"):
+        old_file.unlink()
+    for old_file in (out / "dev").glob("*.agent.json"):
+        old_file.unlink()
     for t in tasks:
         (out / "full" / f"{t.task_id}.full.json").write_text(dumps(t.full()))
         if t.scorer_notes.get("split") == "dev":
