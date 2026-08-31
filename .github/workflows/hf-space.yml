@@ -1,0 +1,67 @@
+# Deploy the HLA-Verify demo to a Hugging Face Space, self-contained (code copied
+# into the Space repo — no GitHub dependency, works while this repo is private).
+# Runs on a hosted runner because huggingface.co is egress-blocked for the agent.
+name: hf-space
+on:
+  workflow_dispatch:
+    inputs:
+      space:
+        description: "owner/space-name"
+        default: "jebidiag/hla-verify"
+      private:
+        description: "create the Space private (flip public in HF settings later)"
+        default: "true"
+permissions: { contents: write }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble and push Space
+        env:
+          HF: ${{ secrets.HF_TOKEN }}
+          SPACE: ${{ inputs.space }}
+          PRIVATE: ${{ inputs.private }}
+        run: |
+          set -e
+          mkdir -p logs
+          {
+            NAME="${SPACE#*/}"
+            curl -sf -X POST https://huggingface.co/api/repos/create \
+              -H "Authorization: Bearer $HF" -H "Content-Type: application/json" \
+              -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"docker\",\"private\":$PRIVATE}" \
+              && echo "space created ($PRIVATE private)" || echo "space exists (or create skipped)"
+            D=$(mktemp -d)
+            git clone -q "https://user:$HF@huggingface.co/spaces/$SPACE" "$D"
+            mkdir -p "$D"
+            cp spaces/hla-verify/README.md "$D/README.md"
+            cp pyproject.toml NOTICE LICENSE "$D/"
+            sed -i '/^readme/d' "$D/pyproject.toml" || true
+            rm -rf "$D/sci_envs"; cp -r sci_envs "$D/sci_envs"
+            find "$D/sci_envs" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
+            cat > "$D/Dockerfile" <<'DEOF'
+          FROM python:3.12-slim
+          WORKDIR /app
+          COPY . /app
+          RUN pip install --no-cache-dir ".[service]"
+          ENV HOME=/home/user HLA_VERIFY_TAG=v3.65.0-alpha
+          RUN mkdir -p /home/user && python -c "from sci_envs.reference.imgt import ImgtReference; ImgtReference.load('v3.65.0-alpha')" && chmod -R a+rX /home/user
+          EXPOSE 7860
+          CMD ["uvicorn", "sci_envs.service.app:app", "--host", "0.0.0.0", "--port", "7860"]
+          DEOF
+            cd "$D"
+            git add -A
+            git -c user.name=deploy -c user.email=deploy@hlaverify.com commit -qm "deploy HLA-Verify (self-contained)" || echo "no changes"
+            git push -q
+            echo "pushed to https://huggingface.co/spaces/$SPACE — Docker build starts now"
+            sleep 60
+            curl -s -H "Authorization: Bearer $HF" "https://huggingface.co/api/spaces/$SPACE/runtime" | head -c 400; echo
+          } 2>&1 | sed "s/$HF/***HF***/g" | tee logs/hf-space.log
+      - name: Commit log
+        if: always()
+        run: |
+          git config user.name hf-deploy && git config user.email hf@users.noreply.github.com
+          git add -f logs/hf-space.log
+          git commit -m "hf-space: deploy log [skip ci]" || exit 0
+          git pull --rebase origin main && git push origin HEAD:main
