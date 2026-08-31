@@ -24,12 +24,12 @@ def errs(r):
 
 
 v = cf("/user/tokens/verify")
-print("token verify:", v.get("success"), "status:", (v.get("result") or {}).get("status"), "errors:", errs(v))
-if not v.get("success"):
-    raise SystemExit("token rejected by Cloudflare — see errors above")
-z = cf("/zones?name=hlaverify.com").get("result") or []
+print("user-token verify:", v.get("success"), "errors:", errs(v), "(account-owned tokens fail this check but still work — continuing)")
+zr = cf("/zones?name=hlaverify.com")
+z = zr.get("result") or []
 if not z:
-    raise SystemExit("zone hlaverify.com not visible to this token — check token zone scope")
+    print("zones call errors:", errs(zr))
+    raise SystemExit("zone hlaverify.com not visible to this token — it needs Zone:Zone:Read plus the edit scopes, on the hlaverify.com zone")
 zid, acct, status = z[0]["id"], z[0]["account"]["id"], z[0]["status"]
 print("zone:", zid[:8] + "…", "status:", status)
 
