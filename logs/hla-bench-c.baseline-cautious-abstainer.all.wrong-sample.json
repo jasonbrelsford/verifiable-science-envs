@@ -1,10 +1,11 @@
 [
   {
     "canonical": {
-      "count": "7/8",
+      "count": "10/10",
       "verdict_A": "match",
-      "verdict_B": "mismatch",
+      "verdict_B": "match",
       "verdict_C": "match",
+      "verdict_DQB1": "match",
       "verdict_DRB1": "match"
     },
     "hallucinated": [],
@@ -15,19 +16,23 @@
           "A*03:395"
         ],
         "B": [
-          "B*44:222",
+          "B*15:46",
           "B*42:43"
         ],
         "C": [
           "C*02:13",
           "C*03:515"
         ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
         "DRB1": [
           "DRB1*03:165",
           "DRB1*11:18"
         ]
       },
-      "framework": "8/8",
+      "framework": "10/10",
       "recipient": {
         "A": [
           "A*24:523",
@@ -41,6 +46,10 @@
           "C*02:13",
           "C*03:515"
         ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
         "DRB1": [
           "DRB1*03:165",
           "DRB1*11:18"
@@ -50,14 +59,67 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "count_simple",
-    "task_id": "hla_matching.T1.count_simple.0000"
+    "task_id": "hla_matching.r3.T1.count_simple.0000"
   },
   {
     "canonical": {
-      "count": "10/10",
-      "verdict_A": "match",
+      "count": "6/8",
+      "verdict_A": "mismatch",
       "verdict_B": "match",
-      "verdict_C": "match",
+      "verdict_C": "mismatch",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*23:30",
+          "A*31:255"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*04:584",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*23:30",
+          "A*66:29"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*01:27",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0001"
+  },
+  {
+    "canonical": {
+      "count": "8/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
       "verdict_DQB1": "match",
       "verdict_DRB1": "match"
     },
@@ -65,54 +127,54 @@
     "input": {
       "donor": {
         "A": [
-          "A*26:190",
-          "A*32:84"
+          "A*01:103",
+          "A*33:199"
         ],
         "B": [
-          "B*35:108",
-          "B*52:38"
+          "B*35:41",
+          "B*15:586"
         ],
         "C": [
-          "C*08:183",
-          "C*04:584"
+          "C*03:608",
+          "C*04:412"
         ],
         "DQB1": [
-          "DQB1*06:208",
-          "DQB1*03:514"
+          "DQB1*06:253",
+          "DQB1*05:355"
         ],
         "DRB1": [
-          "DRB1*01:30",
-          "DRB1*08:125"
+          "DRB1*13:279",
+          "DRB1*04:279"
         ]
       },
       "framework": "10/10",
       "recipient": {
         "A": [
-          "A*26:190",
-          "A*32:84"
+          "A*01:103",
+          "A*02:1067"
         ],
         "B": [
-          "B*35:108",
-          "B*52:38"
+          "B*35:41",
+          "B*15:586"
         ],
         "C": [
-          "C*08:183",
-          "C*04:584"
+          "C*07:88",
+          "C*04:412"
         ],
         "DQB1": [
-          "DQB1*06:208",
-          "DQB1*03:514"
+          "DQB1*06:253",
+          "DQB1*05:355"
         ],
         "DRB1": [
-          "DRB1*01:30",
-          "DRB1*08:125"
+          "DRB1*13:279",
+          "DRB1*04:279"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "count_simple",
-    "task_id": "hla_matching.T1.count_simple.0001"
+    "task_id": "hla_matching.r3.T1.count_simple.0002"
   },
   {
     "canonical": {
@@ -126,126 +188,20 @@
     "input": {
       "donor": {
         "A": [
-          "A*01:103",
-          "A*02:1067"
+          "A*3043",
+          "A*26:174"
         ],
         "B": [
-          "B*35:41",
-          "B*15:586"
+          "B*07:187",
+          "B*15:261"
         ],
         "C": [
-          "C*07:88",
-          "C*04:412"
+          "C*03:535",
+          "C*07:964"
         ],
         "DRB1": [
-          "DRB1*13:279",
-          "DRB1*04:279"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*01:103",
-          "A*02:1067"
-        ],
-        "B": [
-          "B*35:41",
-          "B*15:586"
-        ],
-        "C": [
-          "C*07:88",
-          "C*04:412"
-        ],
-        "DRB1": [
-          "DRB1*13:279",
-          "DRB1*04:279"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "count_simple",
-    "task_id": "hla_matching.T1.count_simple.0002"
-  },
-  {
-    "canonical": {
-      "count": "2/2",
-      "verdict_A": "potential",
-      "verdict_B": "potential",
-      "verdict_C": "potential",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*01:209",
-          "A*03447"
-        ],
-        "B": [
-          "B*15:476",
-          "B*44222"
-        ],
-        "C": [
-          "C*07964",
-          "C*07874"
-        ],
-        "DRB1": [
-          "DRB1*13:128",
-          "DRB1*13:238"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*01:209",
-          "A*03:447"
-        ],
-        "B": [
-          "B*15:476",
-          "B*44:222"
-        ],
-        "C": [
-          "C*07:964",
-          "C*07:874"
-        ],
-        "DRB1": [
-          "DRB1*13:128",
-          "DRB1*13:238"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "same_after_normalize",
-    "task_id": "hla_matching.T1.same_after_normalize.0000"
-  },
-  {
-    "canonical": {
-      "count": "UNRESOLVABLE",
-      "verdict_A": "potential",
-      "verdict_B": "potential",
-      "verdict_C": "potential",
-      "verdict_DRB1": "potential"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*30:43",
-          "A*26174"
-        ],
-        "B": [
-          "B*07187",
-          "B*15261"
-        ],
-        "C": [
-          "C*03535",
-          "C*07964"
-        ],
-        "DRB1": [
-          "DRB1*0130",
-          "DRB1*14121"
+          "DRB1*01:30",
+          "DRB1*14:121"
         ]
       },
       "framework": "8/8",
@@ -271,34 +227,34 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "same_after_normalize",
-    "task_id": "hla_matching.T1.same_after_normalize.0001"
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0000"
   },
   {
     "canonical": {
-      "count": "2/2",
-      "verdict_A": "potential",
+      "count": "8/8",
+      "verdict_A": "match",
       "verdict_B": "match",
-      "verdict_C": "potential",
-      "verdict_DRB1": "potential"
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*11425",
-          "A*25:62"
+          "A*11:425",
+          "A*2562"
         ],
         "B": [
           "B*4496",
           "B*07:541"
         ],
         "C": [
-          "C*071171",
+          "C*07:1171",
           "C*07:874"
         ],
         "DRB1": [
-          "DRB1*13238",
-          "DRB1*04360"
+          "DRB1*13:238",
+          "DRB1*04:360"
         ]
       },
       "framework": "8/8",
@@ -324,69 +280,60 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "same_after_normalize",
-    "task_id": "hla_matching.T1.same_after_normalize.0002"
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0001"
   },
   {
     "canonical": {
-      "count": "10/10",
+      "count": "8/8",
       "verdict_A": "match",
       "verdict_B": "match",
       "verdict_C": "match",
-      "verdict_DQB1": "match",
       "verdict_DRB1": "match"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*68:303",
-          "A*25:24"
+          "A*01:500",
+          "A*2339"
         ],
         "B": [
-          "B*27:45",
-          "B*27:247"
+          "B*08:261",
+          "B*27:202"
         ],
         "C": [
-          "C*06:86",
-          "C*06:333"
-        ],
-        "DQB1": [
-          "DQB1*06:28",
-          "DQB1*05:61"
+          "C*06:99",
+          "C*03:186"
         ],
         "DRB1": [
-          "DRB1*01:30",
-          "DRB1*13:81"
+          "DRB1*1008",
+          "DRB1*13:138"
         ]
       },
-      "framework": "antigen",
+      "framework": "8/8",
       "recipient": {
         "A": [
-          "A*68:303",
-          "A*25:24"
+          "A*01:500",
+          "A*23:39"
         ],
         "B": [
-          "B*27:06",
-          "B*27:247"
+          "B*08:261",
+          "B*27:202"
         ],
         "C": [
-          "C*06:86",
-          "C*06:333"
-        ],
-        "DQB1": [
-          "DQB1*06:28",
-          "DQB1*05:61"
+          "C*06:99",
+          "C*03:186"
         ],
         "DRB1": [
-          "DRB1*01:30",
-          "DRB1*13:81"
+          "DRB1*10:08",
+          "DRB1*13:138"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "antigen_vs_allele",
-    "task_id": "hla_matching.T2.antigen_vs_allele.0000"
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0002"
   },
   {
     "canonical": {
@@ -401,108 +348,46 @@
     "input": {
       "donor": {
         "A": [
-          "A*66:29",
-          "A*68:303"
+          "A*66:37",
+          "A*32:15"
         ],
         "B": [
-          "B*53:14",
-          "B*56:53"
+          "B*35:41",
+          "B*56:43"
         ],
         "C": [
-          "C*07:1192",
-          "C*02:101"
+          "C*12:202",
+          "C*14:84"
         ],
         "DQB1": [
-          "DQB1*06:74",
-          "DQB1*02:21"
+          "DQB1*06:301",
+          "DQB1*05:327"
         ],
         "DRB1": [
-          "DRB1*03:35",
-          "DRB1*13:132"
-        ]
-      },
-      "framework": "antigen",
-      "recipient": {
-        "A": [
-          "A*66:29",
-          "A*68:303"
-        ],
-        "B": [
-          "B*53:14",
-          "B*56:53"
-        ],
-        "C": [
-          "C*07:1192",
-          "C*02:101"
-        ],
-        "DQB1": [
-          "DQB1*06:74",
-          "DQB1*02:21"
-        ],
-        "DRB1": [
-          "DRB1*03:206",
-          "DRB1*13:132"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "antigen_vs_allele",
-    "task_id": "hla_matching.T2.antigen_vs_allele.0001"
-  },
-  {
-    "canonical": {
-      "count": "10/10",
-      "verdict_A": "match",
-      "verdict_B": "match",
-      "verdict_C": "match",
-      "verdict_DQB1": "match",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*24:59",
-          "A*68:48"
-        ],
-        "B": [
-          "B*07:409",
-          "B*27:101"
-        ],
-        "C": [
-          "C*07:88",
-          "C*08:183"
-        ],
-        "DQB1": [
-          "DQB1*06:197",
-          "DQB1*06:92"
-        ],
-        "DRB1": [
-          "DRB1*12:97",
+          "DRB1*11:305",
           "DRB1*03:16"
         ]
       },
       "framework": "antigen",
       "recipient": {
         "A": [
-          "A*24:557",
-          "A*68:48"
+          "A*66:37",
+          "A*32:15"
         ],
         "B": [
-          "B*07:409",
-          "B*27:101"
+          "B*35:366",
+          "B*56:43"
         ],
         "C": [
-          "C*07:88",
-          "C*08:183"
+          "C*12:202",
+          "C*14:84"
         ],
         "DQB1": [
-          "DQB1*06:197",
-          "DQB1*06:92"
+          "DQB1*06:301",
+          "DQB1*05:327"
         ],
         "DRB1": [
-          "DRB1*12:97",
+          "DRB1*11:305",
           "DRB1*03:16"
         ]
       }
@@ -510,69 +395,131 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "antigen_vs_allele",
-    "task_id": "hla_matching.T2.antigen_vs_allele.0002"
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0000"
   },
   {
     "canonical": {
-      "count": "9/10",
+      "count": "10/10",
       "verdict_A": "match",
       "verdict_B": "match",
       "verdict_C": "match",
-      "verdict_DQB1": "mismatch",
+      "verdict_DQB1": "match",
       "verdict_DRB1": "match"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*24:26",
-          "A*30:43"
+          "A*68:86",
+          "A*02:02"
         ],
         "B": [
-          "B*35:659",
-          "B*27:90"
+          "B*59:08",
+          "B*56:53"
         ],
         "C": [
-          "C*06:86",
-          "C*04:484"
+          "C*02:101",
+          "C*03:724"
         ],
         "DQB1": [
-          "DQB1*05:39",
-          "DQB1*03:223"
+          "DQB1*05:315",
+          "DQB1*02:197"
         ],
         "DRB1": [
-          "DRB1*13:132",
-          "DRB1*03:29"
+          "DRB1*04:365",
+          "DRB1*14:104"
         ]
       },
-      "framework": "10/10",
+      "framework": "antigen",
       "recipient": {
         "A": [
-          "A*24:26",
-          "A*30:43"
+          "A*68:86",
+          "A*02:02"
         ],
         "B": [
-          "B*35:659",
-          "B*27:90"
+          "B*59:08",
+          "B*56:53"
         ],
         "C": [
-          "C*06:86",
-          "C*04:484"
+          "C*02:101",
+          "C*03:724"
         ],
         "DQB1": [
-          "DQB1*02:16",
-          "DQB1*03:223"
+          "DQB1*05:315",
+          "DQB1*02:197"
         ],
         "DRB1": [
-          "DRB1*13:132",
-          "DRB1*03:29"
+          "DRB1*04:269",
+          "DRB1*14:104"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "framework_shift",
-    "task_id": "hla_matching.T2.framework_shift.0000"
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0001"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:238",
+          "DRB1*09:23"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:261",
+          "DRB1*09:23"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0002"
   },
   {
     "canonical": {
@@ -587,122 +534,239 @@
     "input": {
       "donor": {
         "A": [
-          "A*03:239",
-          "A*02:1067"
+          "A*01:21",
+          "A*03:373"
         ],
         "B": [
-          "B*27:09",
-          "B*15:261"
+          "B*15:586",
+          "B*08:243"
         ],
         "C": [
-          "C*14:81",
-          "C*08:183"
+          "C*02:101",
+          "C*03:373"
         ],
         "DQB1": [
-          "DQB1*03:45",
-          "DQB1*03:520"
+          "DQB1*05:145",
+          "DQB1*03:557"
         ],
         "DRB1": [
-          "DRB1*10:23",
-          "DRB1*08:84"
+          "DRB1*08:57",
+          "DRB1*14:104"
         ]
       },
-      "framework": "10/10",
+      "framework": "antigen",
       "recipient": {
         "A": [
-          "A*03:239",
-          "A*02:1067"
+          "A*01:21",
+          "A*03:373"
         ],
         "B": [
-          "B*27:09",
-          "B*15:261"
+          "B*15:586",
+          "B*08:243"
         ],
         "C": [
-          "C*04:450",
-          "C*08:183"
+          "C*03:615",
+          "C*03:373"
         ],
         "DQB1": [
-          "DQB1*03:45",
-          "DQB1*03:520"
+          "DQB1*05:145",
+          "DQB1*03:557"
         ],
         "DRB1": [
-          "DRB1*10:23",
-          "DRB1*08:84"
+          "DRB1*08:57",
+          "DRB1*14:104"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "framework_shift",
-    "task_id": "hla_matching.T2.framework_shift.0001"
+    "task_id": "hla_matching.r3.T2.framework_shift.0000"
   },
   {
     "canonical": {
       "count": "9/10",
       "verdict_A": "match",
       "verdict_B": "match",
-      "verdict_C": "match",
-      "verdict_DQB1": "mismatch",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
       "verdict_DRB1": "match"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*02:298",
-          "A*02:1283"
+          "A*11:513",
+          "A*23:39"
         ],
         "B": [
-          "B*18:219",
-          "B*45:30"
+          "B*08:28",
+          "B*08:261"
         ],
         "C": [
-          "C*06:421",
-          "C*14:81"
+          "C*12:276",
+          "C*07:78"
         ],
         "DQB1": [
-          "DQB1*05:190",
-          "DQB1*05:315"
+          "DQB1*02:90",
+          "DQB1*02:191"
         ],
         "DRB1": [
-          "DRB1*04:246",
-          "DRB1*03:136"
+          "DRB1*11:180",
+          "DRB1*14:258"
         ]
       },
-      "framework": "10/10",
+      "framework": "antigen",
       "recipient": {
         "A": [
-          "A*02:298",
-          "A*02:1283"
+          "A*11:513",
+          "A*23:39"
         ],
         "B": [
-          "B*18:219",
-          "B*45:30"
+          "B*08:28",
+          "B*08:261"
         ],
         "C": [
-          "C*06:421",
-          "C*14:81"
+          "C*03:535",
+          "C*07:78"
         ],
         "DQB1": [
-          "DQB1*05:161",
-          "DQB1*05:315"
+          "DQB1*02:90",
+          "DQB1*02:191"
         ],
         "DRB1": [
-          "DRB1*04:246",
-          "DRB1*03:136"
+          "DRB1*11:180",
+          "DRB1*14:258"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "framework_shift",
-    "task_id": "hla_matching.T2.framework_shift.0002"
+    "task_id": "hla_matching.r3.T2.framework_shift.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*05:216",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0002"
   },
   {
     "canonical": {
       "count": "7/8",
       "gvh_mismatches": 1,
       "hvg_mismatches": 0,
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*11:289"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*13:279"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0000"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 0,
+      "hvg_mismatches": 1,
       "verdict_A": "mismatch",
       "verdict_B": "match",
       "verdict_C": "match",
@@ -712,101 +776,46 @@
     "input": {
       "donor": {
         "A": [
-          "A*02:523",
-          "A*02:523"
+          "A*01:92",
+          "A*24:257"
         ],
         "B": [
-          "B*18:250",
-          "B*08:262"
+          "B*56:43",
+          "B*35:659"
         ],
         "C": [
-          "C*07:1171",
-          "C*01:35"
+          "C*07:51",
+          "C*03:308"
         ],
         "DRB1": [
-          "DRB1*07:29",
-          "DRB1*04:269"
+          "DRB1*04:269",
+          "DRB1*13:366"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*02:523",
-          "A*32:55"
+          "A*01:92",
+          "A*01:92"
         ],
         "B": [
-          "B*18:250",
-          "B*08:262"
+          "B*56:43",
+          "B*35:659"
         ],
         "C": [
-          "C*07:1171",
-          "C*01:35"
+          "C*07:51",
+          "C*03:308"
         ],
         "DRB1": [
-          "DRB1*07:29",
-          "DRB1*04:269"
+          "DRB1*04:269",
+          "DRB1*13:366"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "direction",
-    "task_id": "hla_matching.T3.direction.0000"
-  },
-  {
-    "canonical": {
-      "count": "7/8",
-      "gvh_mismatches": 1,
-      "hvg_mismatches": 0,
-      "verdict_A": "match",
-      "verdict_B": "match",
-      "verdict_C": "mismatch",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*25:63",
-          "A*32:21"
-        ],
-        "B": [
-          "B*07:410",
-          "B*35:41"
-        ],
-        "C": [
-          "C*14:167",
-          "C*14:167"
-        ],
-        "DRB1": [
-          "DRB1*13:132",
-          "DRB1*04:238"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*25:63",
-          "A*32:21"
-        ],
-        "B": [
-          "B*07:410",
-          "B*35:41"
-        ],
-        "C": [
-          "C*14:167",
-          "C*06:333"
-        ],
-        "DRB1": [
-          "DRB1*13:132",
-          "DRB1*04:238"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "direction",
-    "task_id": "hla_matching.T3.direction.0001"
+    "task_id": "hla_matching.r3.T3.direction.0001"
   },
   {
     "canonical": {
@@ -822,107 +831,54 @@
     "input": {
       "donor": {
         "A": [
-          "A*03:120",
-          "A*32:35"
+          "A*03:373",
+          "A*32:84"
         ],
         "B": [
-          "B*15:61",
-          "B*15:61"
+          "B*53:14",
+          "B*53:14"
         ],
         "C": [
-          "C*12:202",
-          "C*03:734"
+          "C*03:608",
+          "C*06:99"
         ],
         "DRB1": [
-          "DRB1*07:22",
-          "DRB1*11:233"
+          "DRB1*14:17",
+          "DRB1*01:30"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*03:120",
-          "A*32:35"
+          "A*03:373",
+          "A*32:84"
         ],
         "B": [
-          "B*15:61",
-          "B*50:19"
+          "B*53:14",
+          "B*27:202"
         ],
         "C": [
-          "C*12:202",
-          "C*03:734"
+          "C*03:608",
+          "C*06:99"
         ],
         "DRB1": [
-          "DRB1*07:22",
-          "DRB1*11:233"
+          "DRB1*14:17",
+          "DRB1*01:30"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "direction",
-    "task_id": "hla_matching.T3.direction.0002"
+    "task_id": "hla_matching.r3.T3.direction.0002"
   },
   {
     "canonical": {
       "count": "7/8",
-      "verdict_A": "mismatch",
+      "verdict_A": "match",
       "verdict_B": "match",
       "verdict_C": "match",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*33:56",
-          "A*23:25"
-        ],
-        "B": [
-          "B*07:187",
-          "B*44:229"
-        ],
-        "C": [
-          "C*08:246",
-          "C*07:647"
-        ],
-        "DRB1": [
-          "DRB1*11:101",
-          "DRB1*03:96"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*23:142N",
-          "A*23:25"
-        ],
-        "B": [
-          "B*07:187",
-          "B*44:229"
-        ],
-        "C": [
-          "C*08:246",
-          "C*07:647"
-        ],
-        "DRB1": [
-          "DRB1*11:101",
-          "DRB1*03:96"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "null_trap_match",
-    "task_id": "hla_matching.T3.null_trap_match.0000"
-  },
-  {
-    "canonical": {
-      "count": "7/8",
-      "verdict_A": "mismatch",
-      "verdict_B": "match",
-      "verdict_C": "match",
-      "verdict_DRB1": "match"
+      "verdict_DRB1": "mismatch"
     },
     "hallucinated": [],
     "input": {
@@ -947,7 +903,7 @@
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*03:323N",
+          "A*30:202",
           "A*26:190"
         ],
         "B": [
@@ -959,7 +915,7 @@
           "C*07:588"
         ],
         "DRB1": [
-          "DRB1*04:261",
+          "DRB1*08:60N",
           "DRB1*08:101"
         ]
       }
@@ -967,7 +923,7 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "null_trap_match",
-    "task_id": "hla_matching.T3.null_trap_match.0001"
+    "task_id": "hla_matching.r3.T3.null_trap_match.0000"
   },
   {
     "canonical": {
@@ -1009,7 +965,7 @@
           "A*23:39"
         ],
         "B": [
-          "B*15:562N",
+          "B*14:131N",
           "B*45:14"
         ],
         "C": [
@@ -1029,166 +985,228 @@
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "null_trap_match",
-    "task_id": "hla_matching.T3.null_trap_match.0002"
+    "task_id": "hla_matching.r3.T3.null_trap_match.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*26:190",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:96N",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0002"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "potential",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*80:83",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*32:55",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0000"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "match",
+      "verdict_B": "potential",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*95:85",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*27:09",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0001"
   },
   {
     "canonical": {
       "count": "6/6",
       "verdict_A": "match",
       "verdict_B": "match",
-      "verdict_C": "potential",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*68:86",
-          "A*03:239"
-        ],
-        "B": [
-          "B*49:25",
-          "B*15:61"
-        ],
-        "C": [
-          "C*18:87",
-          "C*01:214"
-        ],
-        "DRB1": [
-          "DRB1*13:234",
-          "DRB1*12:92"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*68:86",
-          "A*03:239"
-        ],
-        "B": [
-          "B*49:25",
-          "B*15:61"
-        ],
-        "C": [
-          "C*01:27",
-          "C*01:214"
-        ],
-        "DRB1": [
-          "DRB1*13:234",
-          "DRB1*12:92"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "resolution_insufficient",
-    "task_id": "hla_matching.T3.resolution_insufficient.0000"
-  },
-  {
-    "canonical": {
-      "count": "6/6",
-      "verdict_A": "match",
-      "verdict_B": "potential",
       "verdict_C": "match",
-      "verdict_DRB1": "match"
+      "verdict_DRB1": "potential"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*24:404",
-          "A*23:25"
+          "A*32:21",
+          "A*31:217"
         ],
         "B": [
-          "B*95:96",
-          "B*44:450"
+          "B*27:09",
+          "B*27:247"
         ],
         "C": [
-          "C*03:615",
-          "C*06:333"
+          "C*15:40",
+          "C*12:202"
         ],
         "DRB1": [
-          "DRB1*03:165",
-          "DRB1*08:57"
+          "DRB1*17:95",
+          "DRB1*13:81"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*24:404",
-          "A*23:25"
+          "A*32:21",
+          "A*31:217"
         ],
         "B": [
-          "B*08:262",
-          "B*44:450"
+          "B*27:09",
+          "B*27:247"
         ],
         "C": [
-          "C*03:615",
-          "C*06:333"
+          "C*15:40",
+          "C*12:202"
         ],
         "DRB1": [
-          "DRB1*03:165",
-          "DRB1*08:57"
+          "DRB1*11:356",
+          "DRB1*13:81"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "resolution_insufficient",
-    "task_id": "hla_matching.T3.resolution_insufficient.0001"
-  },
-  {
-    "canonical": {
-      "count": "6/6",
-      "verdict_A": "match",
-      "verdict_B": "potential",
-      "verdict_C": "match",
-      "verdict_DRB1": "match"
-    },
-    "hallucinated": [],
-    "input": {
-      "donor": {
-        "A": [
-          "A*32:84",
-          "A*24:59"
-        ],
-        "B": [
-          "B*95:85",
-          "B*45:14"
-        ],
-        "C": [
-          "C*03:615",
-          "C*04:103"
-        ],
-        "DRB1": [
-          "DRB1*15:65",
-          "DRB1*14:158"
-        ]
-      },
-      "framework": "8/8",
-      "recipient": {
-        "A": [
-          "A*32:84",
-          "A*24:59"
-        ],
-        "B": [
-          "B*48:01",
-          "B*45:14"
-        ],
-        "C": [
-          "C*03:615",
-          "C*04:103"
-        ],
-        "DRB1": [
-          "DRB1*15:65",
-          "DRB1*14:158"
-        ]
-      }
-    },
-    "primary_failure_mode": "resolution_mismatch",
-    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
-    "subtype": "resolution_insufficient",
-    "task_id": "hla_matching.T3.resolution_insufficient.0002"
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0002"
   },
   {
     "canonical": {
@@ -1203,150 +1221,150 @@
       "donor": {
         "A": [
           "A*68:48",
-          "A*26:190"
+          "A*32:35"
         ],
         "B": [
-          "B*56:53",
-          "B*49:04"
+          "B*48:01",
+          "B*56:53"
         ],
         "C": [
-          "C*07:88",
-          "C*14:84"
+          "C*04:103",
+          "C*01:223"
         ],
         "DRB1": [
-          "DRB1*08:71",
-          "DRB1*01:21"
+          "DRB1*14:17",
+          "DRB1*11:219"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
           "A*68:48",
-          "A*26:190"
+          "A*32:35"
         ],
         "B": [
-          "B*56:53",
-          "B*49:04"
+          "B*48:01",
+          "B*56:53"
         ],
         "C": [
-          "C*07:88",
-          "C*14:84"
+          "C*04:103",
+          "C*01:223"
         ],
         "DRB1": [
-          "DRB1*08:117",
-          "DRB1*01:21"
+          "DRB1*14:253",
+          "DRB1*11:219"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "near_miss_pair",
-    "task_id": "hla_matching.T4.near_miss_pair.0000"
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0000"
   },
   {
     "canonical": {
       "count": "7/8",
       "verdict_A": "match",
       "verdict_B": "match",
-      "verdict_C": "mismatch",
-      "verdict_DRB1": "match"
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*68:303",
-          "A*25:24"
+          "A*24:230",
+          "A*32:21"
         ],
         "B": [
-          "B*35:366",
-          "B*48:01"
+          "B*08:243",
+          "B*18:250"
         ],
         "C": [
-          "C*02:258",
-          "C*03:608"
+          "C*01:214",
+          "C*07:874"
         ],
         "DRB1": [
-          "DRB1*01:161",
-          "DRB1*13:248"
+          "DRB1*08:101",
+          "DRB1*14:17"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*68:303",
-          "A*25:24"
+          "A*24:230",
+          "A*32:21"
         ],
         "B": [
-          "B*35:366",
-          "B*48:01"
+          "B*08:243",
+          "B*18:250"
         ],
         "C": [
-          "C*02:55",
-          "C*03:608"
+          "C*01:214",
+          "C*07:874"
         ],
         "DRB1": [
-          "DRB1*01:161",
-          "DRB1*13:248"
+          "DRB1*08:125",
+          "DRB1*14:17"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "near_miss_pair",
-    "task_id": "hla_matching.T4.near_miss_pair.0001"
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0001"
   },
   {
     "canonical": {
       "count": "7/8",
       "verdict_A": "match",
       "verdict_B": "match",
-      "verdict_C": "mismatch",
-      "verdict_DRB1": "match"
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
     },
     "hallucinated": [],
     "input": {
       "donor": {
         "A": [
-          "A*11:513",
-          "A*68:126"
+          "A*03:120",
+          "A*68:48"
         ],
         "B": [
-          "B*15:476",
-          "B*56:53"
+          "B*07:109",
+          "B*56:10"
         ],
         "C": [
-          "C*01:27",
-          "C*12:276"
+          "C*07:1171",
+          "C*02:24"
         ],
         "DRB1": [
-          "DRB1*11:289",
-          "DRB1*03:206"
+          "DRB1*04:365",
+          "DRB1*14:121"
         ]
       },
       "framework": "8/8",
       "recipient": {
         "A": [
-          "A*11:513",
-          "A*68:126"
+          "A*03:120",
+          "A*68:48"
         ],
         "B": [
-          "B*15:476",
-          "B*56:53"
+          "B*07:109",
+          "B*56:10"
         ],
         "C": [
-          "C*01:207",
-          "C*12:276"
+          "C*07:1171",
+          "C*02:24"
         ],
         "DRB1": [
-          "DRB1*11:289",
-          "DRB1*03:206"
+          "DRB1*04:238",
+          "DRB1*14:121"
         ]
       }
     },
     "primary_failure_mode": "resolution_mismatch",
     "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
     "subtype": "near_miss_pair",
-    "task_id": "hla_matching.T4.near_miss_pair.0002"
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0002"
   }
 ]

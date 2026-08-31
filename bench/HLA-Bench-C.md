@@ -1,64 +1,59 @@
 # HLA-Bench-C-v0.1@IMGT-3.65.0
 
-**Can a model score a donor-recipient HLA match the way a transplant lab must?** 205 generated pairs across 8 subtypes, graded by exact match against an executable encoding of published matching rules over IPD-IMGT/HLA v3.65.0-alpha (C-v0.1 (rules.py R1-R6)). Confident counts over unresolvable typing are the headline error.
+**Can a model score a donor-recipient HLA match the way a transplant lab must?** 205 generated pairs across 8 subtypes, graded by exact match against an executable encoding of published matching rules over IPD-IMGT/HLA v3.65.0-alpha (C-v0.1.1 (rules.py R1-R6)). Confident counts over unresolvable typing are the headline error.
 
-Dev split: 40 tasks (public). Sealed split: 165 tasks (server-side). Regenerated every IPD release; this page is versioned.
+Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated every IPD release; this page is versioned.
 
 ## Headline
 
 | Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |
 |---|---|---:|---:|---:|---:|---:|---|
-| `oracle-reference` | all | 205 | 100% <sub>[98–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
-| `ollama/qwen2.5:7b` | all | 205 | 1% <sub>[0–3]</sub> | 0 | 0.00 | 73% | `wrong_but_overconfident` |
-| `baseline-cautious-abstainer` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
-| `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 73% | `resolution_mismatch` |
+| `ollama/qwen2.5:7b` | all | 410 | 4% <sub>[2–6]</sub> | 2 | 0.00 | 80% | `wrong_but_overconfident` |
+| `baseline-cautious-abstainer` | all | 410 | 0% <sub>[0–1]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
+| `baseline-naive-string` | all | 410 | 0% <sub>[0–1]</sub> | 0 | 0.00 | 80% | `resolution_mismatch` |
 
 ## By tier
 
 | Model | Split | T1 syntax | T2 groups | T3 history | T4 adversarial |
 |---|---|---:|---:|---:|---:|
-| `oracle-reference` | all | 100% <sub>[94–100]</sub> | 100% <sub>[93–100]</sub> | 100% <sub>[95–100]</sub> | 100% <sub>[84–100]</sub> |
-| `ollama/qwen2.5:7b` | all | 3% <sub>[1–11]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
-| `baseline-cautious-abstainer` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
-| `baseline-naive-string` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
+| `ollama/qwen2.5:7b` | all | 12% <sub>[8–20]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
+| `baseline-cautious-abstainer` | all | 0% <sub>[0–3]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
+| `baseline-naive-string` | all | 0% <sub>[0–3]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
 
 ## By slice (where clinical risk concentrates)
 
 | Model | Split | `null_allele` | `unconfirmed` | `partial_sequence` | `post_cutoff` | `deleted_name` | `class_II_secondary_locus` | `expression_suffix` | `serology_uncertain` | contamination-resistant |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `oracle-reference` | all | 100% <sub>[87–100]</sub> | — | — | — | — | — | — | — | — |
-| `ollama/qwen2.5:7b` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
-| `baseline-cautious-abstainer` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
-| `baseline-naive-string` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
+| `ollama/qwen2.5:7b` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
+| `baseline-cautious-abstainer` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
+| `baseline-naive-string` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
 
 ## By subtype
 
-| Subtype | `oracle-reference` (all) | `ollama/qwen2.5:7b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) |
-|---|---:|---:|---:|---:|
-| `antigen_vs_allele` | 100% <sub>[89–100]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
-| `count_simple` | 100% <sub>[89–100]</sub> | 7% <sub>[2–21]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
-| `direction` | 100% <sub>[87–100]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `framework_shift` | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
-| `near_miss_pair` | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
-| `null_trap_match` | 100% <sub>[87–100]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `resolution_insufficient` | 100% <sub>[87–100]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `same_after_normalize` | 100% <sub>[89–100]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| Subtype | `ollama/qwen2.5:7b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) |
+|---|---:|---:|---:|
+| `antigen_vs_allele` | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
+| `count_simple` | 20% <sub>[12–32]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
+| `direction` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
+| `framework_shift` | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> |
+| `near_miss_pair` | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> |
+| `null_trap_match` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
+| `resolution_insufficient` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
+| `same_after_normalize` | 5% <sub>[2–14]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
 
 ## Fabricated names (top 10 per model)
 
-- `oracle-reference` (all): none
-- `ollama/qwen2.5:7b` (all): none
+- `ollama/qwen2.5:7b` (all): `C*0224`×1, `C*1481`×1
 - `baseline-cautious-abstainer` (all): none
 - `baseline-naive-string` (all): none
 
 ## Failure modes (primary, per task)
 
-| Model | Split | `clean_correct` | `wrong_calibrated` | `wrong_but_overconfident` | `resolution_mismatch` |
+| Model | Split | `clean_correct` | `wrong_but_overconfident` | `wrong_calibrated` | `resolution_mismatch` |
 |---|---|---:|---:|---:|---:|
-| `oracle-reference` | all | 150 | 55 | 0 | 0 |
-| `ollama/qwen2.5:7b` | all | 2 | 1 | 202 | 0 |
-| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 205 |
-| `baseline-naive-string` | all | 0 | 0 | 0 | 205 |
+| `ollama/qwen2.5:7b` | all | 15 | 392 | 3 | 0 |
+| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 410 |
+| `baseline-naive-string` | all | 0 | 0 | 0 | 410 |
 
 ## Method
 

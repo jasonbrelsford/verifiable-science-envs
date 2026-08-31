@@ -1,0 +1,174 @@
+{
+  "benchmark": "HLA-Bench-C-v0.1@IMGT-3.65.0",
+  "by_slice": {
+    "null_allele": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0714
+      ],
+      "correct": 0,
+      "n": 50
+    },
+    "resolution_insufficient": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0458
+      ],
+      "correct": 0,
+      "n": 80
+    }
+  },
+  "by_subtype": {
+    "antigen_vs_allele": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0602
+      ],
+      "correct": 0,
+      "n": 60
+    },
+    "count_simple": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0602
+      ],
+      "correct": 0,
+      "n": 60
+    },
+    "direction": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0714
+      ],
+      "correct": 0,
+      "n": 50
+    },
+    "framework_shift": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0876
+      ],
+      "correct": 0,
+      "n": 40
+    },
+    "near_miss_pair": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0876
+      ],
+      "correct": 0,
+      "n": 40
+    },
+    "null_trap_match": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0714
+      ],
+      "correct": 0,
+      "n": 50
+    },
+    "resolution_insufficient": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.0714
+      ],
+      "correct": 0,
+      "n": 50
+    },
+    "same_after_normalize": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0602
+      ],
+      "correct": 0,
+      "n": 60
+    }
+  },
+  "by_tier": {
+    "1": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.031
+      ],
+      "correct": 0,
+      "n": 120
+    },
+    "2": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.037
+      ],
+      "correct": 0,
+      "n": 100
+    },
+    "3": {
+      "acc": 0.0,
+      "ci95": [
+        0.0,
+        0.025
+      ],
+      "correct": 0,
+      "n": 150
+    },
+    "4": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.0876
+      ],
+      "correct": 0,
+      "n": 40
+    }
+  },
+  "calibration": {
+    "calibrated_fraction": 0.8049,
+    "stated_vs_expected": {
+      "high->high": 330,
+      "high->medium": 80
+    }
+  },
+  "contamination_resistant": {
+    "acc": null,
+    "ci95": [
+      0.0,
+      0.0
+    ],
+    "correct": 0,
+    "n": 0
+  },
+  "grader_version": "A-0.1",
+  "hallucination": {
+    "rate_per_task": 0.0,
+    "tasks_with_hallucinated_names": 0,
+    "top20": []
+  },
+  "model": "baseline-naive-string",
+  "n": 410,
+  "n_tasks": 410,
+  "overall": {
+    "acc": 0.0,
+    "ci95": [
+      0.0,
+      0.0093
+    ],
+    "correct": 0,
+    "n": 410
+  },
+  "primary_failure_modes": {
+    "resolution_mismatch": 410
+  },
+  "run_at": "2026-08-31T15:14:30Z",
+  "split": "all"
+}
