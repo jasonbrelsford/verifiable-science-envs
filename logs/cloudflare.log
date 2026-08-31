@@ -5,5 +5,8 @@ dns www.hlaverify.com True []
 email enable: True []
 destination exists; verified: True
 hello@ rule exists
-redirect → https://github.com/jasonbrelsford/verifiable-science-envs : True []
+worker upload: True []
+route hlaverify.com/* True []
+route www.hlaverify.com/* True []
+redirect cleared (worker serves the site): True []
 done; zone status: active (rules take effect once the zone is active)
