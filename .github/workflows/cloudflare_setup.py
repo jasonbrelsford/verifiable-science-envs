@@ -73,7 +73,7 @@ else:
 
 # 3. Redirect: dynamic-redirect entrypoint ruleset -> 302 everything to TARGET.
 expr = '(http.host eq "hlaverify.com") or (http.host eq "www.hlaverify.com")'
-body = {"name": "default", "kind": "zone", "phase": "http_request_dynamic_redirect", "rules": [{
+body = {"rules": [{
     "expression": expr, "enabled": True, "action": "redirect",
     "description": "temporary: send visitors to the current product surface",
     "action_parameters": {"from_value": {"status_code": 302,
