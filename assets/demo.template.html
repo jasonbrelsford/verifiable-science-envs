@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLA-Verify — live demo (runs in your browser)</title>
+<style>
+:root{--green:#2F5D3A;--dark:#1E4028;--ink:#1E3A28;--mint:#8FD69B;--paper:#FAFAF4;--mut:#5A6B5D}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.55}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header{display:flex;align-items:center;gap:12px;padding:22px 0}
+header svg{width:44px;height:44px}.name{font-family:Georgia,serif;font-weight:bold;font-size:1.3rem}
+h1{font-family:Georgia,serif;font-size:1.7rem;margin:.2rem 0 .6rem}
+.priv{background:#E7F2E8;border:1px solid #BFDCC4;border-radius:10px;padding:10px 16px;font-size:.95rem;margin:0 0 18px}
+textarea{width:100%;min-height:120px;font:13px/1.6 ui-monospace,Menlo,monospace;padding:.7rem;border:1px solid #C9C5BA;border-radius:10px;box-sizing:border-box;background:#fff}
+button{background:var(--green);color:#fff;border:0;border-radius:9px;padding:.6rem 1.4rem;font-size:15px;cursor:pointer;margin-top:.5rem}
+button:disabled{background:#9AA79C;cursor:wait}
+.tok{display:inline-block;margin:.15rem;padding:.25rem .6rem;border-radius:7px;font:12.5px ui-monospace,monospace}
+.valid{background:#DCEFDC}.group{background:#DBE7F6}.deleted{background:#FDEECE}.hallucinated,.fabricated_group{background:#F8D7D7;font-weight:600}
+#status{font-size:.9rem;color:var(--mut);margin:.6rem 0}
+#out{margin-top:1rem}
+table{border-collapse:collapse;width:100%;margin-top:1rem;font-size:.88rem}
+td,th{border:1px solid #E4E0D4;padding:.35rem .6rem;text-align:left}th{background:#F1EFE7}
+footer{margin:44px 0 26px;font-size:.82rem;color:var(--mut);border-top:1px solid #E4E0D4;padding-top:18px}
+a{color:var(--green)}
+</style></head><body><div class="wrap">
+<header>
+<svg viewBox="0 0 512 512" role="img" aria-label="HLA-Verify"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F5D3A"/><stop offset="1" stop-color="#1E4028"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="104" fill="url(#bg)"/><g transform="translate(218,242)" stroke="#FAFAF4" stroke-width="52" stroke-linecap="round"><line x1="0" y1="-118" x2="0" y2="118"/><line x1="-102" y1="-59" x2="102" y2="59"/><line x1="-102" y1="59" x2="102" y2="-59"/></g><circle cx="366" cy="356" r="98" fill="#8FD69B" stroke="#1E4028" stroke-width="14"/><path d="M318 356 l36 38 l64 -74" fill="none" stroke="#123420" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span class="name">HLA-Verify <span style="font-weight:normal;color:var(--mut)">/ demo</span></span>
+</header>
+<h1>Verify HLA names — entirely in your browser</h1>
+<p class="priv">🔒 <b>Nothing you paste leaves this page.</b> The verification engine (pure Python, no LLM) runs locally via WebAssembly; the pinned IPD-IMGT/HLA release files are fetched read-only from the official ANHIG mirror. There is no server and no logging — close the tab and it's gone.</p>
+<textarea id="t">Patient typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (group DQB1*05:03:01G). Prior record listed A*01:34N.</textarea><br>
+<button id="go" disabled>Loading engine…</button>
+<div id="status">Downloading the verification engine and reference release (~10&nbsp;MB, first visit only)…</div>
+<div id="out"></div>
+<footer>Release pinned: <span id="rel">IPD-IMGT/HLA 3.65.0</span>. Computed from IPD-IMGT/HLA (Barker DJ et&nbsp;al., NAR 2025), fetched at runtime under CC-BY-ND — never redistributed. Browser demo omits the 110-release rename history (the full API resolves those too). Not a medical device; supports, not replaces, clinical judgment. <a href="/">← hlaverify.com</a> · <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a></footer>
+</div>
+<script type="module">
+const TAG = "v3.65.0-alpha";
+const FILES = ["Allelelist.txt","Deleted_alleles.txt","Allele_status.txt",
+  "wmda/hla_nom_g.txt","wmda/hla_nom_p.txt","wmda/rel_dna_ser.txt","wmda/rel_ser_ser.txt"];
+const IMGT_PY = __IMGT_PY__;
+const NORMALIZE_PY = __NORMALIZE_PY__;
+const NOTE = {valid:"assigned in this release (or a valid lower-resolution prefix)",
+  group:"a G/P group name in this release", deleted:"deprecated — see successor",
+  fabricated_group:"no such G/P group exists", hallucinated:"no such name in this release — likely fabricated"};
+const st = m => document.getElementById("status").textContent = m;
+let verifyFn = null;
+async function boot(){
+  try{
+    const { loadPyodide } = await import("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs");
+    const py = await loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"});
+    st("Fetching IPD-IMGT/HLA " + TAG.replace("v","").replace("-alpha","") + " reference files…");
+    py.FS.mkdirTree(`/imgt/${TAG}/wmda`);
+    await Promise.all(FILES.map(async f => {
+      const r = await fetch(`https://raw.githubusercontent.com/ANHIG/IMGTHLA/${TAG}/${f}`);
+      if(!r.ok) throw new Error(`fetch ${f}: ${r.status}`);
+      py.FS.writeFile(`/imgt/${TAG}/${f}`, new Uint8Array(await r.arrayBuffer()));
+    }));
+    st("Starting the engine…");
+    py.FS.mkdirTree("/pkg/sci_envs/reference"); py.FS.mkdirTree("/pkg/sci_envs/families/nomenclature");
+    const touch = p => py.FS.writeFile(p, "");
+    touch("/pkg/sci_envs/__init__.py"); touch("/pkg/sci_envs/reference/__init__.py");
+    touch("/pkg/sci_envs/families/__init__.py"); touch("/pkg/sci_envs/families/nomenclature/__init__.py");
+    py.FS.writeFile("/pkg/sci_envs/reference/imgt.py", IMGT_PY);
+    py.FS.writeFile("/pkg/sci_envs/families/nomenclature/normalize.py", NORMALIZE_PY);
+    py.runPython(`
+import sys, json
+sys.path.insert(0, "/pkg")
+from sci_envs.reference.imgt import ImgtReference
+from sci_envs.families.nomenclature.normalize import normalize
+ref = ImgtReference.load("${TAG}", cache_dir="/imgt", fetch=False, lite=True)
+def verify(text):
+    buckets = ref.classify_tokens(text)
+    rows = []
+    for status, toks in buckets.items():
+        for t in toks:
+            row = {"token": t, "status": status}
+            if status == "deleted":
+                succ = ref.renamed_to(t)
+                if succ: row["successor"] = succ
+            if status in ("valid", "deleted"):
+                n = normalize(ref, t)
+                if n["allele_2field"] != "UNRESOLVABLE":
+                    row["two"], row["g"] = n["allele_2field"], n["g_group"]
+                    if n["flags"]: row["flags"] = n["flags"]
+            rows.append(row)
+    rows.sort(key=lambda r: r["token"])
+    counts = {k: len(v) for k, v in buckets.items()}
+    return json.dumps({"rows": rows, "counts": counts, "release": ref.release})
+`);
+    verifyFn = t => JSON.parse(py.runPython(`verify(${JSON.stringify(t)})`));
+    document.getElementById("rel").textContent = "IPD-IMGT/HLA " + verifyFn("A*01:01").release;
+    const b = document.getElementById("go"); b.disabled = false; b.textContent = "Verify";
+    st("Ready — engine and reference are loaded in this tab.");
+  }catch(e){ st("Could not load the engine: " + e + " — try a reload; the full API at hello@hlaverify.com always works."); }
+}
+document.getElementById("go").addEventListener("click", () => {
+  const d = verifyFn(document.getElementById("t").value);
+  const o = document.getElementById("out"); o.innerHTML = "";
+  const bad = d.counts.hallucinated + d.counts.fabricated_group;
+  const p = document.createElement("p");
+  p.innerHTML = bad || d.counts.deleted
+    ? `⚠️ <b>Problems:</b> ${bad} fabricated, ${d.counts.deleted} outdated name(s).`
+    : "✅ <b>Clean</b> — every name is real and current.";
+  o.appendChild(p);
+  for(const r of d.rows){
+    const s = document.createElement("span");
+    s.className = "tok " + r.status;
+    s.title = NOTE[r.status] + (r.g ? " · G group: " + r.g : "");
+    s.textContent = r.token + (r.successor ? " → " + r.successor : "") + ((r.status === "hallucinated" || r.status === "fabricated_group") ? " ✗" : "");
+    o.appendChild(s);
+  }
+});
+boot();
+</script></body></html>

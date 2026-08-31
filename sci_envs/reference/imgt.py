@@ -40,6 +40,9 @@ WMDA_FILES = [
     "wmda/md5checksum.txt",
 ]
 ALL_FILES = ROOT_FILES + WMDA_FILES
+# Minimal set for in-browser / lite use: no rename history, no checksums.
+LITE_FILES = ["Allelelist.txt", "Deleted_alleles.txt", "Allele_status.txt",
+              "wmda/hla_nom_g.txt", "wmda/hla_nom_p.txt", "wmda/rel_dna_ser.txt", "wmda/rel_ser_ser.txt"]
 
 # Loci in scope for family A (TASK_SPEC §2).
 LOCI_IN_SCOPE = ("A", "B", "C", "DRB1", "DRB3", "DRB4", "DRB5", "DQA1", "DQB1", "DPA1", "DPB1")
@@ -207,9 +210,13 @@ class ImgtReference:
     # ------------------------------------------------------------------ loading
     @classmethod
     def load(cls, tag: str, cache_dir: str | Path = "~/.cache/sci_envs/imgt", fetch: bool = True,
-             verify: bool = True) -> "ImgtReference":
+             verify: bool = True, lite: bool = False) -> "ImgtReference":
+        """lite=True: load without Allelelist_history/checksums (first_release,
+        name_at, ever-valid checks degrade to 'unknown'; everything else identical)."""
         root = Path(cache_dir).expanduser() / tag
-        missing = [f for f in ALL_FILES if not (root / f).exists()]
+        if lite:
+            verify = False
+        missing = [f for f in (LITE_FILES if lite else ALL_FILES) if not (root / f).exists()]
         if missing:
             if not fetch:
                 raise ImgtError(f"missing files for {tag} and fetch=False: {missing}")
@@ -354,7 +361,10 @@ class ImgtReference:
     # ---------------------------------------------------------------- history
     @cached_property
     def _history(self) -> tuple[list[str], dict[str, list[Optional[str]]]]:
-        lines = self._read("Allelelist_history.txt")
+        try:
+            lines = self._read("Allelelist_history.txt")
+        except FileNotFoundError:
+            return ([], {})
         header = lines[0].split(",")
         releases = [release_code_to_str(c) for c in header[1:]]
         table: dict[str, list[Optional[str]]] = {}
