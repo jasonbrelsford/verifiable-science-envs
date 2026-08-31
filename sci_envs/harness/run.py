@@ -64,7 +64,8 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
             print(f"  {model.name}: {i}/{len(ids)} acc={acc:.3f} halluc={sum(bool(x.hallucinated_names) for x in scores)} ({time.time()-t0:.0f}s)", file=sys.stderr)
     summary = summarize(scores)
     summary.update({"model": model.name, "split": split, "benchmark": json.loads((suite_dir / "manifest.json").read_text())["benchmark"],
-                    "n_tasks": len(ids), "run_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
+                    "n_tasks": len(ids), "run_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "prompt_rev": M.PROMPT_REV})  # bare-JSON clamp revision for hosted API models
     (suite_dir / "scores").mkdir(exist_ok=True)
     (suite_dir / "results").mkdir(exist_ok=True)
     (suite_dir / "scores" / f"{safe}.{split}.json").write_text(dumps({"summary": summary, "scores": [s.to_dict() for s in scores]}))

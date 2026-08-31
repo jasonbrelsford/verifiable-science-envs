@@ -42,6 +42,17 @@ SYSTEM = (
     "in the JSON format specified, and nothing else."
 )
 
+# Bare-output clamp for hosted API models (prompt is harness config, not task
+# content — task files and ids are untouched). Ollama already forces JSON via
+# format:json; hosted models otherwise pad answers with prose, which is what
+# truncated claude-sonnet-4-6 on 187/550 tasks at the old 600-token budget.
+PROMPT_REV = "clamp-v1"
+SYSTEM_STRICT = SYSTEM + (
+    " Output ONLY the single JSON object — no prose before or after it, no markdown code fences, "
+    "no restating the question. If the format includes a 'reasoning' field, keep it to one short "
+    "sentence at most. Any text outside the JSON object is discarded unread."
+)
+
 
 def _prompt(task: dict) -> str:
     return f"{task['instructions']}\n\nINPUT:\n{json.dumps(task['input'], indent=2)}"
@@ -173,11 +184,14 @@ class AnthropicModel:
         self.name = f"anthropic/{model}"
 
     def answer(self, t: dict) -> str:
+        # Prefilled '{' assistant turn: the model must continue the JSON object,
+        # so it cannot open with prose or a code fence. We prepend it back.
         r = _post("https://api.anthropic.com/v1/messages",
                   {"x-api-key": self.key, "anthropic-version": "2023-06-01"},
-                  {"model": self.model, "max_tokens": self.max_tokens, "system": SYSTEM,
-                   "messages": [{"role": "user", "content": _prompt(t)}]})
-        return "".join(b.get("text", "") for b in r.get("content", []))
+                  {"model": self.model, "max_tokens": self.max_tokens, "system": SYSTEM_STRICT,
+                   "messages": [{"role": "user", "content": _prompt(t)},
+                                {"role": "assistant", "content": "{"}]})
+        return "{" + "".join(b.get("text", "") for b in r.get("content", []))
 
 
 class OpenAIModel:
@@ -188,7 +202,8 @@ class OpenAIModel:
     def answer(self, t: dict) -> str:
         r = _post("https://api.openai.com/v1/chat/completions", {"Authorization": f"Bearer {self.key}"},
                   {"model": self.model, "max_completion_tokens": self.max_tokens,
-                   "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]})
+                   "response_format": {"type": "json_object"},
+                   "messages": [{"role": "system", "content": SYSTEM_STRICT}, {"role": "user", "content": _prompt(t)}]})
         return r["choices"][0]["message"]["content"]
 
 
@@ -199,9 +214,9 @@ class GeminiModel:
 
     def answer(self, t: dict) -> str:
         r = _post(f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.key}", {},
-                  {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                  {"systemInstruction": {"parts": [{"text": SYSTEM_STRICT}]},
                    "contents": [{"role": "user", "parts": [{"text": _prompt(t)}]}],
-                   "generationConfig": {"maxOutputTokens": self.max_tokens}})
+                   "generationConfig": {"maxOutputTokens": self.max_tokens, "responseMimeType": "application/json"}})
         return "".join(p.get("text", "") for p in r["candidates"][0]["content"]["parts"])
 
 
