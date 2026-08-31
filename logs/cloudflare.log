@@ -1,7 +1,10 @@
 user-token verify: False errors: ['Invalid API Token'] (account-owned tokens fail this check but still work — continuing)
 zone: 5e580564… status: active
-Traceback (most recent call last):
-  File "/home/runner/work/verifiable-science-envs/verifiable-science-envs/.github/workflows/cloudflare_setup.py", line 37, in <module>
-    have = {r["name"]: r for r in cf(f"/zones/{zid}/dns_records?per_page=100")["result"]}
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: 'NoneType' object is not iterable
+dns list FAILED (token missing Zone→DNS→Edit?): ['Authentication error']
+dns hlaverify.com False ['Authentication error']
+dns www.hlaverify.com False ['Authentication error']
+email enable: False ['Authentication error']
+destination exists; verified: True
+hello@ rule: False ['Authentication error']
+redirect → https://github.com/jasonbrelsford/verifiable-science-envs : False ['request is not authorized']
+done; zone status: active (rules take effect once the zone is active)
