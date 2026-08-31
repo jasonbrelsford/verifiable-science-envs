@@ -1,0 +1,480 @@
+{
+  "benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0",
+  "by_slice": {
+    "added_since_3.60": {
+      "acc": 0.3793,
+      "ci95": [
+        0.2656,
+        0.508
+      ],
+      "correct": 22,
+      "n": 58
+    },
+    "class_II_secondary_locus": {
+      "acc": 0.3212,
+      "ci95": [
+        0.2488,
+        0.4033
+      ],
+      "correct": 44,
+      "n": 137
+    },
+    "deleted_name": {
+      "acc": 0.1,
+      "ci95": [
+        0.0552,
+        0.1744
+      ],
+      "correct": 10,
+      "n": 100
+    },
+    "expression_suffix": {
+      "acc": 0.2857,
+      "ci95": [
+        0.0822,
+        0.6411
+      ],
+      "correct": 2,
+      "n": 7
+    },
+    "near_miss": {
+      "acc": 0.05,
+      "ci95": [
+        0.0089,
+        0.2361
+      ],
+      "correct": 1,
+      "n": 20
+    },
+    "null_allele": {
+      "acc": 0.6667,
+      "ci95": [
+        0.5033,
+        0.7979
+      ],
+      "correct": 24,
+      "n": 36
+    },
+    "partial_sequence": {
+      "acc": 0.3706,
+      "ci95": [
+        0.2958,
+        0.4522
+      ],
+      "correct": 53,
+      "n": 143
+    },
+    "post_cutoff": {
+      "acc": 0.3974,
+      "ci95": [
+        0.2961,
+        0.5084
+      ],
+      "correct": 31,
+      "n": 78
+    },
+    "renamed": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "renamed_since_3.50": {
+      "acc": 0.0769,
+      "ci95": [
+        0.0137,
+        0.3331
+      ],
+      "correct": 1,
+      "n": 13
+    },
+    "serology_uncertain": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.2039
+      ],
+      "correct": 0,
+      "n": 15
+    },
+    "typing_report": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "unconfirmed": {
+      "acc": 0.3427,
+      "ci95": [
+        0.2865,
+        0.4038
+      ],
+      "correct": 85,
+      "n": 248
+    }
+  },
+  "by_subtype": {
+    "deleted_reason": {
+      "acc": 0.1667,
+      "ci95": [
+        0.0734,
+        0.3356
+      ],
+      "correct": 5,
+      "n": 30
+    },
+    "existed_at": {
+      "acc": 0.6,
+      "ci95": [
+        0.4232,
+        0.7541
+      ],
+      "correct": 18,
+      "n": 30
+    },
+    "expand_ambiguity": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "first_release": {
+      "acc": 0.0333,
+      "ci95": [
+        0.0059,
+        0.1667
+      ],
+      "correct": 1,
+      "n": 30
+    },
+    "g_group": {
+      "acc": 0.4333,
+      "ci95": [
+        0.2738,
+        0.608
+      ],
+      "correct": 13,
+      "n": 30
+    },
+    "group_members_count": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "locus_field": {
+      "acc": 0.3667,
+      "ci95": [
+        0.2187,
+        0.5449
+      ],
+      "correct": 11,
+      "n": 30
+    },
+    "name_at_release": {
+      "acc": 0.0667,
+      "ci95": [
+        0.0185,
+        0.2132
+      ],
+      "correct": 2,
+      "n": 30
+    },
+    "near_miss": {
+      "acc": 0.05,
+      "ci95": [
+        0.0089,
+        0.2361
+      ],
+      "correct": 1,
+      "n": 20
+    },
+    "new_in_release": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "null_trap": {
+      "acc": 0.85,
+      "ci95": [
+        0.6396,
+        0.9476
+      ],
+      "correct": 17,
+      "n": 20
+    },
+    "p_group": {
+      "acc": 0.4,
+      "ci95": [
+        0.2459,
+        0.5768
+      ],
+      "correct": 12,
+      "n": 30
+    },
+    "release_drift": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "renamed_to": {
+      "acc": 0.1667,
+      "ci95": [
+        0.0734,
+        0.3356
+      ],
+      "correct": 5,
+      "n": 30
+    },
+    "resolve_chain": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "same_group": {
+      "acc": 0.6,
+      "ci95": [
+        0.4232,
+        0.7541
+      ],
+      "correct": 18,
+      "n": 30
+    },
+    "serology": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1135
+      ],
+      "correct": 0,
+      "n": 30
+    },
+    "truncate": {
+      "acc": 0.5667,
+      "ci95": [
+        0.392,
+        0.7262
+      ],
+      "correct": 17,
+      "n": 30
+    },
+    "typing_report_normalize": {
+      "acc": 0.0,
+      "ci95": [
+        -0.0,
+        0.1611
+      ],
+      "correct": 0,
+      "n": 20
+    },
+    "valid_name": {
+      "acc": 0.4667,
+      "ci95": [
+        0.3023,
+        0.6386
+      ],
+      "correct": 14,
+      "n": 30
+    }
+  },
+  "by_tier": {
+    "1": {
+      "acc": 0.35,
+      "ci95": [
+        0.2705,
+        0.4388
+      ],
+      "correct": 42,
+      "n": 120
+    },
+    "2": {
+      "acc": 0.2867,
+      "ci95": [
+        0.2203,
+        0.3637
+      ],
+      "correct": 43,
+      "n": 150
+    },
+    "3": {
+      "acc": 0.1722,
+      "ci95": [
+        0.1241,
+        0.2341
+      ],
+      "correct": 31,
+      "n": 180
+    },
+    "4": {
+      "acc": 0.18,
+      "ci95": [
+        0.117,
+        0.2667
+      ],
+      "correct": 18,
+      "n": 100
+    }
+  },
+  "calibration": {
+    "calibrated_fraction": 0.2927,
+    "stated_vs_expected": {
+      "None->high": 14,
+      "None->low": 22,
+      "None->medium": 65,
+      "high->high": 141,
+      "high->low": 9,
+      "high->medium": 279,
+      "low->high": 1,
+      "low->low": 4,
+      "low->medium": 6,
+      "medium->high": 1,
+      "medium->medium": 8
+    }
+  },
+  "contamination_resistant": {
+    "acc": 0.2712,
+    "ci95": [
+      0.1991,
+      0.3577
+    ],
+    "correct": 32,
+    "n": 118
+  },
+  "grader_version": "A-0.1",
+  "hallucination": {
+    "rate_per_task": 0.08,
+    "tasks_with_hallucinated_names": 35,
+    "top20": [
+      [
+        "A*0201",
+        2
+      ],
+      [
+        "DQB1*0501",
+        2
+      ],
+      [
+        "C*1403:01",
+        1
+      ],
+      [
+        "DRB1*080206",
+        1
+      ],
+      [
+        "DQB1*0501:123",
+        1
+      ],
+      [
+        "C*0201",
+        1
+      ],
+      [
+        "C*0401",
+        1
+      ],
+      [
+        "A*03:02:260",
+        1
+      ],
+      [
+        "B*14:1367",
+        1
+      ],
+      [
+        "DQA1*05:05:17:04",
+        1
+      ],
+      [
+        "DPA1*02:127:99",
+        1
+      ],
+      [
+        "C*04:535:99",
+        1
+      ],
+      [
+        "A*03:322:99",
+        1
+      ],
+      [
+        "DRB4*01:03:15:99",
+        1
+      ],
+      [
+        "A*34:18:99",
+        1
+      ],
+      [
+        "DRB5*01:113:99",
+        1
+      ],
+      [
+        "B*35:232:99",
+        1
+      ],
+      [
+        "A*30:01:01:27",
+        1
+      ],
+      [
+        "B*50:66:99",
+        1
+      ],
+      [
+        "DRB3*01:75:99",
+        1
+      ]
+    ]
+  },
+  "model": "ollama/phi4-mini",
+  "n": 550,
+  "n_tasks": 550,
+  "overall": {
+    "acc": 0.2436,
+    "ci95": [
+      0.2096,
+      0.2812
+    ],
+    "correct": 134,
+    "n": 550
+  },
+  "primary_failure_modes": {
+    "clean_correct": 14,
+    "correct_but_overconfident": 88,
+    "correct_with_hallucinated_reasoning": 1,
+    "hallucinated_answer": 20,
+    "legacy_nomenclature": 6,
+    "malformed_response": 1,
+    "refused": 85,
+    "resolution_mismatch": 33,
+    "wrong_but_overconfident": 252,
+    "wrong_calibrated": 50
+  },
+  "run_at": "2026-08-31T09:58:20Z",
+  "split": "all"
+}
