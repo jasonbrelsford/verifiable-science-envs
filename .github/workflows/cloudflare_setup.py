@@ -34,7 +34,10 @@ zid, acct, status = z[0]["id"], z[0]["account"]["id"], z[0]["status"]
 print("zone:", zid[:8] + "…", "status:", status)
 
 # 1. DNS: proxied placeholder A records so the redirect rule has something to fire on.
-have = {r["name"]: r for r in cf(f"/zones/{zid}/dns_records?per_page=100")["result"]}
+dr = cf(f"/zones/{zid}/dns_records?per_page=100")
+if dr.get("result") is None:
+    print("dns list FAILED (token missing Zone→DNS→Edit?):", errs(dr))
+have = {r["name"]: r for r in dr.get("result") or []}
 for name in ("hlaverify.com", "www.hlaverify.com"):
     rec = {"type": "A", "name": name, "content": "192.0.2.1", "proxied": True, "ttl": 1,
            "comment": "placeholder origin; redirect rule handles requests"}
@@ -48,7 +51,10 @@ for name in ("hlaverify.com", "www.hlaverify.com"):
 r = cf(f"/zones/{zid}/email/routing/enable", "POST", {})
 print("email enable:", r["success"], errs(r))  # 'already enabled' is fine
 dest = "jason.brelsford@gmail.com"
-existing = cf(f"/accounts/{acct}/email/routing/addresses?per_page=50").get("result") or []
+ar = cf(f"/accounts/{acct}/email/routing/addresses?per_page=50")
+if ar.get("result") is None:
+    print("address list FAILED (token missing Account→Email Routing Addresses→Edit?):", errs(ar))
+existing = ar.get("result") or []
 match = [a for a in existing if a["email"] == dest]
 if not match:
     r = cf(f"/accounts/{acct}/email/routing/addresses", "POST", {"email": dest})
