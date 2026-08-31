@@ -52,6 +52,10 @@ harbor/                     # Terminal-Bench-style task
 docs/                       # task + grader specs (families A, B, C)
 ```
 
+## Data strategy & partners
+
+Every graded answer is computed from public, versioned data — the pinned IPD-IMGT/HLA release, synthetic Mendelian truth, and open population resources — so anyone can regenerate the suites and audit every score. Restricted registry data stays with its licensed holders: our environments run on *their* machines. Full picture and the partner invitation in [`docs/DATA_STRATEGY.md`](docs/DATA_STRATEGY.md). **We are seeking registry, lab, and model-developer partners** — hello@hlaverify.com.
+
 ## Licence
 
 Open core: benchmark, generators, graders, harness, and adapters are **Apache-2.0** (LICENSE). The HLA-Verify service (`sci_envs/service/`) is **PolyForm Noncommercial 1.0.0** — free for research and evaluation; commercial use requires a licence from Brelsford Software LLC (hello@hlaverify.com). Reference data are fetched at runtime from IPD-IMGT/HLA under CC-BY-ND (Barker DJ et al., *NAR* 2025) and never redistributed.
