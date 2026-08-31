@@ -24,7 +24,9 @@ def errs(r):
 
 
 v = cf("/user/tokens/verify")
-print("token:", v["success"], v.get("result", {}).get("status"))
+print("token verify:", v.get("success"), "status:", (v.get("result") or {}).get("status"), "errors:", errs(v))
+if not v.get("success"):
+    raise SystemExit("token rejected by Cloudflare — see errors above")
 z = cf("/zones?name=hlaverify.com").get("result") or []
 if not z:
     raise SystemExit("zone hlaverify.com not visible to this token — check token zone scope")
