@@ -1,10 +1,9 @@
 user-token verify: False errors: ['Invalid API Token'] (account-owned tokens fail this check but still work — continuing)
 zone: 5e580564… status: active
-dns list FAILED (token missing Zone→DNS→Edit?): ['Authentication error']
-dns hlaverify.com False ['Authentication error']
-dns www.hlaverify.com False ['Authentication error']
-email enable: False ['Authentication error']
+dns hlaverify.com True []
+dns www.hlaverify.com True []
+email enable: True []
 destination exists; verified: True
-hello@ rule: False ['Authentication error']
-redirect → https://github.com/jasonbrelsford/verifiable-science-envs : False ['request is not authorized']
+hello@ rule: True []
+redirect → https://github.com/jasonbrelsford/verifiable-science-envs : False ['invalid JSON: unknown field "kind"']
 done; zone status: active (rules take effect once the zone is active)
