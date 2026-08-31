@@ -1,3 +1,4 @@
-space exists (or create skipped)
+whoami: {"type":"user","id":"644c865122d211df6448eb45","name":"jason-brelsford","fullname":"Jason Brelsford","canPay":false,"billingMode":"prepaid","periodEnd":1788220800,"isPro":false,"avatarUrl":"/avatars/ae74dd471d2ece0ed4cbd0dfd60b4816.svg","orgs":[{"type":"org","id":"6a8eff9a2af2658aba61fc97","name":"n
+create: {"error":"Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription. Subscribe at https://huggingface.co/pro"}
 remote: Repository not found
 fatal: repository 'https://huggingface.co/spaces/jebidiag/hla-verify/' not found
