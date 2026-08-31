@@ -70,10 +70,19 @@ from sci_envs.families.nomenclature.normalize import normalize
 ref = ImgtReference.load("${TAG}", cache_dir="/imgt", fetch=False, lite=True)
 def verify(text):
     buckets = ref.classify_tokens(text)
+    rescued = []
+    for t in list(buckets["hallucinated"]):
+        n = normalize(ref, t)
+        if n["allele_2field"] != "UNRESOLVABLE":
+            buckets["hallucinated"].remove(t)
+            buckets["deleted"].append(t)
+            rescued.append(t)
     rows = []
     for status, toks in buckets.items():
         for t in toks:
             row = {"token": t, "status": status}
+            if t in rescued:
+                row["successor"] = normalize(ref, t)["allele_2field"]
             if status == "deleted":
                 succ = ref.renamed_to(t)
                 if succ: row["successor"] = succ
