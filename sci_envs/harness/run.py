@@ -70,7 +70,7 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
     (suite_dir / "scores" / f"{safe}.{split}.json").write_text(dumps({"summary": summary, "scores": [s.to_dict() for s in scores]}))
     (suite_dir / "results" / f"{safe}.{split}.json").write_text(dumps(summary))
     # A small, committable sample of wrong answers so grader strictness can be audited without the raw dump.
-    logs = suite_dir.parent.parent / "logs" if suite_dir.name == "hla-bench-a" else suite_dir / "logs"
+    logs = suite_dir.parent.parent / "logs"      # top-level logs/ is what workflows commit
     logs.mkdir(parents=True, exist_ok=True)
     # Stratified: up to 3 wrong answers per subtype, so every subtype's failure shape is visible.
     per: dict[str, int] = {}
@@ -83,7 +83,7 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
         sample.append({"task_id": tid, "subtype": s.subtype, "input": full[tid]["input"],
                        "canonical": full[tid]["answer"]["canonical"], "raw": raw if isinstance(raw, str) else json.dumps(raw),
                        "primary_failure_mode": s.primary_failure_mode, "hallucinated": s.hallucinated_names})
-    (logs / f"{safe}.{split}.wrong-sample.json").write_text(dumps(sample))
+    (logs / f"{suite_dir.name}.{safe}.{split}.wrong-sample.json").write_text(dumps(sample))
     return scores, summary
 
 
