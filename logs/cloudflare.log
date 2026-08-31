@@ -1,5 +1,2 @@
-Traceback (most recent call last):
-  File "/home/runner/work/verifiable-science-envs/verifiable-science-envs/.github/workflows/cloudflare_setup.py", line 27, in <module>
-    print("token:", v["success"], v.get("result", {}).get("status"))
-                                  ^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'NoneType' object has no attribute 'get'
+token verify: False status: None errors: ['Invalid API Token']
+token rejected by Cloudflare — see errors above
