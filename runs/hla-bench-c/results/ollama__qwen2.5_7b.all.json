@@ -31,12 +31,12 @@
       "n": 30
     },
     "count_simple": {
-      "acc": 0.3333,
+      "acc": 0.0667,
       "ci95": [
-        0.1923,
-        0.5122
+        0.0185,
+        0.2132
       ],
-      "correct": 10,
+      "correct": 2,
       "n": 30
     },
     "direction": {
@@ -96,12 +96,12 @@
   },
   "by_tier": {
     "1": {
-      "acc": 0.1667,
+      "acc": 0.0333,
       "ci95": [
-        0.0931,
-        0.2803
+        0.0092,
+        0.1136
       ],
-      "correct": 10,
+      "correct": 2,
       "n": 60
     },
     "2": {
@@ -159,19 +159,19 @@
   "n": 205,
   "n_tasks": 205,
   "overall": {
-    "acc": 0.0488,
+    "acc": 0.0098,
     "ci95": [
-      0.0267,
-      0.0875
+      0.0027,
+      0.0349
     ],
-    "correct": 10,
+    "correct": 2,
     "n": 205
   },
   "primary_failure_modes": {
-    "clean_correct": 10,
-    "wrong_but_overconfident": 194,
+    "clean_correct": 2,
+    "wrong_but_overconfident": 202,
     "wrong_calibrated": 1
   },
-  "run_at": "2026-08-31T13:57:36Z",
+  "run_at": "2026-08-31T14:02:16Z",
   "split": "all"
 }

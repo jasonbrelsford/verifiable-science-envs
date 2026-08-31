@@ -9,7 +9,7 @@ Dev split: 40 tasks (public). Sealed split: 165 tasks (server-side). Regenerated
 | Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |
 |---|---|---:|---:|---:|---:|---:|---|
 | `oracle-reference` | all | 205 | 100% <sub>[98–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
-| `ollama/qwen2.5:7b` | all | 205 | 5% <sub>[3–9]</sub> | 0 | 0.00 | 73% | `wrong_but_overconfident` |
+| `ollama/qwen2.5:7b` | all | 205 | 1% <sub>[0–3]</sub> | 0 | 0.00 | 73% | `wrong_but_overconfident` |
 | `baseline-cautious-abstainer` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
 | `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 73% | `resolution_mismatch` |
 
@@ -18,7 +18,7 @@ Dev split: 40 tasks (public). Sealed split: 165 tasks (server-side). Regenerated
 | Model | Split | T1 syntax | T2 groups | T3 history | T4 adversarial |
 |---|---|---:|---:|---:|---:|
 | `oracle-reference` | all | 100% <sub>[94–100]</sub> | 100% <sub>[93–100]</sub> | 100% <sub>[95–100]</sub> | 100% <sub>[84–100]</sub> |
-| `ollama/qwen2.5:7b` | all | 17% <sub>[9–28]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
+| `ollama/qwen2.5:7b` | all | 3% <sub>[1–11]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 | `baseline-cautious-abstainer` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 | `baseline-naive-string` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 
@@ -36,7 +36,7 @@ Dev split: 40 tasks (public). Sealed split: 165 tasks (server-side). Regenerated
 | Subtype | `oracle-reference` (all) | `ollama/qwen2.5:7b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) |
 |---|---:|---:|---:|---:|
 | `antigen_vs_allele` | 100% <sub>[89–100]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
-| `count_simple` | 100% <sub>[89–100]</sub> | 33% <sub>[19–51]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| `count_simple` | 100% <sub>[89–100]</sub> | 7% <sub>[2–21]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
 | `direction` | 100% <sub>[87–100]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
 | `framework_shift` | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
 | `near_miss_pair` | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
@@ -56,7 +56,7 @@ Dev split: 40 tasks (public). Sealed split: 165 tasks (server-side). Regenerated
 | Model | Split | `clean_correct` | `wrong_calibrated` | `wrong_but_overconfident` | `resolution_mismatch` |
 |---|---|---:|---:|---:|---:|
 | `oracle-reference` | all | 150 | 55 | 0 | 0 |
-| `ollama/qwen2.5:7b` | all | 10 | 1 | 194 | 0 |
+| `ollama/qwen2.5:7b` | all | 2 | 1 | 202 | 0 |
 | `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 205 |
 | `baseline-naive-string` | all | 0 | 0 | 0 | 205 |
 
