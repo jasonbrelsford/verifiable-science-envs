@@ -40,4 +40,4 @@ Exact match on the pair (order-normalized) for determinate subtypes. For probabi
 1. Pool size and locus set for v0 (proposal: 40 founder haplotypes, 3 loci A–B–DRB1, one population; second population as a slice later).
 2. Whether GRIMM runs in CI (dependency weight) or only in the release-validation workflow.
 3. Whether `family_phase` belongs in B or starts family C (matching) — it shares machinery with donor–recipient logic.
-4. an external validated-list project: if the Zenodo list validates haplotypes/alleles, a `validated_haplotype` slice pins to its DOI (pending Jason's collaborators' licence).
+4. External validated-haplotype lists (Zenodo-published, DOI-pinned) may back a `validated_haplotype` slice once their licence is confirmed.

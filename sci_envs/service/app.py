@@ -2,7 +2,7 @@
 
 Licence: PolyForm Noncommercial 1.0.0 (sci_envs/service/LICENSE) — unlike the
 rest of this repository (Apache-2.0). Commercial use requires a licence:
-jason.brelsford@gmail.com.
+Brelsford Software LLC (hello@hlaverify.com).
 
 Deterministic, no LLM anywhere: every answer is computed from a pinned
 IPD-IMGT/HLA release (fetched at runtime, never redistributed; CC-BY-ND

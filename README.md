@@ -1,0 +1,59 @@
+# verifiable-science-envs
+
+**Deterministic, executable-oracle RL environments and evaluation suites for clinical genomics — starting with HLA/immunogenetics.**
+
+Every answer is computed from the pinned IPD-IMGT/HLA release's own files. No human labels, no frequency data, no licensed tables — so the grader is auditable line-by-line, the sealed split regenerates on every release, and a model cannot have memorized the post-cutoff tasks.
+
+## The benchmarks
+
+| | Tasks | What it tests | Results |
+|---|---:|---|---|
+| **HLA-Bench-A** | 550 | Nomenclature: truncation, expression suffixes, G/P groups, serology, rename history, null-allele and near-miss traps | [`bench/HLA-Bench-A.md`](bench/HLA-Bench-A.md) |
+| **HLA-Bench-C** | 205 | Donor–recipient matching: 6/6–12/12 frameworks, antigen vs allele level, hidden nulls, GvH/HvG direction, unresolvable typing | [`bench/HLA-Bench-C.md`](bench/HLA-Bench-C.md) |
+
+Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi) scores **0% on 2-field ambiguity expansion** — the core clinical trap; on matching, the naive string baseline falls from 28% (family A) to **0%**, and a 7B model reaches only 6% because it counts matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in [`STATUS.md`](STATUS.md).
+
+## HLA-Verify — the graders as an API
+
+The same engine as a verification service (no LLM, no storage): `POST /v1/verify` checks every allele-shaped token in free text against the pinned release (fabricated / deleted-with-successor / legacy / valid, with G groups and flags); `POST /v1/normalize` fixes typing reports; `GET /v1/allele/<name>` returns the facts.
+
+```bash
+pip install -e ".[service]" && uvicorn sci_envs.service.app:app
+```
+
+Live demo (runs entirely in your browser — typing data never leaves your machine): **[hlaverify.com/demo](https://hlaverify.com/demo)**
+
+## Run the benchmark
+
+```bash
+pip install -e ".[dev]"
+pytest -q                             # first run fetches ~33 MB of reference data
+hla-bench generate                    # family A (or --family c); sealed split stays local
+hla-bench run baseline-naive-string --suite runs/hla-bench-a --split dev
+hla-bench run ollama/qwen2.5:7b --suite runs/hla-bench-a --split dev
+hla-bench run anthropic/claude-sonnet-4-6 --suite runs/hla-bench-a --split all
+hla-bench report --suite runs/hla-bench-a --out bench/HLA-Bench-A.md
+```
+
+Local models run free via Ollama; Anthropic/OpenAI/Gemini clients are included (keys via a gitignored `.env`). Raw responses and per-task scores never leave the machine; only aggregates and a stratified ≤3-per-subtype wrong-answer sample are committed.
+
+## Layout
+
+```
+sci_envs/
+  reference/imgt.py         # pinned IPD-IMGT/HLA loader: fetch → md5-verify → query
+  families/nomenclature/    # family A: generators, grader, normalizer
+  families/matching/        # family C: rules engine (R1–R6, documented for lab audit)
+  harness/                  # runners, model clients, report
+  adapters/                 # verifiers (Prime Intellect) + Inspect AI exports
+  service/                  # HLA-Verify API (PolyForm-NC)
+environments/hla_nomenclature/   # pip-installable verifiers environment
+harbor/                     # Terminal-Bench-style task
+docs/                       # task + grader specs (families A, B, C)
+```
+
+## Licence
+
+Open core: benchmark, generators, graders, harness, and adapters are **Apache-2.0** (LICENSE). The HLA-Verify service (`sci_envs/service/`) is **PolyForm Noncommercial 1.0.0** — free for research and evaluation; commercial use requires a licence from Brelsford Software LLC (hello@hlaverify.com). Reference data are fetched at runtime from IPD-IMGT/HLA under CC-BY-ND (Barker DJ et al., *NAR* 2025) and never redistributed.
+
+Scope: human clinical-genomics informatics only. No sequences, no pathogens, no wet-lab protocols.
