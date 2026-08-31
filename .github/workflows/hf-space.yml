@@ -28,10 +28,10 @@ jobs:
           mkdir -p logs
           {
             NAME="${SPACE#*/}"
-            curl -sf -X POST https://huggingface.co/api/repos/create \
+            echo "whoami: $(curl -s -H "Authorization: Bearer $HF" https://huggingface.co/api/whoami-v2 | head -c 300)"
+            echo "create: $(curl -s -X POST https://huggingface.co/api/repos/create \
               -H "Authorization: Bearer $HF" -H "Content-Type: application/json" \
-              -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"docker\",\"private\":$PRIVATE}" \
-              && echo "space created ($PRIVATE private)" || echo "space exists (or create skipped)"
+              -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"docker\",\"private\":$PRIVATE}")"
             D=$(mktemp -d)
             git clone -q "https://user:$HF@huggingface.co/spaces/$SPACE" "$D"
             mkdir -p "$D"
