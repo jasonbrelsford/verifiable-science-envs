@@ -31,12 +31,12 @@
       "n": 30
     },
     "count_simple": {
-      "acc": 0.0,
+      "acc": 0.3333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.1923,
+        0.5122
       ],
-      "correct": 0,
+      "correct": 10,
       "n": 30
     },
     "direction": {
@@ -96,12 +96,12 @@
   },
   "by_tier": {
     "1": {
-      "acc": 0.0,
+      "acc": 0.1667,
       "ci95": [
-        -0.0,
-        0.0602
+        0.0931,
+        0.2803
       ],
-      "correct": 0,
+      "correct": 10,
       "n": 60
     },
     "2": {
@@ -135,8 +135,9 @@
   "calibration": {
     "calibrated_fraction": 0.7317,
     "stated_vs_expected": {
-      "high->high": 150,
-      "high->medium": 55
+      "high->high": 149,
+      "high->medium": 55,
+      "medium->high": 1
     }
   },
   "contamination_resistant": {
@@ -154,21 +155,23 @@
     "tasks_with_hallucinated_names": 0,
     "top20": []
   },
-  "model": "baseline-naive-string",
+  "model": "ollama/qwen2.5:7b",
   "n": 205,
   "n_tasks": 205,
   "overall": {
-    "acc": 0.0,
+    "acc": 0.0488,
     "ci95": [
-      0.0,
-      0.0184
+      0.0267,
+      0.0875
     ],
-    "correct": 0,
+    "correct": 10,
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "clean_correct": 10,
+    "wrong_but_overconfident": 194,
+    "wrong_calibrated": 1
   },
-  "run_at": "2026-08-31T13:30:03Z",
+  "run_at": "2026-08-31T13:57:36Z",
   "split": "all"
 }
