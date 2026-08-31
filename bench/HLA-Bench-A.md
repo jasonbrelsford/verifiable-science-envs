@@ -2,7 +2,7 @@
 
 **Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** 550 generated tasks, 20 subtypes in 4 tiers, graded by exact match against IPD-IMGT/HLA release 3.65.0 (v3.65.0-alpha). No fuzzy credit. Fabricated allele names are the headline metric.
 
-Dev split: 112 tasks (public, `runs/hla-bench-a/dev/`). Sealed split: 438 tasks (server-side). 33% of Tier 3/4 allele tasks concern names that did not exist at IMGT 3.58.0 (assumed model cutoff). Regenerated every IPD release; this page is versioned.
+Dev split: 112 tasks (public). Sealed split: 438 tasks (server-side). 33% of Tier 3/4 allele tasks concern names that did not exist at IMGT 3.58.0 (assumed model cutoff). Regenerated every IPD release; this page is versioned.
 
 ## Headline
 

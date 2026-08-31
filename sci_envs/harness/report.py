@@ -23,16 +23,25 @@ def render(suite_dir: Path, out: Path) -> Path:
         results.append(json.loads(f.read_text()))
     results.sort(key=lambda r: (r["split"] != "test", -(r["overall"]["acc"] or 0)))
     bench = manifest["benchmark"]
-    rel = manifest["reference"]["release"]
+    ref_info = manifest.get("reference") or {"release": manifest.get("tag", "?"), "tag": manifest.get("tag", "?")}
+    rel = ref_info["release"]
 
     L = []
     L.append(f"# {bench}\n")
-    L.append("**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** "
-             f"{manifest['total']} generated tasks, 20 subtypes in 4 tiers, graded by exact match against "
-             f"IPD-IMGT/HLA release {rel} ({manifest['reference']['tag']}). No fuzzy credit. Fabricated allele names are the headline metric.\n")
-    L.append(f"Dev split: {manifest['split']['dev']} tasks (public, `runs/hla-bench-a/dev/`). Sealed split: {manifest['split']['test']} tasks "
-             f"(server-side). {100*manifest['cutoff_assumption']['post_cutoff_share_T3T4_allele_tasks']:.0f}% of Tier 3/4 allele tasks concern names "
-             f"that did not exist at IMGT {manifest['cutoff_assumption']['release']} (assumed model cutoff). Regenerated every IPD release; this page is versioned.\n")
+    if manifest.get("family") == "hla_matching":
+        L.append("**Can a model score a donor-recipient HLA match the way a transplant lab must?** "
+                 f"{manifest['total']} generated pairs across 8 subtypes, graded by exact match against an executable "
+                 f"encoding of published matching rules over IPD-IMGT/HLA {manifest['tag']} "
+                 f"({manifest.get('rules_version','')}). Confident counts over unresolvable typing are the headline error.\n")
+    else:
+        L.append("**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** "
+                 f"{manifest['total']} generated tasks, 20 subtypes in 4 tiers, graded by exact match against "
+                 f"IPD-IMGT/HLA release {rel} ({ref_info['tag']}). No fuzzy credit. Fabricated allele names are the headline metric.\n")
+    cut = manifest.get("cutoff_assumption")
+    L.append(f"Dev split: {manifest['split']['dev']} tasks (public). Sealed split: {manifest['split']['test']} tasks (server-side). "
+             + (f"{100*cut['post_cutoff_share_T3T4_allele_tasks']:.0f}% of Tier 3/4 allele tasks concern names that did not exist "
+                f"at IMGT {cut['release']} (assumed model cutoff). " if cut else "")
+             + "Regenerated every IPD release; this page is versioned.\n")
 
     L.append("## Headline\n")
     L.append("| Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |")

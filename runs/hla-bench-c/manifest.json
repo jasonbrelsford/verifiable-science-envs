@@ -1,0 +1,12 @@
+{
+  "base_seed": 20260831,
+  "benchmark": "HLA-Bench-C-v0.1@IMGT-3.65.0",
+  "family": "hla_matching",
+  "rules_version": "C-v0.1 (rules.py R1-R6)",
+  "split": {
+    "dev": 40,
+    "test": 165
+  },
+  "tag": "v3.65.0-alpha",
+  "total": 205
+}

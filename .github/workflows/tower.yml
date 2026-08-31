@@ -1,6 +1,6 @@
 # Jobs for the self-hosted Windows runner "TOWER" (labels: self-hosted, Windows, X64).
 # Manual only. Installs Ollama if missing, starts it, pulls the requested local models,
-# runs them against HLA-Bench-A at zero API cost, and commits summaries + the page.
+# runs them against HLA-Bench-A or HLA-Bench-C at zero API cost, and commits results + the page.
 name: tower
 on:
   workflow_dispatch:
@@ -14,6 +14,9 @@ on:
       commit:
         description: "commit results + page to main (true/false)"
         default: "true"
+      family:
+        description: "a = nomenclature (HLA-Bench-A), c = donor-recipient matching (HLA-Bench-C)"
+        default: "a"
 permissions:
   contents: write
 jobs:
@@ -27,9 +30,10 @@ jobs:
       OLLAMA_KEEP_ALIVE: "60m"
       OLLAMA_NUM_PARALLEL: "1"
       OLLAMA_MAX_LOADED_MODELS: "1"
+      FAM: ${{ inputs.family || 'a' }}
     steps:
       - uses: actions/checkout@v4
-        with: { clean: false }        # keep runs/hla-bench-a/responses between runs so re-runs are free
+        with: { clean: false }        # keep runs/*/responses between runs so re-runs are free
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: Install package
@@ -63,46 +67,51 @@ jobs:
           }
           ollama list
       - name: Generate suite (sealed split stays on this machine)
-        run: hla-bench generate
+        run: hla-bench generate --family $env:FAM
       - name: Baselines
-        run: hla-bench run baseline-naive-string baseline-cautious-abstainer --split ${{ inputs.split }}
+        run: hla-bench run baseline-naive-string baseline-cautious-abstainer --suite "runs/hla-bench-$env:FAM" --split ${{ inputs.split }}
       - name: Models
         if: ${{ inputs.models != '' }}
         continue-on-error: true
         run: |
           New-Item -ItemType Directory -Force -Path logs | Out-Null
-          cmd /c "hla-bench run ${{ inputs.models }} --split ${{ inputs.split }} > logs\tower-models.log 2>&1"
+          cmd /c "hla-bench run ${{ inputs.models }} --suite runs/hla-bench-$env:FAM --split ${{ inputs.split }} > logs\tower-models.log 2>&1"
           Get-Content logs\tower-models.log -Tail 60
       - name: Report
         continue-on-error: true
-        run: hla-bench report
+        run: |
+          $page = "bench/HLA-Bench-$($env:FAM.ToUpper()).md"
+          hla-bench report --suite "runs/hla-bench-$env:FAM" --out $page
       - uses: actions/upload-artifact@v4
         with:
           name: tower-results
           path: |
-            runs/hla-bench-a/results/
-            bench/HLA-Bench-A.md
+            runs/hla-bench-*/results/
+            bench/
       - name: Commit results
         if: ${{ inputs.commit == 'true' }}
         run: |
           $ErrorActionPreference = "Continue"
           git config user.name "hla-bench tower"
           git config user.email "tower@users.noreply.github.com"
+          $suite = "runs/hla-bench-$env:FAM"
+          $page = "bench/HLA-Bench-$($env:FAM.ToUpper()).md"
           # Re-apply our result files on top of whatever main is now, instead of rebasing a dirty tree.
           New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\keep" | Out-Null
-          Copy-Item -Recurse -Force runs\hla-bench-a\results "$env:RUNNER_TEMP\keep\results"
-          Copy-Item -Force bench\HLA-Bench-A.md "$env:RUNNER_TEMP\keep\HLA-Bench-A.md"
+          Copy-Item -Recurse -Force "$suite\results" "$env:RUNNER_TEMP\keep\results"
+          Copy-Item -Force $page "$env:RUNNER_TEMP\keep\page.md"
           Copy-Item -Recurse -Force logs "$env:RUNNER_TEMP\keep\logs"
           git fetch origin main
           git reset --hard origin/main
-          Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\results\*" runs\hla-bench-a\results\
-          Copy-Item -Force "$env:RUNNER_TEMP\keep\HLA-Bench-A.md" bench\HLA-Bench-A.md
+          New-Item -ItemType Directory -Force -Path "$suite\results" | Out-Null
+          Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\results\*" "$suite\results\"
+          Copy-Item -Force "$env:RUNNER_TEMP\keep\page.md" $page
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\logs\*" logs\
-          hla-bench report
-          git add runs/hla-bench-a/results bench/HLA-Bench-A.md
+          hla-bench report --suite $suite --out $page
+          git add "$suite/results" bench
           git add -f logs
-          git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [skip ci]"
+          git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [family $env:FAM] [skip ci]"
           if ($LASTEXITCODE -ne 0) { Write-Host "nothing to commit"; exit 0 }
           git push origin HEAD:main
           exit $LASTEXITCODE
