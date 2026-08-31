@@ -5,19 +5,19 @@
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.0714
+        0.1332
       ],
       "correct": 0,
-      "n": 50
+      "n": 25
     },
     "resolution_insufficient": {
       "acc": 0.0,
       "ci95": [
-        -0.0,
-        0.0458
+        0.0,
+        0.1332
       ],
       "correct": 0,
-      "n": 80
+      "n": 25
     }
   },
   "by_subtype": {
@@ -25,73 +25,73 @@
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0602
+        0.1135
       ],
       "correct": 0,
-      "n": 60
+      "n": 30
     },
     "count_simple": {
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0602
+        0.1135
       ],
       "correct": 0,
-      "n": 60
+      "n": 30
     },
     "direction": {
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.0714
+        0.1332
       ],
       "correct": 0,
-      "n": 50
+      "n": 25
     },
     "framework_shift": {
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0876
+        0.1611
       ],
       "correct": 0,
-      "n": 40
+      "n": 20
     },
     "near_miss_pair": {
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0876
+        0.1611
       ],
       "correct": 0,
-      "n": 40
+      "n": 20
     },
     "null_trap_match": {
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.0714
+        0.1332
       ],
       "correct": 0,
-      "n": 50
+      "n": 25
     },
     "resolution_insufficient": {
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.0714
+        0.1332
       ],
       "correct": 0,
-      "n": 50
+      "n": 25
     },
     "same_after_normalize": {
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0602
+        0.1135
       ],
       "correct": 0,
-      "n": 60
+      "n": 30
     }
   },
   "by_tier": {
@@ -99,44 +99,44 @@
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.031
+        0.0602
       ],
       "correct": 0,
-      "n": 120
+      "n": 60
     },
     "2": {
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.037
+        0.0714
       ],
       "correct": 0,
-      "n": 100
+      "n": 50
     },
     "3": {
       "acc": 0.0,
       "ci95": [
         0.0,
-        0.025
+        0.0487
       ],
       "correct": 0,
-      "n": 150
+      "n": 75
     },
     "4": {
       "acc": 0.0,
       "ci95": [
         -0.0,
-        0.0876
+        0.1611
       ],
       "correct": 0,
-      "n": 40
+      "n": 20
     }
   },
   "calibration": {
     "calibrated_fraction": 1.0,
     "stated_vs_expected": {
-      "low->high": 330,
-      "low->medium": 80
+      "low->high": 180,
+      "low->medium": 25
     }
   },
   "contamination_resistant": {
@@ -155,20 +155,20 @@
     "top20": []
   },
   "model": "baseline-cautious-abstainer",
-  "n": 410,
-  "n_tasks": 410,
+  "n": 205,
+  "n_tasks": 205,
   "overall": {
     "acc": 0.0,
     "ci95": [
       0.0,
-      0.0093
+      0.0184
     ],
     "correct": 0,
-    "n": 410
+    "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 410
+    "resolution_mismatch": 205
   },
-  "run_at": "2026-08-31T15:14:30Z",
+  "run_at": "2026-08-31T15:57:28Z",
   "split": "all"
 }

@@ -8,38 +8,38 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 
 | Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |
 |---|---|---:|---:|---:|---:|---:|---|
-| `ollama/qwen2.5:7b` | all | 410 | 4% <sub>[2–6]</sub> | 2 | 0.00 | 80% | `wrong_but_overconfident` |
-| `baseline-cautious-abstainer` | all | 410 | 0% <sub>[0–1]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
-| `baseline-naive-string` | all | 410 | 0% <sub>[0–1]</sub> | 0 | 0.00 | 80% | `resolution_mismatch` |
+| `ollama/qwen2.5:7b` | all | 205 | 6% <sub>[4–11]</sub> | 2 | 0.01 | 88% | `wrong_but_overconfident` |
+| `baseline-cautious-abstainer` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
+| `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 88% | `resolution_mismatch` |
 
 ## By tier
 
 | Model | Split | T1 syntax | T2 groups | T3 history | T4 adversarial |
 |---|---|---:|---:|---:|---:|
-| `ollama/qwen2.5:7b` | all | 12% <sub>[8–20]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
-| `baseline-cautious-abstainer` | all | 0% <sub>[0–3]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
-| `baseline-naive-string` | all | 0% <sub>[0–3]</sub> | 0% <sub>[0–4]</sub> | 0% <sub>[0–2]</sub> | 0% <sub>[0–9]</sub> |
+| `ollama/qwen2.5:7b` | all | 22% <sub>[13–34]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
+| `baseline-cautious-abstainer` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
+| `baseline-naive-string` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 
 ## By slice (where clinical risk concentrates)
 
 | Model | Split | `null_allele` | `unconfirmed` | `partial_sequence` | `post_cutoff` | `deleted_name` | `class_II_secondary_locus` | `expression_suffix` | `serology_uncertain` | contamination-resistant |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `ollama/qwen2.5:7b` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
-| `baseline-cautious-abstainer` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
-| `baseline-naive-string` | all | 0% <sub>[0–7]</sub> | — | — | — | — | — | — | — | — |
+| `ollama/qwen2.5:7b` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
+| `baseline-cautious-abstainer` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
+| `baseline-naive-string` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
 
 ## By subtype
 
 | Subtype | `ollama/qwen2.5:7b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) |
 |---|---:|---:|---:|
-| `antigen_vs_allele` | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
-| `count_simple` | 20% <sub>[12–32]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
-| `direction` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
-| `framework_shift` | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> |
-| `near_miss_pair` | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> | 0% <sub>[0–9]</sub> |
-| `null_trap_match` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
-| `resolution_insufficient` | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–7]</sub> |
-| `same_after_normalize` | 5% <sub>[2–14]</sub> | 0% <sub>[0–6]</sub> | 0% <sub>[0–6]</sub> |
+| `antigen_vs_allele` | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| `count_simple` | 33% <sub>[19–51]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| `direction` | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `framework_shift` | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
+| `near_miss_pair` | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
+| `null_trap_match` | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `resolution_insufficient` | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `same_after_normalize` | 10% <sub>[3–26]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
 
 ## Fabricated names (top 10 per model)
 
@@ -51,9 +51,9 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 
 | Model | Split | `clean_correct` | `wrong_but_overconfident` | `wrong_calibrated` | `resolution_mismatch` |
 |---|---|---:|---:|---:|---:|
-| `ollama/qwen2.5:7b` | all | 15 | 392 | 3 | 0 |
-| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 410 |
-| `baseline-naive-string` | all | 0 | 0 | 0 | 410 |
+| `ollama/qwen2.5:7b` | all | 13 | 190 | 2 | 0 |
+| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 205 |
+| `baseline-naive-string` | all | 0 | 0 | 0 | 205 |
 
 ## Method
 
