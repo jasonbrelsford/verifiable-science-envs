@@ -1,2 +1,7 @@
-token verify: False status: None errors: ['Invalid API Token']
-token rejected by Cloudflare — see errors above
+user-token verify: False errors: ['Invalid API Token'] (account-owned tokens fail this check but still work — continuing)
+zone: 5e580564… status: active
+Traceback (most recent call last):
+  File "/home/runner/work/verifiable-science-envs/verifiable-science-envs/.github/workflows/cloudflare_setup.py", line 37, in <module>
+    have = {r["name"]: r for r in cf(f"/zones/{zid}/dns_records?per_page=100")["result"]}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not iterable
