@@ -15,6 +15,7 @@ from .rules import FRAMEWORKS, UNCERTAIN, antigen_of, flat_answer, score, two_fi
 
 FAMILY = "hla_matching"
 BASE_SEED = 20260831
+SUITE_REV = "r2"   # bump on any generator change: task ids key the response cache
 COUNTS = {  # subtype -> (tier, n)
     "count_simple": (1, 30), "same_after_normalize": (1, 30),
     "antigen_vs_allele": (2, 30), "framework_shift": (2, 20),
@@ -65,7 +66,11 @@ class Pools:
 
 
 def _legacy(name: str) -> str:
+    """Colon-less legacy form — only ever existed for 2-digit fields; otherwise
+    the modern name is returned unchanged (a 3-digit field has no legacy form)."""
     locus, fields, suffix = split_allele(name)
+    if any(len(f) != 2 for f in fields[:2]):
+        return name
     return f"{locus}*{''.join(fields[:2])}{suffix}"
 
 
@@ -80,7 +85,7 @@ def _mk(ref, subtype, seed, instructions, framework, recipient, donor, notes=Non
     if conf is None:
         conf = "medium" if "potential" in s["verdicts"].values() else "high"
     return Task(
-        task_id=f"{FAMILY}.T{tier}.{subtype}.{seed:04d}",
+        task_id=f"{FAMILY}.{SUITE_REV}.T{tier}.{subtype}.{seed:04d}",
         tier=tier, subtype=subtype,
         reference={"db": "IPD-IMGT/HLA", "release": ref.release, "tag": ref.tag,
                    "md5": ref.manifest["md5"]["Allelelist.txt"]},
@@ -227,7 +232,7 @@ def generate_suite(ref: ImgtReference, base_seed: int = BASE_SEED, dev_fraction:
                 "tag": ref.tag, "base_seed": base_seed, "total": len(tasks),
                 "split": {"dev": sum(1 for t in tasks if t.scorer_notes["split"] == "dev"),
                           "test": sum(1 for t in tasks if t.scorer_notes["split"] == "test")},
-                "rules_version": "C-v0.1 (rules.py R1-R6)"}
+                "rules_version": "C-v0.1.1 (rules.py R1-R6)", "suite_rev": SUITE_REV}
     return tasks, manifest
 
 
