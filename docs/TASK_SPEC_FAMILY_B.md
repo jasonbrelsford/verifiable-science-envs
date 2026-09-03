@@ -35,7 +35,25 @@ Contamination resistance: pools are re-drawn per release with the generation see
 
 Exact match on the pair (order-normalized) for determinate subtypes. For probabilistic subtypes: top-pair match + probability within a tolerance band (band width set from the pool's enumeration, published per task; target ±0.05 for v0), plus a proper-scoring slice (Brier) reported per model. Failure taxonomy extends family A's with `phase_flip` (right alleles, wrong pairing), `common_default` (answered the population mode instead of the evidence), `impossible_pair` (haplotype not in the pool and not constructible — the fabrication analogue). Anti-reward-hacking: blanket `UNRESOLVABLE` and blanket "ranked list of everything" are penalized exactly as family A penalizes refusal spam; probability sums must be ≤ 1 + ε or `malformed_response`.
 
-## 5. Open questions before implementation
+## 5. Data hierarchy (decided 2026-08-31)
+
+Registry haplotype-frequency data (NMDP and similar) is licensed to only a few
+organizations and is NOT assumed anywhere in this family. Three layers, in order:
+
+1. **Graded core — synthetic Mendelian truth (no external data).** Phased founder
+   haplotypes generated from the pinned IPD-IMGT/HLA release, inherited under
+   Mendel's rules, unphased into tasks. Ground truth is known by construction;
+   every graded number derives from it. This layer alone is the benchmark.
+2. **Realism layer — open data only.** Founder pools and frequency weights may be
+   informed by openly licensed resources (1000 Genomes-class HLA call sets; openly
+   published frequency tables where the article's data terms permit reuse). These
+   shape task distributions; they never become redistributed data files.
+3. **Partner-held layer — restricted data stays with its holders.** Organizations
+   holding registry licences can run population-realistic slices on their own
+   infrastructure with their own data; the environment ships to the data. No data
+   agreement with us is required. See docs/DATA_STRATEGY.md.
+
+## 6. Open questions before implementation
 
 1. Pool size and locus set for v0 (proposal: 40 founder haplotypes, 3 loci A–B–DRB1, one population; second population as a slice later).
 2. Whether GRIMM runs in CI (dependency weight) or only in the release-validation workflow.
