@@ -1,0 +1,43 @@
+# Publish/refresh the HLA-Bench dataset card + public dev splits on Hugging Face.
+# Runs on a hosted runner because huggingface.co is unreachable from the agent
+# workspace. Trigger: push a change to .hf-publish (or dispatch manually).
+name: hf-publish
+on:
+  push:
+    branches: [main]
+    paths: [".hf-publish"]
+  workflow_dispatch: {}
+permissions: { contents: read }
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Publish dataset repo
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install -q huggingface_hub
+          python3 - <<'EOF'
+          import os, glob
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          me = api.whoami()["name"]
+          repo = f"{me}/hla-bench"
+          api.create_repo(repo, repo_type="dataset", exist_ok=True)
+          card = open(".hf/README.md").read()
+          api.upload_file(path_or_fileobj=card.encode(), path_in_repo="README.md",
+                          repo_id=repo, repo_type="dataset")
+          for suite, sub in [("hla-bench-a", "family_a_dev"), ("hla-bench-c", "family_c_dev")]:
+              for f in sorted(glob.glob(f"runs/{suite}/dev/*.agent.json")):
+                  api.upload_file(path_or_fileobj=f, path_in_repo=f"{sub}/{os.path.basename(f)}",
+                                  repo_id=repo, repo_type="dataset")
+              man = f"runs/{suite}/manifest.json"
+              if os.path.exists(man):
+                  api.upload_file(path_or_fileobj=man, path_in_repo=f"{sub}/manifest.json",
+                                  repo_id=repo, repo_type="dataset")
+          print("published:", repo)
+          EOF
