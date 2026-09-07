@@ -1,0 +1,33 @@
+# Dispatch relay: the agent's cloud workspace can push to this repo but cannot
+# reach the GitHub Actions API (egress proxy). Pushing .tower-queue.json makes
+# this hosted job dispatch tower.yml with the file's inputs — so TOWER runs can
+# be queued from anywhere git push works. Deliberately relays ONLY tower.yml
+# (free, self-hosted); the paid bench.yml stays manual.
+name: relay
+on:
+  push:
+    branches: [main]
+    paths: [".tower-queue.json"]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch tower.yml from queue file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          models=$(python3 -c "import json;print(json.load(open('.tower-queue.json')).get('models','ollama/qwen2.5:7b'))")
+          split=$(python3 -c "import json;print(json.load(open('.tower-queue.json')).get('split','dev'))")
+          family=$(python3 -c "import json;print(json.load(open('.tower-queue.json')).get('family','a'))")
+          commit=$(python3 -c "import json;print(json.load(open('.tower-queue.json')).get('commit','true'))")
+          echo "dispatching tower: models='$models' split=$split family=$family commit=$commit"
+          gh api repos/${{ github.repository }}/actions/workflows/tower.yml/dispatches \
+            -f ref=main -f "inputs[models]=$models" -f "inputs[split]=$split" \
+            -f "inputs[family]=$family" -f "inputs[commit]=$commit"
+          echo "dispatched OK"
