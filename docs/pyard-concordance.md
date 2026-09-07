@@ -53,3 +53,29 @@ A library exception is correct behaviour for a library — and no verdict at
 all for a safety gate. HLA-Verify classifies *what kind of wrong* an input
 is (fabricated / deleted-with-successor / legacy-era / valid), with the
 successor resolution and release version attached.
+
+## 3. Triage of the 14 divergences (2026-09-07)
+
+They fall into exactly two families, both semantic differences rather than bugs:
+
+**Q-suffix on 4-field expression variants (6 cases, e.g. `C*02:02:02:74Q`).**
+Our rule (family-A spec R1) names the 2-field *group*: a suffix is kept only
+when every full-resolution allele under the 2-field name shares it, so
+`C*02:02:02:74Q` → `C*02:02`. py-ard annotates the *reported allele* and keeps
+its own suffix (`C*02:02Q`). Different questions, both answerable; our
+benchmark's oracle and tasks are self-consistent on the group semantics.
+
+**ARD-equivalence rollups (8 cases, e.g. `C*12:436` → py-ard `C*12:03`).**
+py-ard maps ARD-identical alleles onto a group exemplar — exactly right for
+matching, where the antigen recognition domain is what matters. As a *name*
+normalizer we preserve the distinct allele identity (`C*12:436` is a real,
+distinct allele). Reduction answers "functionally which group?"; verification
+answers "which name is this, and is it real?".
+
+**Notable from section 2:** given the fabricated `DQB1*05:03:26:99`, py-ard
+returns `DQB1*05:03` — a reduction library doing its job, but as a guard it
+would launder a fabricated allele into a plausible one. Likewise the deleted
+`A*02:01:08` reduces to `A*02:01` where the database's successor is
+`A*02:1040`. This is the entire case for a verifier in front of AI output:
+**verification and reduction are different jobs.** Use py-ard for reduction
+(we do); use a verifier for anything an AI wrote.
