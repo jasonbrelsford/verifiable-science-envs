@@ -75,14 +75,18 @@ else:
 worker_ok = False
 if os.environ.get("DEPLOY_WORKER") == "1":
     html = open("assets/landing.html", encoding="utf-8").read()
+    llms = open("assets/llms.txt", encoding="utf-8").read()
     demo = open("assets/demo.template.html", encoding="utf-8").read()
     demo = demo.replace("__IMGT_PY__", json.dumps(open("sci_envs/reference/imgt.py", encoding="utf-8").read()))
     demo = demo.replace("__NORMALIZE_PY__", json.dumps(open("sci_envs/families/nomenclature/normalize.py", encoding="utf-8").read()))
     js = ('const HTML = ' + json.dumps(html) + ';\n'
+          'const LLMS = ' + json.dumps(llms) + ';\n'
           'const DEMO = ' + json.dumps(demo) + ';\n'
           'export default { async fetch(req) {\n'
           '  const u = new URL(req.url);\n'
           '  if (u.pathname === "/healthz") return new Response("ok");\n'
+          '  if (u.pathname === "/llms.txt") return new Response(LLMS, { headers: {\n'
+          '    "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=300" } });\n'
           '  if (u.pathname === "/demo" || u.pathname === "/demo/") return new Response(DEMO, { headers: {\n'
           '    "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });\n'
           '  return new Response(HTML, { headers: { "content-type": "text/html; charset=utf-8",\n'
