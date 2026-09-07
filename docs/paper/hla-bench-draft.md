@@ -170,6 +170,13 @@ task-id overlap), evaluated on the sealed split before/after. [Table: base vs
 tuned accuracy, fabrication rate, calibration. Run planned on a rented A100;
 scripts in `docs/` runbook.]
 
+### 4.4 Reproducibility across environments
+
+The family-C suite regraded bit-identically (n=205, 13/205 correct, identical
+CIs) after a complete teardown and reinstall of the grading runner — same
+(release tag, seed), different runner service account and process — consistent
+with the deterministic-seeding design (sha256-derived per-task seeds).
+
 ## 5. Discussion
 
 - Deterministic verification is complementary infrastructure for agentic science

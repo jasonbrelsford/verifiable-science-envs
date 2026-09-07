@@ -1,0 +1,27 @@
+# py-ard concordance report on a hosted runner (open internet; py-ard's db
+# download is egress-blocked from the agent workspace). Commits the report.
+name: concordance
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/pyard_concordance.py"]
+  workflow_dispatch: {}
+permissions: { contents: write }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Run concordance
+        run: |
+          pip install -q -e . py-ard
+          python scripts/pyard_concordance.py
+      - name: Commit report
+        run: |
+          git config user.name concordance && git config user.email bot@users.noreply.github.com
+          git add docs/pyard-concordance.md
+          git commit -m "docs: py-ard concordance report [skip ci]" || exit 0
+          git pull --rebase origin main && git push origin HEAD:main

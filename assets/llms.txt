@@ -22,6 +22,8 @@ release; verification is pinned to an exact release version.
 - Python: `pip install -e .` then
   `from sci_envs.families.nomenclature.normalize import normalize` (allele names) and
   `from sci_envs.families.matching.rules import score` (match verdicts).
+- MCP server (add HLA-Verify as agent tools — verify_text, normalize_allele, match_score):
+  `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
 - Keyed API for labs / LIMS / agent platforms and commercial licensing:
   hello@hlaverify.com
 
