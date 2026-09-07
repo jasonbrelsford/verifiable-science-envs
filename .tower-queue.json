@@ -1,1 +1,1 @@
-{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "end-to-end relay proof: fully cached regrade, result commit = chain works"}
+{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "relay proof v2 - fresh service runner, keep-awake step will apply"}
