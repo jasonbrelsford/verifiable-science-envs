@@ -3,6 +3,14 @@
 # blocks api.cloudflare.com). Idempotent — safe to re-run.
 name: cloudflare
 on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/landing.html"
+      - "assets/demo.template.html"
+      - "assets/llms.txt"
+      - ".github/workflows/cloudflare.yml"
+      - ".github/workflows/cloudflare_setup.py"
   workflow_dispatch:
     inputs:
       redirect_to:
@@ -21,8 +29,8 @@ jobs:
       - name: Configure zone
         env:
           CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          REDIRECT_TO: ${{ inputs.redirect_to }}
-          DEPLOY_WORKER: ${{ inputs.deploy_worker }}
+          REDIRECT_TO: ${{ inputs.redirect_to || 'https://github.com/jasonbrelsford/verifiable-science-envs' }}
+          DEPLOY_WORKER: ${{ inputs.deploy_worker || '1' }}
         run: |
           mkdir -p logs
           python .github/workflows/cloudflare_setup.py 2>&1 | tee logs/cloudflare.log
