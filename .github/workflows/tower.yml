@@ -34,6 +34,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { clean: false }        # keep runs/*/responses between runs so re-runs are free
+      - name: Keep TOWER awake (idempotent; owner-requested 2026-09)
+        continue-on-error: true
+        run: |
+          # Never sleep or hibernate on AC power, so queued runs always find the machine.
+          powercfg /change standby-timeout-ac 0
+          powercfg /change hibernate-timeout-ac 0
+          powercfg /change disk-timeout-ac 0
+          try { powercfg /hibernate off } catch {}
+          # Enable wake-on-magic-packet on physical NICs where permitted.
+          try {
+            Get-NetAdapter -Physical | ForEach-Object {
+              try { Set-NetAdapterPowerManagement -Name $_.Name -WakeOnMagicPacket Enabled -ErrorAction Stop
+                    Write-Host "WoL enabled: $($_.Name)" } catch { Write-Host "WoL not settable: $($_.Name)" }
+            }
+          } catch { Write-Host "NIC power mgmt unavailable" }
+          powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE | Select-String "Current AC"
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: Install package
