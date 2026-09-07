@@ -1,0 +1,641 @@
+[
+  {
+    "canonical": "91",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*12:02"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0004"
+  },
+  {
+    "canonical": "389",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:02"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0007"
+  },
+  {
+    "canonical": "32",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*04:01"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0008"
+  },
+  {
+    "canonical": "DQB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*05:01:01:44"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0006"
+  },
+  {
+    "canonical": "DPB1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*392:01"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0012"
+  },
+  {
+    "canonical": "DRB4:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:01:04"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0019"
+  },
+  {
+    "canonical": "DQB1*06:02",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:02:01:48",
+      "fields": 2
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0005"
+  },
+  {
+    "canonical": "DRB4*01:01",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:01:12",
+      "fields": 2
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0007"
+  },
+  {
+    "canonical": "C*12:03",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*12:03:06",
+      "fields": 2
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0008"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB3*3:63"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0007"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB5*01:118"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0010"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "A*03:200Q"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0014"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:71N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0000"
+  },
+  {
+    "canonical": "DRB4*01:01:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03:01:34"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0003"
+  },
+  {
+    "canonical": "DQA1*01:02:01G",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:127"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0004"
+  },
+  {
+    "canonical": "31",
+    "hallucinated": [],
+    "input": {
+      "group": "DRB1*12:02:01G"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0003"
+  },
+  {
+    "canonical": "14",
+    "hallucinated": [],
+    "input": {
+      "group": "DRB5*01:02P"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0008"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "group": "DQB1*02:85:02G"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0009"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*15:283"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0003"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:83"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0007"
+  },
+  {
+    "canonical": "DQB1*06:02P",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:02:03"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0012"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "DQB1*03:01:01:14",
+      "allele_b": "DQB1*03:426",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0004"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "C*06:287",
+      "allele_b": "C*06:02:01:20",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0007"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "DRB3*03:01:01:01",
+      "allele_b": "DRB3*03:69",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0011"
+  },
+  {
+    "canonical": "16",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*16:65"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0001"
+  },
+  {
+    "canonical": "4402",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*44:02:30"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0014"
+  },
+  {
+    "canonical": "0201",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*02:01:01:248"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0022"
+  },
+  {
+    "canonical": "identical_sequence",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DRB4*0101102N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0015"
+  },
+  {
+    "canonical": "renamed_extended",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "C*02:16:01"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0021"
+  },
+  {
+    "canonical": "identical_sequence",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*1816"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0022"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:02:01:34",
+      "release": "3.32.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0002"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:173",
+      "release": "3.37.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0015"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*27:92",
+      "release": "3.54.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0021"
+  },
+  {
+    "canonical": "3.37.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*01:80"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0001"
+  },
+  {
+    "canonical": "3.61.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*14:276"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0003"
+  },
+  {
+    "canonical": "3.35.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*02:808"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0008"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQA1*03:03:01:10",
+      "hla_id": "HLA24401",
+      "release": "3.27.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DRB5*02:25N",
+      "hla_id": "HLA23635",
+      "release": "3.33.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0003"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "C*04:545",
+      "hla_id": "HLA42691",
+      "release": "3.38.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0007"
+  },
+  {
+    "canonical": "51",
+    "hallucinated": [],
+    "input": {
+      "locus": "DQA1",
+      "previous_release": "3.55.0",
+      "release": "3.56.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0010"
+  },
+  {
+    "canonical": "25",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB3",
+      "previous_release": "3.64.0",
+      "release": "3.65.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0011"
+  },
+  {
+    "canonical": "6",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB5",
+      "previous_release": "3.58.0",
+      "release": "3.59.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0016"
+  },
+  {
+    "canonical": "A*24:135:02",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*24:211"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0000"
+  },
+  {
+    "canonical": "DELETED_NO_SUCCESSOR",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*44:525"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0005"
+  },
+  {
+    "canonical": "A*01:01:38L",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*01:34N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0010"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:54N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0002"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*01:247N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0004"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:03:01:26N"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0006"
+  },
+  {
+    "canonical": "B*07:107",
+    "hallucinated": [],
+    "input": {
+      "current_name": "B*07:107:01",
+      "release": "3.57.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0007"
+  },
+  {
+    "canonical": "DRB1*16:38",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DRB1*16:38:01",
+      "release": "3.24.0"
+    },
+    "primary_failure_mode": "refused",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0010"
+  },
+  {
+    "canonical": {
+      "current_name": "C*12:03:01:42Q",
+      "g_group": "C*12:03:01G",
+      "serology": "0/12"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "C*12:03:01:42"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0002"
+  },
+  {
+    "canonical": {
+      "current_name": "DQB1*03:01:01:21N",
+      "g_group": "DQB1*03:01:01G",
+      "serology": "0"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DQB1*03:01:01:21Q"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0003"
+  },
+  {
+    "canonical": {
+      "current_name": "H*02:01:01:01",
+      "g_group": "NONE",
+      "serology": "0"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "H*02:01:01:02"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0005"
+  },
+  {
+    "canonical": {
+      "A": "A*02:581Q",
+      "B": "B*40:01",
+      "C": "C*08:224N",
+      "DPB1": "DPB1*566:01",
+      "DQB1": "DQB1*05:01",
+      "DRB1": "DRB1*04:212N"
+    },
+    "hallucinated": [],
+    "input": {
+      "typing": "A*02:581, B*4001, C*08:224N, DRB1*04:94:02N, DQB1*0501, DPB1*566:01"
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\"answer\": \"UNRESOLVABLE\", \"confidence\": \"low\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"abstain\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0010"
+  }
+]

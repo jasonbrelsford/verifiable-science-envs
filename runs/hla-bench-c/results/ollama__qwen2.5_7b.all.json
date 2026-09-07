@@ -181,6 +181,7 @@
     "wrong_but_overconfident": 190,
     "wrong_calibrated": 2
   },
-  "run_at": "2026-08-31T15:57:30Z",
+  "prompt_rev": "clamp-v1",
+  "run_at": "2026-09-07T04:28:08Z",
   "split": "all"
 }
