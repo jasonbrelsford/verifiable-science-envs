@@ -1,1 +1,1 @@
-{"models": "", "split": "dev", "family": "a", "commit": "false", "note": "relay smoke test - baselines only, no commit"}
+{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "end-to-end relay proof: fully cached regrade, result commit = chain works"}
