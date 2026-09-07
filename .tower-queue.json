@@ -1,1 +1,1 @@
-{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "relay proof v2 - fresh service runner, keep-awake step will apply"}
+{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "run 3 - after manual powercfg fix; replaces run 2 killed by sleep"}
