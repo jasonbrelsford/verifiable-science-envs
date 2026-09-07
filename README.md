@@ -23,6 +23,20 @@ pip install -e ".[service]" && uvicorn sci_envs.service.app:app
 
 Live demo (runs entirely in your browser — typing data never leaves your machine): **[hlaverify.com/demo](https://hlaverify.com/demo)**
 
+## For AI agents: MCP server
+
+Any MCP-capable agent can add HLA-Verify as a tool server and verify HLA
+content before presenting it (`verify_text`, `normalize_allele`, `match_score`):
+
+```bash
+pip install -e ".[mcp]"
+python -m sci_envs.mcp_server        # stdio MCP server
+```
+
+Client config: `{"command": "python", "args": ["-m", "sci_envs.mcp_server"]}`.
+Also see [`skills/hla-verify/`](skills/hla-verify/) (importable Claude skill) and
+[hlaverify.com/llms.txt](https://hlaverify.com/llms.txt).
+
 ## Run the benchmark
 
 ```bash
