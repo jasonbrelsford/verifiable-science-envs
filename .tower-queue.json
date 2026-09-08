@@ -1,1 +1,1 @@
-{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "run 3 - after manual powercfg fix; replaces run 2 killed by sleep"}
+{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "run 4 - prior dispatch expired while TOWER offline; captures keepawake.log"}
