@@ -105,5 +105,9 @@ Adapters for `verifiers` (Prime Intellect) and Inspect AI are in
   (Python tuple hashing is process-randomized — a real bug we hit).
 - Committed wrong-answer samples are stratified (≤3 per subtype) so every
   subtype's failure shape is auditable without publishing the sealed split.
+- Reproducibility (2026-09-09): family C regraded to the identical score
+  (13/205) under a third runner configuration (different service account,
+  Python 3.14, harness via `python -m`); one raw response of 205 changed form
+  at temperature 0 (backend nondeterminism), graded wrong both times.
 - Reference loader has zero third-party deps; files fetched at runtime and
   md5-verified against the release's own checksum file.
