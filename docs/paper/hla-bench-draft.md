@@ -17,7 +17,7 @@ pinned IPD-IMGT/HLA release itself: no human labels, no LLM judges, no licensed
 data. Because ground truth regenerates deterministically from each quarterly
 database release, a versioned share of tasks is post-training-cutoff by
 construction, giving contamination resistance that static benchmarks cannot offer.
-Across seven open-weight models (3B–14B) and one frontier model, accuracy on
+Across eight open-weight models (3B–14B) and one frontier model, accuracy on
 nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
 expansion** — the core clinical trap that a two-field name denotes many
@@ -142,6 +142,7 @@ without exposing the sealed split.
 | mistral:7b | 29% [26–33] | 76 | truncation changes digits (B*15:504→B*15:01) |
 | naive-string baseline | 28% | 0 | |
 | qwen2.5:3b | 28% [24–32] | 27 | most cautious; best calibration |
+| gemma3:12b | 28% [25–32] | 80 | highest fabrication rate (0.20/task); 93% locus_field, 87% truncate; 0% expand_ambiguity, 0% null_trap |
 | qwen2.5:14b | 26% [23–30] | 39 | refuses 120/550 (22%); 33% on answered; 90% null_trap, 80% near_miss; 0% expand_ambiguity |
 | phi4-mini | 24% [21–28] | 35 | |
 | llama3.1:8b | 21% [18–25] | 43 | worst calibration (402/550 wrong-overconfident) |
@@ -149,7 +150,7 @@ without exposing the sealed split.
 | cautious-abstainer | 4% | 0 | refusal floor |
 
 Key findings: (1) universal 0% on `expand_ambiguity` across Claude, Qwen,
-Mistral, Llama, and Phi, at every scale from 3B to 14B — no tested model knows
+Mistral, Llama, Phi, and Gemma, at every scale from 3B to 14B — no tested model knows
 a 2-field name covers 2–389 full-resolution alleles; (2) a 3B model scores
 below string manipulation, and so does a 14B model: qwen2.5:14b refuses 22% of
 tasks outright and, on the tasks it answers, matches rather than beats its 7B
@@ -158,7 +159,12 @@ sibling (33% vs 31%) — added parameters buy caution on the traps it recognises
 (3) fabrication is universal and takes characteristic forms (invented 4th
 fields, legacy colon-less strings, invented G/P group names); (4) reasoning-mode
 models under forced-JSON burn their entire budget thinking (deepseek-r1:8b,
-excluded; harness finding).
+excluded; harness finding); (5) a second harness finding: a local inference
+server sized to a model's full training context (131k for gemma3:12b) crashed
+repeatedly on consumer hardware and returned empty bodies with HTTP 200 for
+460/550 requests — the harness now pins the context window, retries empty
+replies, and refuses to cache them, and the reported Gemma row is the clean
+re-run.
 
 ### 4.2 Family C (all 205)
 

@@ -7,7 +7,7 @@ pretty_name: HLA-Bench (public dev splits)
 
 # HLA-Bench — contamination-resistant evaluation of LLMs on clinical immunogenetics
 
-**Every model family tested — Claude, Qwen, Mistral, Llama, Phi — scores 0% on
+**Every model family tested — Claude, Qwen, Mistral, Llama, Phi, Gemma — scores 0% on
 two-field ambiguity expansion**, the core clinical trap in HLA typing (a 2-field
 name like `A*02:01` denotes 2–389 full-resolution alleles). Models fabricate
 allele names at 0.05–0.14 per task. On donor–recipient matching, naive string
