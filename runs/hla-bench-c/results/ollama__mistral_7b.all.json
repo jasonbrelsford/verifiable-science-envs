@@ -2,12 +2,12 @@
   "benchmark": "HLA-Bench-C-v0.1@IMGT-3.65.0",
   "by_slice": {
     "null_allele": {
-      "acc": 0.0,
+      "acc": 0.08,
       "ci95": [
-        0.0,
-        0.1332
+        0.0222,
+        0.2497
       ],
-      "correct": 0,
+      "correct": 2,
       "n": 25
     },
     "resolution_insufficient": {
@@ -31,21 +31,21 @@
       "n": 30
     },
     "count_simple": {
-      "acc": 0.0,
+      "acc": 0.3667,
       "ci95": [
-        -0.0,
-        0.1135
+        0.2187,
+        0.5449
       ],
-      "correct": 0,
+      "correct": 11,
       "n": 30
     },
     "direction": {
-      "acc": 0.0,
+      "acc": 0.04,
       "ci95": [
-        0.0,
-        0.1332
+        0.0071,
+        0.1954
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 25
     },
     "framework_shift": {
@@ -58,21 +58,21 @@
       "n": 20
     },
     "near_miss_pair": {
-      "acc": 0.0,
+      "acc": 0.05,
       "ci95": [
-        -0.0,
-        0.1611
+        0.0089,
+        0.2361
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 20
     },
     "null_trap_match": {
-      "acc": 0.0,
+      "acc": 0.08,
       "ci95": [
-        0.0,
-        0.1332
+        0.0222,
+        0.2497
       ],
-      "correct": 0,
+      "correct": 2,
       "n": 25
     },
     "resolution_insufficient": {
@@ -85,23 +85,23 @@
       "n": 25
     },
     "same_after_normalize": {
-      "acc": 0.0,
+      "acc": 0.4333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.2738,
+        0.608
       ],
-      "correct": 0,
+      "correct": 13,
       "n": 30
     }
   },
   "by_tier": {
     "1": {
-      "acc": 0.0,
+      "acc": 0.4,
       "ci95": [
-        -0.0,
-        0.0602
+        0.2857,
+        0.5263
       ],
-      "correct": 0,
+      "correct": 24,
       "n": 60
     },
     "2": {
@@ -114,29 +114,31 @@
       "n": 50
     },
     "3": {
-      "acc": 0.0,
+      "acc": 0.04,
       "ci95": [
-        0.0,
-        0.0487
+        0.0137,
+        0.1111
       ],
-      "correct": 0,
+      "correct": 3,
       "n": 75
     },
     "4": {
-      "acc": 0.0,
+      "acc": 0.05,
       "ci95": [
-        -0.0,
-        0.1611
+        0.0089,
+        0.2361
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 20
     }
   },
   "calibration": {
-    "calibrated_fraction": 0.878,
+    "calibrated_fraction": 0.8439,
     "stated_vs_expected": {
-      "high->high": 180,
-      "high->medium": 25
+      "None->high": 7,
+      "None->medium": 2,
+      "high->high": 173,
+      "high->medium": 23
     }
   },
   "contamination_resistant": {
@@ -150,26 +152,43 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.0146,
+    "tasks_with_hallucinated_names": 3,
+    "top20": [
+      [
+        "C*1481",
+        1
+      ],
+      [
+        "C*0686",
+        1
+      ],
+      [
+        "DRB1*17:93",
+        1
+      ]
+    ]
   },
-  "model": "baseline-naive-string",
+  "model": "ollama/mistral:7b",
   "n": 205,
   "n_tasks": 205,
   "overall": {
-    "acc": 0.0,
+    "acc": 0.1366,
     "ci95": [
-      0.0,
-      0.0184
+      0.0962,
+      0.1903
     ],
-    "correct": 0,
+    "correct": 28,
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "clean_correct": 25,
+    "malformed_response": 9,
+    "resolution_mismatch": 1,
+    "wrong_but_overconfident": 167,
+    "wrong_calibrated": 3
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T16:53:16Z",
+  "run_at": "2026-09-09T17:49:01Z",
   "split": "all"
 }
