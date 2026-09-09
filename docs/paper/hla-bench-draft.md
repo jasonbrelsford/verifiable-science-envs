@@ -22,8 +22,9 @@ nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
 expansion** — the core clinical trap that a two-field name denotes many
 full-resolution alleles. On matching, string manipulation collapses to 0% and the
-best tested open model reached 11.7%, systematically counting matched loci instead
-of chromosomes and never flagging unresolvable typing. Models fabricated allele
+best tested open model reached 13.7%; the dominant errors are counting matched loci
+instead of chromosomes, inventing the denominator, and over-crediting matches, and
+no model ever flagged unresolvable typing. Models fabricated allele
 names at 0.05–0.14 per task. A GRPO fine-tune on a disjoint generated split
 [RESULTS PENDING] demonstrates the suites function as training environments, not
 only evaluations. All generators, graders, and the verification service are open
@@ -171,6 +172,7 @@ re-run.
 | Model | Acc [95% CI] |
 |---|---:|
 | oracle | 100% |
+| mistral:7b | 13.7% [9.6–19.0] |
 | qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
 | llama3.1:8b | 3.9% [2.0–7.5] |
@@ -179,7 +181,10 @@ re-run.
 | cautious-abstainer | 0% [0–1.8] |
 
 Unlike nomenclature, matching admits no string shortcut: both baselines collapse
-to zero. Doubling model size (qwen2.5:14b, 11.7%) nearly doubles the score, but
+to zero. The best open model, mistral:7b (13.7%), keeps the denominator right but
+over-credits matches ("8/8" for a 6/8 pair) — a missed mismatch, the clinically
+more dangerous direction — and is 0% on resolution-insufficient typing.
+Doubling model size (qwen2.5:14b, 11.7%) nearly doubles the score, but
 the whole gain sits on the simplest counting subtype (60% vs 33%); the 14B model
 still returns "4/4" for an 8/8 framework and "5/6" for 10/10 — the wrong
 denominator as well as loci-not-chromosomes — and is 0% on every clinical-risk
