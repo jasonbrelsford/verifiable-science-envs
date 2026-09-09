@@ -22,7 +22,7 @@ nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
 expansion** — the core clinical trap that a two-field name denotes many
 full-resolution alleles. On matching, string manipulation collapses to 0% and the
-best tested open model reached 6.3%, systematically counting matched loci instead
+best tested open model reached 11.7%, systematically counting matched loci instead
 of chromosomes and never flagging unresolvable typing. Models fabricated allele
 names at 0.05–0.14 per task. A GRPO fine-tune on a disjoint generated split
 [RESULTS PENDING] demonstrates the suites function as training environments, not
@@ -171,12 +171,18 @@ re-run.
 | Model | Acc [95% CI] |
 |---|---:|
 | oracle | 100% |
+| qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
 | naive-string baseline | 0% [0–1.8] |
 | cautious-abstainer | 0% [0–1.8] |
 
 Unlike nomenclature, matching admits no string shortcut: both baselines collapse
-to zero. qwen2.5:7b succeeds only on tier-1 counting (22%); 0% on antigen-vs-
+to zero. Doubling model size (qwen2.5:14b, 11.7%) nearly doubles the score, but
+the whole gain sits on the simplest counting subtype (60% vs 33%); the 14B model
+still returns "4/4" for an 8/8 framework and "5/6" for 10/10 — the wrong
+denominator as well as loci-not-chromosomes — and is 0% on every clinical-risk
+slice, with 181/205 answers wrong-but-overconfident and no `potential` verdict
+ever emitted. qwen2.5:7b succeeds only on tier-1 counting (22%); 0% on antigen-vs-
 allele, null traps, directionality, framework shifts, and resolution-
 insufficient cases. Hand-audit of the stratified wrong sample shows two dominant
 error modes: counting matched **loci** instead of chromosomes ("4/8" when four
