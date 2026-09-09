@@ -88,7 +88,7 @@ Results (Wilson 95% CIs on the bench pages):
   28%, phi4-mini 24%, llama3.1:8b 21%, llama3.2:3b 15%; claude-sonnet-4-6 34.7% (lower
   bound, token-truncated re-run pending).
 - **0% on `expand_ambiguity` for every family** — Claude, Qwen, Mistral, Llama, Phi.
-- Matching: naive baseline 0%, qwen2.5:7b 6.3% [3.7–10.6]; dominant error is counting
+- Matching: naive baseline 0%; qwen2.5:14b 11.7%, qwen2.5:7b 6.3%, gemma3:12b 0%; dominant error is counting
   matched loci instead of chromosomes, plus self-contradiction between per-locus verdicts
   and the total.
 - Fabricated allele names: 0.05–0.14 per task.
@@ -169,7 +169,7 @@ full-resolution alleles. 0% across every model family. Same failure at 3B, 7B, a
 frontier scale — a representational gap, not a size problem.
 
 6/ Matching (205 donor–recipient pairs): string manipulation collapses to 0%. Best open
-7B: 6.3%. It counts matched loci instead of chromosomes, contradicts its own per-locus
+7B: 6.3%, best 14B: 11.7%, Gemma 12B: 0%. They count matched loci instead of chromosomes, contradict their own per-locus
 verdicts, and never says "this typing is too coarse to call".
 
 7/ Models fabricate allele names at 0.05–0.14 per task. Invented 4th fields. Made-up G
@@ -210,7 +210,7 @@ Findings (7 models, Wilson CIs in the repo):
 - Nomenclature (550 tasks): 15–35% vs a 28% naive string baseline. **0% on 2-field
   ambiguity expansion for every family tested (Claude, Qwen, Mistral, Llama, Phi)** —
   identical failure at 3B, 7B and frontier scale.
-- Matching (205 pairs): naive baseline 0%; best open 7B 6.3%. Systematic error: counts
+- Matching (205 pairs): naive baseline 0%; open models 0–11.7% (qwen2.5 7B/14B, gemma3 12B). Systematic error: counts
   matched loci rather than chromosomes; never emits the "unresolvable" verdict.
 - Fabrication rate 0.05–0.14 allele names per task; every emitted name is checked.
 - Harness note: reasoning models under forced JSON burn the whole budget thinking
@@ -241,7 +241,7 @@ Nomenclature (550 tasks): qwen2.5:7b 31%, mistral 29%, qwen2.5:3b 28%, phi4-mini
 llama3.1:8b 21%, llama3.2:3b 15%. A dumb string-manipulation baseline gets 28%. Qwen
 beats Llama at every size.
 
-Donor–recipient matching (205 pairs): every baseline 0%, qwen2.5:7b 6.3%. It answers
+Donor–recipient matching (205 pairs): every baseline 0%, qwen2.5:7b 6.3%, qwen2.5:14b 11.7%, gemma3:12b 0%. Qwen answers
 "4/8" when four *loci* match (should count chromosomes), and contradicts its own
 per-locus verdicts in the same response. 190/205 answers wrong-and-overconfident.
 
