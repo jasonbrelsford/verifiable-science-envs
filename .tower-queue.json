@@ -1,1 +1,1 @@
-{"models": "ollama/gemma3:12b", "split": "all", "family": "a", "commit": "true", "note": "run 8 - Gemma family row for HLA-Bench-A"}
+{"models": "ollama/gemma3:12b", "split": "all", "family": "a", "commit": "true", "note": "run 9 - gemma3:12b re-run with pinned num_ctx + empty-reply retry; empty cache entries are re-asked"}
