@@ -1,14 +1,4 @@
 whoami: {"type":"user","id":"644c865122d211df6448eb45","name":"jason-brelsford","fullname":"Jason Brelsford","canPay":false,"billingMode":"prepaid","periodEnd":1790812800,"isPro":false,"avatarUrl":"/avatars/a
-create: {"url":"https://huggingface.co/spaces/jason-brelsford/hla-verify","name":"jason-brelsford/hla-verify","id":"6aa0b05f5441495fe6007eb9","filesCopyPending":false}
-remote: [31m-------------------------------------------------------------------------[0m        
-remote: [31mSorry, your push was rejected during YAML metadata verification: [0m        
-remote: [31m- Error: "short_description" length must be less than or equal to 60 characters long[0m        
-remote: ^[[31m-------------------------------------------------------------------------[0m        
-remote: [32m-------------------------------------------------------------------------[0m        
-remote: [32mPlease find the documentation at:[0m        
-remote: [32mhttps://huggingface.co/docs/hub/model-cards#model-card-metadata[0m        
-remote: [32m[0m        
-remote: [32m-------------------------------------------------------------------------[0m        
-To https://huggingface.co/spaces/jason-brelsford/hla-verify
- ! [remote rejected] main -> main (pre-receive hook declined)
-error: failed to push some refs to 'https://huggingface.co/spaces/jason-brelsford/hla-verify'
+create: {"error":"You already created this space repo: jason-brelsford/hla-verify","url":"https://huggingface.co/spaces/jason-brelsford/hla-verify"}
+pushed to https://huggingface.co/spaces/jason-brelsford/hla-verify
+{"stage":"RUNNING","hardware":{"current":null,"requested":null},"replicas":{"requested":1,"current":1}}
