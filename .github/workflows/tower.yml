@@ -9,6 +9,8 @@
 #     script), and actions/setup-python cannot install an interpreter for it. Every step
 #     therefore runs under an explicit `-ExecutionPolicy Bypass` shell, and Python comes
 #     from the machine-wide C:\Python314 through a venv kept in the runner tool cache.
+#   * Smart App Control blocks pip's unsigned console-script .exe stubs (hla-bench.exe),
+#     so every CLI call goes through `python -m sci_envs.harness.run`.
 #   * Ollama is installed per-user for the owner and serves on localhost:11434 whenever
 #     the owner is logged in; the job talks to it over HTTP (the harness never shells
 #     out to the ollama CLI) and only installs its own copy if nothing is serving.
@@ -121,32 +123,34 @@ jobs:
       - name: Generate suite (sealed split stays on this machine)
         run: |
           New-Item -ItemType Directory -Force -Path logs | Out-Null
-          cmd /c "hla-bench generate --family $env:FAM > logs\generate.log 2>&1"
+          cmd /c "python -m sci_envs.harness.run generate --family $env:FAM > logs\generate.log 2>&1"
           Get-Content logs\generate.log -Tail 40
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Commit failure log
         if: failure()
         run: |
+          $ErrorActionPreference = "Continue"
           git config user.name "hla-bench tower"; git config user.email "tower@users.noreply.github.com"
-          git fetch origin main; git stash -u -q 2>$null
-          git checkout -q origin/main -- . 2>$null
-          git add -f logs/generate.log logs/keepawake.log 2>$null
-          git commit -m "tower: failure log [skip ci]" 2>$null
-          git push origin HEAD:main 2>$null; exit 0
+          cmd /c "git fetch -q origin main 2>&1"
+          cmd /c "git reset -q --mixed origin/main 2>&1"
+          cmd /c "git add -f logs/generate.log logs/keepawake.log 2>&1"
+          cmd /c "git commit -q -m ""tower: failure log [skip ci]"" 2>&1"
+          cmd /c "git push -q origin HEAD:main 2>&1"
+          exit 0
       - name: Baselines
-        run: hla-bench run baseline-naive-string baseline-cautious-abstainer --suite "runs/hla-bench-$env:FAM" --split ${{ inputs.split }}
+        run: python -m sci_envs.harness.run run baseline-naive-string baseline-cautious-abstainer --suite "runs/hla-bench-$env:FAM" --split ${{ inputs.split }}
       - name: Models
         if: ${{ inputs.models != '' }}
         continue-on-error: true
         run: |
           New-Item -ItemType Directory -Force -Path logs | Out-Null
-          cmd /c "hla-bench run ${{ inputs.models }} --suite runs/hla-bench-$env:FAM --split ${{ inputs.split }} > logs\tower-models.log 2>&1"
+          cmd /c "python -m sci_envs.harness.run run ${{ inputs.models }} --suite runs/hla-bench-$env:FAM --split ${{ inputs.split }} > logs\tower-models.log 2>&1"
           Get-Content logs\tower-models.log -Tail 60
       - name: Report
         continue-on-error: true
         run: |
           $page = "bench/HLA-Bench-$($env:FAM.ToUpper()).md"
-          hla-bench report --suite "runs/hla-bench-$env:FAM" --out $page
+          python -m sci_envs.harness.run report --suite "runs/hla-bench-$env:FAM" --out $page
       - uses: actions/upload-artifact@v4
         with:
           name: tower-results
@@ -173,7 +177,7 @@ jobs:
           Copy-Item -Force "$env:RUNNER_TEMP\keep\page.md" $page
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           Copy-Item -Recurse -Force "$env:RUNNER_TEMP\keep\logs\*" logs\
-          hla-bench report --suite $suite --out $page
+          python -m sci_envs.harness.run report --suite $suite --out $page
           git add "$suite/results" bench
           git add -f logs
           git commit -m "bench(tower): ${{ inputs.models }} on ${{ inputs.split }} [family $env:FAM] [skip ci]"
