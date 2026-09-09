@@ -24,6 +24,7 @@ no frequency data, no licensed tables. Full results with confidence intervals:
 | mistral:7b | 29% [26–33] | 76 |
 | naive-string baseline | 28% | 0 |
 | qwen2.5:3b | 28% [24–32] | 27 |
+| qwen2.5:14b | 26% [23–30] | 39 |
 | phi4-mini | 24% [21–28] | 35 |
 | llama3.1:8b | 21% [18–25] | 43 |
 | llama3.2:3b | 15% [12–18] | 57 |
@@ -37,6 +38,11 @@ budget; the harness now allows 1600 and a clean re-run is queued.
   This is the core clinical ambiguity trap, and it is universal across
   Claude, Qwen, Mistral, Llama, and Phi.
 - A 3B model (15%) scores *below* the naive string-manipulation baseline (28%).
+- **Scale does not fix it:** qwen2.5:14b (26%) lands below its own 7B sibling
+  and below the string baseline, because it *refuses* 120/550 tasks (22%);
+  on the tasks it answers it reaches 33%, no better than 7B — and it is still
+  0% on `expand_ambiguity`. It is the best tested model on the null-allele
+  trap (90%) and near-miss discrimination (80%).
 - Models fabricate allele names at 0.05–0.14 per task: invented 4th fields,
   legacy colon-less forms, made-up G/P group names. The grader verifies every
   emitted name against the release's Allelelist.
