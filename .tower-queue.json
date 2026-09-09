@@ -1,1 +1,1 @@
-{"models": "ollama/llama3.1:8b", "split": "all", "family": "c", "commit": "true", "note": "run 14 - Llama family row on HLA-Bench-C"}
+{"models": "ollama/mistral:7b", "split": "all", "family": "c", "commit": "true", "note": "run 15 - Mistral family row on HLA-Bench-C"}
