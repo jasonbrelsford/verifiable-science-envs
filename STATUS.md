@@ -62,6 +62,7 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 | Model | Accuracy [95% CI] |
 |---|---:|
 | oracle (rules engine) | 100% |
+| mistral:7b | 13.7% [9.6–19.0] |
 | qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
 | llama3.1:8b | 3.9% [2.0–7.5] |
@@ -71,6 +72,12 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 
 - Unlike nomenclature (family A), a matching verdict **cannot be reached by
   string manipulation** — the naive baseline falls from 28% to 0%.
+- mistral:7b (13.7%) is the best open model on matching and fails differently:
+  it gets the denominator right and *over-credits* matches ("8/8" when the
+  truth is 6/8) — a missed mismatch, the more dangerous direction clinically.
+  167/205 wrong-but-overconfident; 8% on the null-allele trap, 0% on
+  resolution-insufficient typing. 37 of its 205 replies needed the small-batch
+  fallback rung, so the degeneracy is not Gemma-specific.
 - llama3.1:8b (3.9%) shows the same denominator invention ("6/6" for 8/8,
   "9/10" beside all-match verdicts); 197/205 wrong-but-overconfident.
 - gemma3:12b scores 0/205: it answers "4/4" for every 8/8 pair and "5/5" or
