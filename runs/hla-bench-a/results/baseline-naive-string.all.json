@@ -412,6 +412,7 @@
     "resolution_mismatch": 21,
     "wrong_but_overconfident": 290
   },
-  "run_at": "2026-08-31T09:16:48Z",
+  "prompt_rev": "clamp-v1",
+  "run_at": "2026-09-09T01:50:15Z",
   "split": "all"
 }
