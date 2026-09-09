@@ -1,16 +1,22 @@
-# Deploy the HLA-Verify demo to a Hugging Face Space, self-contained (code copied
-# into the Space repo — no GitHub dependency, works while this repo is private).
-# Runs on a hosted runner because huggingface.co is egress-blocked for the agent.
+# Deploy the HLA-Verify in-browser demo to a Hugging Face *static* Space (free tier —
+# Docker/Gradio Spaces need PRO; a static Space costs nothing and the demo is already a
+# self-contained Pyodide page, identical to hlaverify.com/demo).
+# Runs on a hosted runner because huggingface.co is unreachable from the agent workspace.
+# Trigger: push a change to .hf-space (the agent's token cannot dispatch workflows), or
+# dispatch manually.
 name: hf-space
 on:
+  push:
+    branches: [main]
+    paths: [".hf-space"]
   workflow_dispatch:
     inputs:
       space:
-        description: "owner/space-name"
-        default: "jebidiag/hla-verify"
+        description: "owner/space-name (owner must match the HF_TOKEN account)"
+        default: "jason-brelsford/hla-verify"
       private:
-        description: "create the Space private (flip public in HF settings later)"
-        default: "true"
+        description: "create the Space private (true/false)"
+        default: "false"
 permissions: { contents: write }
 jobs:
   deploy:
@@ -18,45 +24,43 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble and push Space
+      - name: Build the static demo (same template + engine source as hlaverify.com/demo)
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib
+          demo = open("assets/demo.template.html", encoding="utf-8").read()
+          demo = demo.replace("__IMGT_PY__", json.dumps(open("sci_envs/reference/imgt.py", encoding="utf-8").read()))
+          demo = demo.replace("__NORMALIZE_PY__", json.dumps(open("sci_envs/families/nomenclature/normalize.py", encoding="utf-8").read()))
+          out = pathlib.Path("build/space"); out.mkdir(parents=True, exist_ok=True)
+          (out / "index.html").write_text(demo, encoding="utf-8")
+          print("index.html bytes:", len(demo))
+          EOF
+      - name: Push Space
         env:
           HF: ${{ secrets.HF_TOKEN }}
-          SPACE: ${{ inputs.space }}
-          PRIVATE: ${{ inputs.private }}
+          SPACE: ${{ inputs.space || 'jason-brelsford/hla-verify' }}
+          PRIVATE: ${{ inputs.private || 'false' }}
         run: |
           set -e
           mkdir -p logs
           {
             NAME="${SPACE#*/}"
-            echo "whoami: $(curl -s -H "Authorization: Bearer $HF" https://huggingface.co/api/whoami-v2 | head -c 300)"
+            echo "whoami: $(curl -s -H "Authorization: Bearer $HF" https://huggingface.co/api/whoami-v2 | head -c 200)"
             echo "create: $(curl -s -X POST https://huggingface.co/api/repos/create \
               -H "Authorization: Bearer $HF" -H "Content-Type: application/json" \
-              -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"docker\",\"private\":$PRIVATE}")"
+              -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"static\",\"private\":$PRIVATE}" | head -c 300)"
             D=$(mktemp -d)
             git clone -q "https://user:$HF@huggingface.co/spaces/$SPACE" "$D"
-            mkdir -p "$D"
             cp spaces/hla-verify/README.md "$D/README.md"
-            cp pyproject.toml NOTICE LICENSE "$D/"
-            sed -i '/^readme/d' "$D/pyproject.toml" || true
-            rm -rf "$D/sci_envs"; cp -r sci_envs "$D/sci_envs"
-            find "$D/sci_envs" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
-            cat > "$D/Dockerfile" <<'DEOF'
-          FROM python:3.12-slim
-          WORKDIR /app
-          COPY . /app
-          RUN pip install --no-cache-dir ".[service]"
-          ENV HOME=/home/user HLA_VERIFY_TAG=v3.65.0-alpha
-          RUN mkdir -p /home/user && python -c "from sci_envs.reference.imgt import ImgtReference; ImgtReference.load('v3.65.0-alpha')" && chmod -R a+rX /home/user
-          EXPOSE 7860
-          CMD ["uvicorn", "sci_envs.service.app:app", "--host", "0.0.0.0", "--port", "7860"]
-          DEOF
+            cp build/space/index.html "$D/index.html"
+            cp assets/favicon-64.png "$D/favicon.png" 2>/dev/null || true
             cd "$D"
             git add -A
-            git -c user.name=deploy -c user.email=deploy@hlaverify.com commit -qm "deploy HLA-Verify (self-contained)" || echo "no changes"
+            git -c user.name=deploy -c user.email=deploy@hlaverify.com commit -qm "deploy HLA-Verify static demo" || echo "no changes"
             git push -q
-            echo "pushed to https://huggingface.co/spaces/$SPACE — Docker build starts now"
-            sleep 60
-            curl -s -H "Authorization: Bearer $HF" "https://huggingface.co/api/spaces/$SPACE/runtime" | head -c 400; echo
+            echo "pushed to https://huggingface.co/spaces/$SPACE"
+            sleep 30
+            curl -s -H "Authorization: Bearer $HF" "https://huggingface.co/api/spaces/$SPACE/runtime" | head -c 300; echo
           } 2>&1 | sed "s/$HF/***HF***/g" | tee logs/hf-space.log
       - name: Commit log
         if: always()
