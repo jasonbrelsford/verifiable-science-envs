@@ -1,1 +1,1 @@
-{"models": "ollama/mistral:7b", "split": "all", "family": "c", "commit": "true", "note": "run 15 - Mistral family row on HLA-Bench-C"}
+{"models": "ollama/phi4-mini", "split": "all", "family": "c", "commit": "true", "note": "run 16 - Phi family row on HLA-Bench-C (completes the five open families)"}
