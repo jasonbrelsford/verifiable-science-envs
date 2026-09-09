@@ -17,6 +17,7 @@ release; verification is pinned to an exact release version.
 
 - Interactive demo (runs fully client-side, nothing leaves the browser):
   https://hlaverify.com/demo
+  (mirror on Hugging Face Spaces: https://huggingface.co/spaces/jason-brelsford/hla-verify)
 - Open-source engine, benchmark, and an importable agent skill (`skills/hla-verify/`):
   https://github.com/jasonbrelsford/verifiable-science-envs
 - Python: `pip install -e .` then

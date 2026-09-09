@@ -21,7 +21,7 @@ The same engine as a verification service (no LLM, no storage): `POST /v1/verify
 pip install -e ".[service]" && uvicorn sci_envs.service.app:app
 ```
 
-Live demo (runs entirely in your browser — typing data never leaves your machine): **[hlaverify.com/demo](https://hlaverify.com/demo)**
+Live demo (runs entirely in your browser — typing data never leaves your machine): **[hlaverify.com/demo](https://hlaverify.com/demo)** · mirrored on Hugging Face: [Spaces/jason-brelsford/hla-verify](https://huggingface.co/spaces/jason-brelsford/hla-verify)
 
 ## For AI agents: MCP server
 
