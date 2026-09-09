@@ -133,9 +133,10 @@
     }
   },
   "calibration": {
-    "calibrated_fraction": 0.878,
+    "calibrated_fraction": 0.8732,
     "stated_vs_expected": {
-      "high->high": 178,
+      "None->high": 1,
+      "high->high": 177,
       "high->medium": 25,
       "medium->high": 2
     }
@@ -178,10 +179,11 @@
   },
   "primary_failure_modes": {
     "clean_correct": 13,
-    "wrong_but_overconfident": 190,
+    "malformed_response": 1,
+    "wrong_but_overconfident": 189,
     "wrong_calibrated": 2
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-07T04:28:08Z",
+  "run_at": "2026-09-09T01:35:51Z",
   "split": "all"
 }

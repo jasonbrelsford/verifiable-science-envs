@@ -8,7 +8,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 
 | Model | Split | n | Accuracy | Tasks with fabricated names | Fabricated / task | Calibrated | Most common outcome |
 |---|---|---:|---:|---:|---:|---:|---|
-| `ollama/qwen2.5:7b` | all | 205 | 6% <sub>[4–11]</sub> | 2 | 0.01 | 88% | `wrong_but_overconfident` |
+| `ollama/qwen2.5:7b` | all | 205 | 6% <sub>[4–11]</sub> | 2 | 0.01 | 87% | `wrong_but_overconfident` |
 | `baseline-cautious-abstainer` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
 | `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 88% | `resolution_mismatch` |
 
@@ -49,11 +49,11 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 
 ## Failure modes (primary, per task)
 
-| Model | Split | `clean_correct` | `wrong_but_overconfident` | `wrong_calibrated` | `resolution_mismatch` |
-|---|---|---:|---:|---:|---:|
-| `ollama/qwen2.5:7b` | all | 13 | 190 | 2 | 0 |
-| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 205 |
-| `baseline-naive-string` | all | 0 | 0 | 0 | 205 |
+| Model | Split | `clean_correct` | `malformed_response` | `wrong_but_overconfident` | `wrong_calibrated` | `resolution_mismatch` |
+|---|---|---:|---:|---:|---:|---:|
+| `ollama/qwen2.5:7b` | all | 13 | 1 | 189 | 2 | 0 |
+| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 0 | 205 |
+| `baseline-naive-string` | all | 0 | 0 | 0 | 0 | 205 |
 
 ## Method
 
