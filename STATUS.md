@@ -64,11 +64,14 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 | oracle (rules engine) | 100% |
 | qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
+| gemma3:12b | 0% [0–1.8] |
 | naive-string baseline | **0%** |
 | cautious-abstainer baseline | 0% |
 
 - Unlike nomenclature (family A), a matching verdict **cannot be reached by
   string manipulation** — the naive baseline falls from 28% to 0%.
+- gemma3:12b scores 0/205: it answers "4/4" for every 8/8 pair and "5/5" or
+  "6/6" for 10/10, whatever the truth — loci as both numerator and denominator.
 - qwen2.5:14b (11.7%) nearly doubles 7B, but the entire gain is on the
   simplest counting subtype (60%); it still answers "4/4" for an 8/8 framework
   and "5/6" for 10/10 — wrong denominator, loci not chromosomes — and scores 0%
@@ -127,11 +130,14 @@ Adapters for `verifiers` (Prime Intellect) and Inspect AI are in
   the highest fabrication rate tested (0.20/task, 80 tasks), 0% on
   `expand_ambiguity` and on the null-allele trap.
 - gemma3:12b on family C (2026-09-09): first pass invalid — 199/205 empty
-  replies with the server up; probing showed the model emits nothing (or
-  `<unused57>` token spam) on the ~800-token matching prompts under Vulkan
-  partial offload at the default 512 prompt batch, while a 64-token batch or
-  CPU-only inference answers normally. Harness now walks that fallback ladder
-  on degenerate replies and records which rung answered; re-run queued.
+  replies with the server up; the model emits nothing (or `<unused57>` token
+  spam) on the ~800-token matching prompts under Vulkan partial offload at the
+  default 512 prompt batch, while a 64-token batch or CPU-only inference answers
+  normally. Harness now walks that fallback ladder on degenerate replies and
+  records which rung answered. The re-run (205 real answers; 25 needed the
+  small-batch rung) is the row in the table: **0/205**, 203 wrong-but-
+  overconfident — it reports the locus count as both numerator and denominator
+  ("4/4" for an 8/8 framework), so even a perfect match is scored wrong.
 - Reproducibility (2026-09-09): family C regraded to the identical score
   (13/205) under a third runner configuration (different service account,
   Python 3.14, harness via `python -m`); one raw response of 205 changed form
