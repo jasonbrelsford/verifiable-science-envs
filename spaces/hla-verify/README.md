@@ -6,7 +6,7 @@ colorTo: gray
 sdk: static
 pinned: false
 license: other
-short_description: Deterministic HLA allele verification in your browser — no LLM
+short_description: Deterministic HLA allele verification in your browser
 ---
 
 # HLA-Verify
