@@ -24,6 +24,7 @@ no frequency data, no licensed tables. Full results with confidence intervals:
 | mistral:7b | 29% [26–33] | 76 |
 | naive-string baseline | 28% | 0 |
 | qwen2.5:3b | 28% [24–32] | 27 |
+| gemma3:12b | 28% [25–32] | 80 |
 | qwen2.5:14b | 26% [23–30] | 39 |
 | phi4-mini | 24% [21–28] | 35 |
 | llama3.1:8b | 21% [18–25] | 43 |
@@ -36,7 +37,7 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 - **Every model family tested scores 0% on `expand_ambiguity`** — none knows
   that a 2-field name covers many full-resolution alleles (true counts 2–389).
   This is the core clinical ambiguity trap, and it is universal across
-  Claude, Qwen, Mistral, Llama, and Phi.
+  Claude, Qwen, Mistral, Llama, Phi, and Gemma.
 - A 3B model (15%) scores *below* the naive string-manipulation baseline (28%).
 - **Scale does not fix it:** qwen2.5:14b (26%) lands below its own 7B sibling
   and below the string baseline, because it *refuses* 120/550 tasks (22%);
@@ -111,11 +112,13 @@ Adapters for `verifiers` (Prime Intellect) and Inspect AI are in
   (Python tuple hashing is process-randomized — a real bug we hit).
 - Committed wrong-answer samples are stratified (≤3 per subtype) so every
   subtype's failure shape is auditable without publishing the sealed split.
-- gemma3:12b (2026-09-09): first pass is **invalid** — 460/550 replies came back
-  empty after Ollama's llama-server crashed under a 131k-token default context
-  on the 8 GB card. Harness now pins `num_ctx` (8k), retries empty replies, and
-  never reuses empty/errored cache entries; the re-run is queued and the row
-  will be replaced when it lands.
+- gemma3:12b (2026-09-09): the first pass returned 460/550 empty replies after
+  Ollama's llama-server crashed under a 131k-token default context on the 8 GB
+  card. Harness now pins `num_ctx` (8k), retries empty replies, and never reuses
+  empty/errored cache entries; the re-run (0 empties, one backend crash absorbed
+  by the retry) is the row in the table: 28% — a tie with the string baseline,
+  the highest fabrication rate tested (0.20/task, 80 tasks), 0% on
+  `expand_ambiguity` and on the null-allele trap.
 - Reproducibility (2026-09-09): family C regraded to the identical score
   (13/205) under a third runner configuration (different service account,
   Python 3.14, harness via `python -m`); one raw response of 205 changed form
