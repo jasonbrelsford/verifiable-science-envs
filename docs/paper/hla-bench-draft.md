@@ -17,7 +17,7 @@ pinned IPD-IMGT/HLA release itself: no human labels, no LLM judges, no licensed
 data. Because ground truth regenerates deterministically from each quarterly
 database release, a versioned share of tasks is post-training-cutoff by
 construction, giving contamination resistance that static benchmarks cannot offer.
-Across six open-weight models (3B–8B) and one frontier model, accuracy on
+Across seven open-weight models (3B–14B) and one frontier model, accuracy on
 nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
 expansion** — the core clinical trap that a two-field name denotes many
@@ -142,14 +142,19 @@ without exposing the sealed split.
 | mistral:7b | 29% [26–33] | 76 | truncation changes digits (B*15:504→B*15:01) |
 | naive-string baseline | 28% | 0 | |
 | qwen2.5:3b | 28% [24–32] | 27 | most cautious; best calibration |
+| qwen2.5:14b | 26% [23–30] | 39 | refuses 120/550 (22%); 33% on answered; 90% null_trap, 80% near_miss; 0% expand_ambiguity |
 | phi4-mini | 24% [21–28] | 35 | |
 | llama3.1:8b | 21% [18–25] | 43 | worst calibration (402/550 wrong-overconfident) |
 | llama3.2:3b | 15% [12–18] | 57 | below the string baseline |
 | cautious-abstainer | 4% | 0 | refusal floor |
 
 Key findings: (1) universal 0% on `expand_ambiguity` across Claude, Qwen,
-Mistral, Llama, and Phi — no tested model knows a 2-field name covers 2–389
-full-resolution alleles; (2) a 3B model scores below string manipulation;
+Mistral, Llama, and Phi, at every scale from 3B to 14B — no tested model knows
+a 2-field name covers 2–389 full-resolution alleles; (2) a 3B model scores
+below string manipulation, and so does a 14B model: qwen2.5:14b refuses 22% of
+tasks outright and, on the tasks it answers, matches rather than beats its 7B
+sibling (33% vs 31%) — added parameters buy caution on the traps it recognises
+(null alleles, near-misses) but no nomenclature knowledge;
 (3) fabrication is universal and takes characteristic forms (invented 4th
 fields, legacy colon-less strings, invented G/P group names); (4) reasoning-mode
 models under forced-JSON burn their entire budget thinking (deepseek-r1:8b,
@@ -238,7 +243,7 @@ demo: hlaverify.com/demo.
 
 - [ ] Clean claude-sonnet-4-6 re-run at 1600 tokens (cache v0.2, ~$1)
 - [ ] GRPO delta table (Modal A100, ~$10–30, likely within free credits)
-- [ ] 14B tier rows if tower2 comes online
+- [x] 14B tier row (qwen2.5:14b, 2026-09-09; further 12–14B families queued on TOWER)
 - [ ] Per-subtype post-cutoff breakdown (contamination supplement)
 - [ ] Cross-machine bit-identical reproduction check (tower vs tower2)
 - [ ] Figures with provenance (Claude Science); bioRxiv category: bioinformatics
