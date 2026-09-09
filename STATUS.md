@@ -62,12 +62,19 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 | Model | Accuracy [95% CI] |
 |---|---:|
 | oracle (rules engine) | 100% |
+| qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
 | naive-string baseline | **0%** |
 | cautious-abstainer baseline | 0% |
 
 - Unlike nomenclature (family A), a matching verdict **cannot be reached by
   string manipulation** — the naive baseline falls from 28% to 0%.
+- qwen2.5:14b (11.7%) nearly doubles 7B, but the entire gain is on the
+  simplest counting subtype (60%); it still answers "4/4" for an 8/8 framework
+  and "5/6" for 10/10 — wrong denominator, loci not chromosomes — and scores 0%
+  on every clinically dangerous slice (null trap, directionality, antigen vs
+  allele, resolution-insufficient). 181/205 answers wrong-but-overconfident;
+  it never emitted a `potential` verdict.
 - qwen2.5:7b counts matched *loci* instead of chromosomes (answers "4/8" when
   4 loci match) and contradicts its own per-locus verdicts. 0% on null-allele
   traps, GvH/HvG directionality, and resolution-insufficient typing — the
