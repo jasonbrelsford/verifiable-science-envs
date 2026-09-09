@@ -1,6 +1,17 @@
 # Jobs for the self-hosted Windows runner "TOWER" (labels: self-hosted, Windows, X64).
-# Manual only. Installs Ollama if missing, starts it, pulls the requested local models,
-# runs them against HLA-Bench-A or HLA-Bench-C at zero API cost, and commits results + the page.
+# Manual only. Uses TOWER's system Python, reuses the Ollama server already running on
+# the box (or installs one), runs the requested local models against HLA-Bench-A or
+# HLA-Bench-C at zero API cost, and commits results + the page.
+#
+# Runner facts this file is written around (2026-09-08):
+#   * The runner service runs as NT AUTHORITY\NETWORK SERVICE — no admin, no per-user
+#     PowerShell execution policy (so the default `powershell` shell refuses to run any
+#     script), and actions/setup-python cannot install an interpreter for it. Every step
+#     therefore runs under an explicit `-ExecutionPolicy Bypass` shell, and Python comes
+#     from the machine-wide C:\Python314 through a venv kept in the runner tool cache.
+#   * Ollama is installed per-user for the owner and serves on localhost:11434 whenever
+#     the owner is logged in; the job talks to it over HTTP (the harness never shells
+#     out to the ollama CLI) and only installs its own copy if nothing is serving.
 name: tower
 on:
   workflow_dispatch:
@@ -24,16 +35,26 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 720
     defaults:
-      run: { shell: powershell }   # Windows PowerShell 5.1 is always present; pwsh (7) is not
+      run:
+        # Windows PowerShell 5.1 is always present; pwsh (7) is not. Bypass is scoped to
+        # this process only and is the sole way scripts run under the service account.
+        shell: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
     env:
       PYTHONUTF8: "1"
       OLLAMA_KEEP_ALIVE: "60m"
       OLLAMA_NUM_PARALLEL: "1"
       OLLAMA_MAX_LOADED_MODELS: "1"
       FAM: ${{ inputs.family || 'a' }}
+      SYSTEM_PYTHON: 'C:\Python314\python.exe'
     steps:
       - uses: actions/checkout@v4
         with: { clean: false }        # keep runs/*/responses between runs so re-runs are free
+      - name: Runner identity + persistent execution policy (idempotent)
+        continue-on-error: true
+        shell: cmd
+        run: |
+          whoami
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force; Get-ExecutionPolicy -List"
       - name: Keep TOWER awake (idempotent; owner-requested 2026-09)
         continue-on-error: true
         run: |
@@ -41,11 +62,11 @@ jobs:
           Start-Transcript -Path logs\keepawake.log -Force | Out-Null
           whoami
           # Never sleep or hibernate on AC power, so queued runs always find the machine.
+          # (Needs admin; verified already applied on TOWER 2026-09-08 — AC standby = 0.)
           powercfg /change standby-timeout-ac 0
           powercfg /change hibernate-timeout-ac 0
           powercfg /change disk-timeout-ac 0
           try { powercfg /hibernate off } catch {}
-          # Enable wake-on-magic-packet on physical NICs where permitted.
           try {
             Get-NetAdapter -Physical | ForEach-Object {
               try { Set-NetAdapterPowerManagement -Name $_.Name -WakeOnMagicPacket Enabled -ErrorAction Stop
@@ -54,38 +75,49 @@ jobs:
           } catch { Write-Host "NIC power mgmt unavailable" }
           powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE | Select-String "Current AC"
           Stop-Transcript | Out-Null
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - name: Install package
-        run: python -m pip install --quiet -e ".[dev]"
-      - name: Ollama (install if missing, start, pull models)
+      - name: Python (system interpreter, venv persisted in the runner tool cache)
+        run: |
+          $ErrorActionPreference = "Stop"
+          $venv = Join-Path $env:RUNNER_TOOL_CACHE "tower-venv"
+          $py = Join-Path $venv "Scripts\python.exe"
+          if (-not (Test-Path $py)) {
+            Write-Host "Creating venv at $venv from $env:SYSTEM_PYTHON"
+            & $env:SYSTEM_PYTHON -m venv $venv
+            if ($LASTEXITCODE -ne 0) { throw "venv creation failed" }
+          }
+          & $py --version
+          & $py -m pip install --quiet --disable-pip-version-check -e ".[dev]"
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+          echo "$venv\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "VIRTUAL_ENV=$venv" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Ollama (reuse the running server; install only if nothing is serving)
         if: ${{ contains(inputs.models, 'ollama/') }}
         run: |
           $ErrorActionPreference = "Stop"
-          $ollama = Get-Command ollama -ErrorAction SilentlyContinue
-          if (-not $ollama) {
+          $api = "http://localhost:11434"
+          $serving = $false
+          try { Invoke-RestMethod "$api/api/tags" | Out-Null; $serving = $true; Write-Host "Ollama already serving on $api" } catch {}
+          if (-not $serving) {
             $local = Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"
             if (-not (Test-Path $local)) {
               Write-Host "Installing Ollama..."
               Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "$env:TEMP\OllamaSetup.exe"
               Start-Process -FilePath "$env:TEMP\OllamaSetup.exe" -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES" -Wait
             }
-            $env:PATH = "$(Split-Path $local);$env:PATH"
-            echo "$(Split-Path $local)" | Out-File -FilePath $env:GITHUB_PATH -Append
-          }
-          ollama --version
-          try { Invoke-RestMethod http://localhost:11434/api/tags | Out-Null; Write-Host "Ollama already serving" }
-          catch {
             Write-Host "Starting ollama serve..."
-            Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
-            $ok = $false
-            for ($i = 0; $i -lt 60; $i++) { Start-Sleep 2; try { Invoke-RestMethod http://localhost:11434/api/tags | Out-Null; $ok = $true; break } catch {} }
-            if (-not $ok) { throw "ollama did not start" }
+            Start-Process -FilePath $local -ArgumentList "serve" -WindowStyle Hidden
+            for ($i = 0; $i -lt 60; $i++) { Start-Sleep 2; try { Invoke-RestMethod "$api/api/tags" | Out-Null; $serving = $true; break } catch {} }
+            if (-not $serving) { throw "ollama did not start" }
           }
+          # Pull over HTTP so no CLI is needed; a model already present returns immediately.
           foreach ($spec in "${{ inputs.models }}".Split(" ")) {
-            if ($spec.StartsWith("ollama/")) { $m = $spec.Substring(7); Write-Host "pull $m"; ollama pull $m }
+            if ($spec.StartsWith("ollama/")) {
+              $m = $spec.Substring(7); Write-Host "pull $m"
+              $r = Invoke-RestMethod -Method Post -Uri "$api/api/pull" -ContentType "application/json" -Body (@{ name = $m; stream = $false } | ConvertTo-Json) -TimeoutSec 3600
+              Write-Host "  -> $($r.status)"
+            }
           }
-          ollama list
+          (Invoke-RestMethod "$api/api/tags").models | ForEach-Object { Write-Host ("  {0}  {1:N1} GB" -f $_.name, ($_.size / 1GB)) }
       - name: Generate suite (sealed split stays on this machine)
         run: |
           New-Item -ItemType Directory -Force -Path logs | Out-Null
@@ -98,7 +130,7 @@ jobs:
           git config user.name "hla-bench tower"; git config user.email "tower@users.noreply.github.com"
           git fetch origin main; git stash -u -q 2>$null
           git checkout -q origin/main -- . 2>$null
-          git add -f logs/generate.log 2>$null
+          git add -f logs/generate.log logs/keepawake.log 2>$null
           git commit -m "tower: failure log [skip ci]" 2>$null
           git push origin HEAD:main 2>$null; exit 0
       - name: Baselines
