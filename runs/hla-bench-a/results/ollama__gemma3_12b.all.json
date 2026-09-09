@@ -11,12 +11,12 @@
       "n": 58
     },
     "class_II_secondary_locus": {
-      "acc": 0.0,
+      "acc": 0.0657,
       "ci95": [
-        0.0,
-        0.0273
+        0.0349,
+        0.1201
       ],
-      "correct": 0,
+      "correct": 9,
       "n": 137
     },
     "deleted_name": {
@@ -38,12 +38,12 @@
       "n": 7
     },
     "near_miss": {
-      "acc": 1.0,
+      "acc": 0.0,
       "ci95": [
-        0.8389,
-        1.0
+        -0.0,
+        0.1611
       ],
-      "correct": 20,
+      "correct": 0,
       "n": 20
     },
     "null_allele": {
@@ -56,12 +56,12 @@
       "n": 36
     },
     "partial_sequence": {
-      "acc": 0.0,
+      "acc": 0.007,
       "ci95": [
-        0.0,
-        0.0262
+        0.0012,
+        0.0385
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 143
     },
     "post_cutoff": {
@@ -74,12 +74,12 @@
       "n": 78
     },
     "renamed": {
-      "acc": 0.0,
+      "acc": 0.1,
       "ci95": [
-        -0.0,
-        0.1611
+        0.0279,
+        0.301
       ],
-      "correct": 0,
+      "correct": 2,
       "n": 20
     },
     "renamed_since_3.50": {
@@ -175,12 +175,12 @@
       "n": 30
     },
     "locus_field": {
-      "acc": 0.0,
+      "acc": 0.6333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.4551,
+        0.7813
       ],
-      "correct": 0,
+      "correct": 19,
       "n": 30
     },
     "name_at_release": {
@@ -193,12 +193,12 @@
       "n": 30
     },
     "near_miss": {
-      "acc": 1.0,
+      "acc": 0.0,
       "ci95": [
-        0.8389,
-        1.0
+        -0.0,
+        0.1611
       ],
-      "correct": 20,
+      "correct": 0,
       "n": 20
     },
     "new_in_release": {
@@ -229,12 +229,12 @@
       "n": 30
     },
     "release_drift": {
-      "acc": 0.0,
+      "acc": 0.1,
       "ci95": [
-        -0.0,
-        0.1611
+        0.0279,
+        0.301
       ],
-      "correct": 0,
+      "correct": 2,
       "n": 20
     },
     "renamed_to": {
@@ -303,12 +303,12 @@
   },
   "by_tier": {
     "1": {
-      "acc": 0.0,
+      "acc": 0.1583,
       "ci95": [
-        -0.0,
-        0.031
+        0.1038,
+        0.2341
       ],
-      "correct": 0,
+      "correct": 19,
       "n": 120
     },
     "2": {
@@ -330,56 +330,119 @@
       "n": 180
     },
     "4": {
-      "acc": 0.2,
+      "acc": 0.02,
       "ci95": [
-        0.1334,
-        0.2888
+        0.0055,
+        0.07
       ],
-      "correct": 20,
+      "correct": 2,
       "n": 100
     }
   },
   "calibration": {
-    "calibrated_fraction": 1.0,
+    "calibrated_fraction": 0.0855,
     "stated_vs_expected": {
-      "low->high": 157,
-      "low->low": 35,
-      "low->medium": 358
+      "None->high": 110,
+      "None->low": 23,
+      "None->medium": 347,
+      "high->high": 47,
+      "high->low": 12,
+      "high->medium": 11
     }
   },
   "contamination_resistant": {
-    "acc": 0.1695,
+    "acc": 0.0169,
     "ci95": [
-      0.1125,
-      0.2473
+      0.0047,
+      0.0597
     ],
-    "correct": 20,
+    "correct": 2,
     "n": 118
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.0255,
+    "tasks_with_hallucinated_names": 10,
+    "top20": [
+      [
+        "DQB1*06:09N",
+        1
+      ],
+      [
+        "C*07:06:02N",
+        1
+      ],
+      [
+        "DRB3*01:137:02",
+        1
+      ],
+      [
+        "DRB3*01:137:03",
+        1
+      ],
+      [
+        "DRB3*01:137:04",
+        1
+      ],
+      [
+        "DRB3*01:137:05",
+        1
+      ],
+      [
+        "DPB1*27:01:01",
+        1
+      ],
+      [
+        "B*35:73",
+        1
+      ],
+      [
+        "B*40:41",
+        1
+      ],
+      [
+        "DPB1*16:34:01",
+        1
+      ],
+      [
+        "DRB1*12:03:01",
+        1
+      ],
+      [
+        "DPB1*02:011",
+        1
+      ],
+      [
+        "DPB1*10:92:01",
+        1
+      ],
+      [
+        "DQB1*0501",
+        1
+      ]
+    ]
   },
-  "model": "baseline-cautious-abstainer",
+  "model": "ollama/gemma3:12b",
   "n": 550,
   "n_tasks": 550,
   "overall": {
-    "acc": 0.0364,
+    "acc": 0.0382,
     "ci95": [
-      0.0237,
-      0.0555
+      0.0251,
+      0.0577
     ],
-    "correct": 20,
+    "correct": 21,
     "n": 550
   },
   "primary_failure_modes": {
-    "refused": 490,
-    "resolution_mismatch": 40,
-    "wrong_calibrated": 20
+    "clean_correct": 19,
+    "correct_but_overconfident": 2,
+    "hallucinated_answer": 7,
+    "malformed_response": 480,
+    "resolution_mismatch": 5,
+    "wrong_but_overconfident": 37
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T05:35:00Z",
+  "run_at": "2026-09-09T07:02:56Z",
   "split": "all"
 }

@@ -1,0 +1,728 @@
+[
+  {
+    "canonical": "37",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:01"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 34, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"According to IPD-IMGT/HLA release 3.65.0, there are 34 distinct full allele names (including those with expression suffixes) that fall under the 2-field name DQA1*05:01.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0000"
+  },
+  {
+    "canonical": "193",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*44:02"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 17, \"confidence\": \"high\", \"flags\": [\"expression_suffix\"], \"reasoning\": \"Based on IPD-IMGT/HLA release 3.65.0, there are 17 distinct full allele names under the 2-field name B*44:02, including alleles with expression suffixes (e.g., B*44:02:01, B*44:02:02, B*44:02:03, B*44:02:04, B*44:02:05, B*44:02:06, B*44:02:07, B*44:02:08, B*44:02:09, B*44:02:10, B*44:02:11, B*44:02:12, B*44:02:13, B*44:02:14, B*44:02:15, B*44:02:16, B*44:02:17).\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:105"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": 3, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"Release 3.65.0 lists three distinct alleles under the 2-field name DRB5*01:105: DRB5*01:105, DRB5*01:105:01, and DRB5*01:105:02.\"}",
+    "subtype": "expand_ambiguity",
+    "task_id": "hla_nomenclature.T1.expand_ambiguity.0002"
+  },
+  {
+    "canonical": "B:I",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*58:77"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0010"
+  },
+  {
+    "canonical": "DPA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:189"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"DPA1:I\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The allele DPA1*01:189 is a DPA1 allele, which is a class I HLA gene.\"}",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0016"
+  },
+  {
+    "canonical": "DPA1:II",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPA1*01:03:01:36"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "locus_field",
+    "task_id": "hla_nomenclature.T1.locus_field.0021"
+  },
+  {
+    "canonical": "DRB1*14:06",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB1*14:06:03",
+      "fields": 2
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0000"
+  },
+  {
+    "canonical": "B*15:504",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*15:504:01",
+      "fields": 2
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0001"
+  },
+  {
+    "canonical": "DPB1*01:01",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*01:01:01:22",
+      "fields": 2
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "truncate",
+    "task_id": "hla_nomenclature.T1.truncate.0002"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DPB1*1858010101"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0000"
+  },
+  {
+    "canonical": "TRUE",
+    "hallucinated": [],
+    "input": {
+      "name": "DQB1*02:218"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\":",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0001"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "name": "DRB1*11:605"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\":",
+    "subtype": "valid_name",
+    "task_id": "hla_nomenclature.T1.valid_name.0002"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:71N"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:65"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*06:48"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "g_group",
+    "task_id": "hla_nomenclature.T2.g_group.0002"
+  },
+  {
+    "canonical": "5",
+    "hallucinated": [],
+    "input": {
+      "group": "DPB1*23:01:01G"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0000"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "group": "B*15:16:02G"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0001"
+  },
+  {
+    "canonical": "2",
+    "hallucinated": [],
+    "input": {
+      "group": "B*15:83P"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "group_members_count",
+    "task_id": "hla_nomenclature.T2.group_members_count.0002"
+  },
+  {
+    "canonical": "DQB1*06:02P",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:188"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB4*01:131"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0001"
+  },
+  {
+    "canonical": "B*18:01P",
+    "hallucinated": [],
+    "input": {
+      "allele": "B*18:01:01:58"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "p_group",
+    "task_id": "hla_nomenclature.T2.p_group.0002"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "B*13:02:01:24",
+      "allele_b": "B*51:262",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0000"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "DQB1*06:363",
+      "allele_b": "DQB1*04:02:01:19",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0001"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele_a": "DRB3*02:02:01:28",
+      "allele_b": "DRB3*02:244",
+      "group_kind": "G"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "same_group",
+    "task_id": "hla_nomenclature.T2.same_group.0002"
+  },
+  {
+    "canonical": "33",
+    "hallucinated": [],
+    "input": {
+      "allele": "A*33:193"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"17\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"A*33:193 is serologically equivalent to the A17 antigen.\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0000"
+  },
+  {
+    "canonical": "16",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*16:65"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"0117\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"C*16:65 is serologically equivalent to 0117 according to IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0001"
+  },
+  {
+    "canonical": "3",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:546"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": \"17\", \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"DQB1*03:546 is serologically equivalent to the WMDA antigen 17.\"}",
+    "subtype": "serology",
+    "task_id": "hla_nomenclature.T2.serology.0002"
+  },
+  {
+    "canonical": "identical_sequence",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DRB1*11:11:02"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0000"
+  },
+  {
+    "canonical": "named_in_error",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*35:43:02"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\":",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0001"
+  },
+  {
+    "canonical": "named_in_error",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "E*01:21:02N"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "deleted_reason",
+    "task_id": "hla_nomenclature.T3.deleted_reason.0002"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:01:01:08",
+      "release": "3.58.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0000"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*01:01:01:14",
+      "release": "3.42.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0001"
+  },
+  {
+    "canonical": "FALSE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*01:02:01:34",
+      "release": "3.32.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "existed_at",
+    "task_id": "hla_nomenclature.T3.existed_at.0002"
+  },
+  {
+    "canonical": "3.64.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*01:300"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0000"
+  },
+  {
+    "canonical": "3.37.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*01:80"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0001"
+  },
+  {
+    "canonical": "3.35.0",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB3*02:87"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "first_release",
+    "task_id": "hla_nomenclature.T3.first_release.0002"
+  },
+  {
+    "canonical": "DQB1*05:113",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQB1*05:113",
+      "hla_id": "HLA14551",
+      "release": "3.63.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQA1*03:03:01:10",
+      "hla_id": "HLA24401",
+      "release": "3.27.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "current_name": "A*30:262",
+      "hla_id": "HLA45735",
+      "release": "3.46.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "name_at_release",
+    "task_id": "hla_nomenclature.T3.name_at_release.0002"
+  },
+  {
+    "canonical": "148",
+    "hallucinated": [],
+    "input": {
+      "locus": "B",
+      "previous_release": "3.64.0",
+      "release": "3.65.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0000"
+  },
+  {
+    "canonical": "5",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB4",
+      "previous_release": "3.56.0",
+      "release": "3.57.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0002"
+  },
+  {
+    "canonical": "41",
+    "hallucinated": [],
+    "input": {
+      "locus": "DRB1",
+      "previous_release": "3.53.0",
+      "release": "3.54.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "new_in_release",
+    "task_id": "hla_nomenclature.T3.new_in_release.0003"
+  },
+  {
+    "canonical": "A*24:135:02",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*24:211"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": \"A*24:211\", \"confidence\": \"high\",",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0000"
+  },
+  {
+    "canonical": "DRB1*03:81",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "DRB1*03:11:02"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": \"DRB1*03:11:0<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0001"
+  },
+  {
+    "canonical": "B*35:185",
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*35:43:02"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": \"B*35:43:03\", \"confidence<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "renamed_to",
+    "task_id": "hla_nomenclature.T3.renamed_to.0002"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DRB5*02:47"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0000"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQA1*05:05:17:04"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0001"
+  },
+  {
+    "canonical": "UNRESOLVABLE",
+    "hallucinated": [],
+    "input": {
+      "allele": "C*07:02:01:106:99"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "near_miss",
+    "task_id": "hla_nomenclature.T4.near_miss.0002"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*03:90N"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": 90, \"<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0000"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DPB1*1882:01N"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": 18",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0001"
+  },
+  {
+    "canonical": "NONE",
+    "hallucinated": [],
+    "input": {
+      "allele": "DQB1*06:54N"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\"answer\": 54, \"<unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57><unused57>",
+    "subtype": "null_trap",
+    "task_id": "hla_nomenclature.T4.null_trap.0002"
+  },
+  {
+    "canonical": "DPA1*01:11",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DPA1*01:11:01",
+      "release": "3.29.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0000"
+  },
+  {
+    "canonical": "DQA1*01:04:02",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DQA1*01:04:02:01",
+      "release": "3.37.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0001"
+  },
+  {
+    "canonical": "DRB5*01:08N",
+    "hallucinated": [],
+    "input": {
+      "current_name": "DRB5*01:08:01N",
+      "release": "3.22.0"
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "",
+    "subtype": "release_drift",
+    "task_id": "hla_nomenclature.T4.release_drift.0002"
+  },
+  {
+    "canonical": {
+      "current_name": "A*24:135:02",
+      "g_group": "NONE",
+      "serology": "24"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "A*24:211"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"current_name\": \"A*24:211\", \"g_group\": \"A\", \"serology\": \"A24/A26\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"A*24:211 is a valid, resolved allele in IPD-IMGT/HLA release 3.65.0. It belongs to group A and has serological specificities A24 and A26.\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0000"
+  },
+  {
+    "canonical": {
+      "current_name": "B*49:01:01:01",
+      "g_group": "B*49:01:01G",
+      "serology": "49"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "B*49:15"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"current_name\": \"B*49:15\", \"g_group\": \"B\", \"serology\": \"19/22\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"B*49:15 is a valid and current allele name according to IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0001"
+  },
+  {
+    "canonical": {
+      "current_name": "C*12:03:01:42Q",
+      "g_group": "C*12:03:01G",
+      "serology": "0/12"
+    },
+    "hallucinated": [],
+    "input": {
+      "deleted_name": "C*12:03:01:42"
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"current_name\": \"C*12:03:01:42\", \"g_group\": \"C\", \"serology\": \"NONE\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"The provided allele name is already a valid, resolved name according to IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "resolve_chain",
+    "task_id": "hla_nomenclature.T4.resolve_chain.0002"
+  },
+  {
+    "canonical": {
+      "A": "A*02:01",
+      "B": "B*35:43",
+      "C": "C*15:23",
+      "DPB1": "DPB1*1634:01",
+      "DQB1": "DQB1*04:02",
+      "DRB1": "DRB1*07:01"
+    },
+    "hallucinated": [
+      "DPB1*16:34:01"
+    ],
+    "input": {
+      "typing": "A*0201, B*3543, C*15:23:02, DRB1*07:01:01:03, DQB1*04:02:23, DPB1*1634:01"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": {\"A\": \"A*02:01\", \"B\": \"B*35:43\", \"C\": \"C*15:23:02\", \"DRB1\": \"DRB1*07:01:03\", \"DQB1\": \"DQB1*04:02:23\", \"DPB1\": \"DPB1*16:34:01\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All alleles were successfully resolved to their current nomenclature based on IPD-IMGT/HLA release 3.65.0.\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0000"
+  },
+  {
+    "canonical": {
+      "A": "A*68:01",
+      "B": "B*39:174",
+      "C": "C*15:176",
+      "DPB1": "DPB1*05:01",
+      "DQB1": "DQB1*05:58",
+      "DRB1": "DRB1*12:01"
+    },
+    "hallucinated": [
+      "DRB1*12:03:01"
+    ],
+    "input": {
+      "typing": "A*68:01:59, B*38:159, C*15:176, DRB1*12031, DQB1*05:58, DPB1*0501"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": {\"A\": \"A*68:01:59\", \"B\": \"B*38:159\", \"C\": \"C*15:176\", \"DRB1\": \"DRB1*12:03:01\", \"DQB1\": \"DQB1*05:58\", \"DPB1\": \"DPB1*05:01\"}, \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"DRB1*12031 was deprecated and renamed to DRB1*12:03:01.\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0001"
+  },
+  {
+    "canonical": {
+      "A": "A*24:608N",
+      "B": "B*08:01",
+      "C": "C*15:142",
+      "DPB1": "DPB1*02:01",
+      "DQB1": "DQB1*02:238",
+      "DRB1": "DRB1*01:12"
+    },
+    "hallucinated": [
+      "DPB1*02:011"
+    ],
+    "input": {
+      "typing": "A*24:459:02, B*08:01, C*15:142, DRB1*0112, DQB1*02:238, DPB1*02011"
+    },
+    "primary_failure_mode": "hallucinated_answer",
+    "raw": "{\"answer\": {\"A\": \"A*24:459:02\", \"B\": \"B*08:01\", \"C\": \"C*15:142\", \"DRB1\": \"DRB1*01:12\", \"DQB1\": \"DQB1*02:238\", \"DPB1\": \"DPB1*02:011\"}, \"confidence\": \"high\", \"flags\": [\"deprecated_name\"], \"reasoning\": \"DRB1*0112 was deprecated and renamed to DRB1*01:12.\"}",
+    "subtype": "typing_report_normalize",
+    "task_id": "hla_nomenclature.T4.typing_report_normalize.0002"
+  }
+]
