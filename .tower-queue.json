@@ -1,1 +1,1 @@
-{"models": "ollama/qwen2.5:7b", "split": "all", "family": "c", "commit": "true", "note": "run 6 - CLI via python -m (Smart App Control blocks unsigned pip .exe stubs)"}
+{"models": "ollama/qwen2.5:14b", "split": "all", "family": "a", "commit": "true", "note": "run 7 - 14B tier row for HLA-Bench-A (paper TODO); queues behind the family C regrade"}
