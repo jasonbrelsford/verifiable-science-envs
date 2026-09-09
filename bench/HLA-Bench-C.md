@@ -12,7 +12,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `ollama/qwen2.5:7b` | all | 205 | 6% <sub>[4–11]</sub> | 2 | 0.01 | 87% | `wrong_but_overconfident` |
 | `baseline-cautious-abstainer` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 100% | `resolution_mismatch` |
 | `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 88% | `resolution_mismatch` |
-| `ollama/gemma3:12b` | all | 205 | 0% <sub>[0–2]</sub> | 1 | 0.00 | 2% | `malformed_response` |
+| `ollama/gemma3:12b` | all | 205 | 0% <sub>[0–2]</sub> | 8 | 0.04 | 88% | `wrong_but_overconfident` |
 
 ## By tier
 
@@ -53,7 +53,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 - `ollama/qwen2.5:7b` (all): `C*0224`×1, `C*1481`×1
 - `baseline-cautious-abstainer` (all): none
 - `baseline-naive-string` (all): none
-- `ollama/gemma3:12b` (all): `A*33:096`×1
+- `ollama/gemma3:12b` (all): `C*0224`×1, `A*2524`×1, `A*33:096`×1, `C*18:87`×1, `A*80:85`×1, `A*80:86`×1, `DRB1*17:93`×1, `DRB1*17:91`×1
 
 ## Failure modes (primary, per task)
 
@@ -63,7 +63,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `ollama/qwen2.5:7b` | all | 13 | 189 | 2 | 1 | 0 |
 | `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 0 | 205 |
 | `baseline-naive-string` | all | 0 | 0 | 0 | 0 | 205 |
-| `ollama/gemma3:12b` | all | 0 | 5 | 0 | 200 | 0 |
+| `ollama/gemma3:12b` | all | 0 | 203 | 2 | 0 | 0 |
 
 ## Method
 

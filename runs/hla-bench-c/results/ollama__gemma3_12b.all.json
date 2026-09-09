@@ -133,11 +133,11 @@
     }
   },
   "calibration": {
-    "calibrated_fraction": 0.0244,
+    "calibrated_fraction": 0.878,
     "stated_vs_expected": {
-      "None->high": 175,
-      "None->medium": 25,
-      "high->high": 5
+      "high->high": 178,
+      "high->medium": 25,
+      "medium->high": 2
     }
   },
   "contamination_resistant": {
@@ -151,11 +151,39 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0049,
-    "tasks_with_hallucinated_names": 1,
+    "rate_per_task": 0.039,
+    "tasks_with_hallucinated_names": 8,
     "top20": [
       [
+        "C*0224",
+        1
+      ],
+      [
+        "A*2524",
+        1
+      ],
+      [
         "A*33:096",
+        1
+      ],
+      [
+        "C*18:87",
+        1
+      ],
+      [
+        "A*80:85",
+        1
+      ],
+      [
+        "A*80:86",
+        1
+      ],
+      [
+        "DRB1*17:93",
+        1
+      ],
+      [
+        "DRB1*17:91",
         1
       ]
     ]
@@ -173,10 +201,10 @@
     "n": 205
   },
   "primary_failure_modes": {
-    "malformed_response": 200,
-    "wrong_but_overconfident": 5
+    "wrong_but_overconfident": 203,
+    "wrong_calibrated": 2
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T14:00:04Z",
+  "run_at": "2026-09-09T16:18:55Z",
   "split": "all"
 }

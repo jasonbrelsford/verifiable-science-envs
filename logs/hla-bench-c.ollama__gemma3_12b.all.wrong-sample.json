@@ -171,8 +171,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"5/5\", \"verdict_A\": \"mismatch\", \"verdict_B\": \"match\", \"verdict_C\": \"mismatch\", \"verdict_DQB1\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"A and C loci are mismatched. All other loci match.\"}",
     "subtype": "count_simple",
     "task_id": "hla_matching.r3.T1.count_simple.0002"
   },
@@ -224,8 +224,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All alleles were resolvable to current nomenclature and matched between donor and recipient.\"}",
     "subtype": "same_after_normalize",
     "task_id": "hla_matching.r3.T1.same_after_normalize.0000"
   },
@@ -277,8 +277,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci resolved to current nomenclature and match.\"}",
     "subtype": "same_after_normalize",
     "task_id": "hla_matching.r3.T1.same_after_normalize.0001"
   },
@@ -330,8 +330,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All alleles were resolvable to current nomenclature and matched between donor and recipient.\"}",
     "subtype": "same_after_normalize",
     "task_id": "hla_matching.r3.T1.same_after_normalize.0002"
   },
@@ -392,8 +392,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"5/5\", \"verdict_A\": \"match\", \"verdict_B\": \"mismatch\", \"verdict_C\": \"match\", \"verdict_DQB1\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [\"ambiguous_input\"], \"reasoning\": \"B locus mismatch due to B*35:366 in recipient and B*35:41 in donor. All other loci match.\"}",
     "subtype": "antigen_vs_allele",
     "task_id": "hla_matching.r3.T2.antigen_vs_allele.0000"
   },
@@ -454,8 +454,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"5/5\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DQB1\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci match except DRB1, where the recipient has DRB1*04:269 and the donor has DRB1*04:365.\"}",
     "subtype": "antigen_vs_allele",
     "task_id": "hla_matching.r3.T2.antigen_vs_allele.0001"
   },
@@ -516,8 +516,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"6/6\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\", \"verdict_DQB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci match except DRB1, where the recipient has DRB1*04:261 and the donor has DRB1*04:238. DRB1*04:261 is a valid allele in release 3.65.0.\"}",
     "subtype": "antigen_vs_allele",
     "task_id": "hla_matching.r3.T2.antigen_vs_allele.0002"
   },
@@ -578,8 +578,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"5/5\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"mismatch\", \"verdict_DRB1\": \"match\", \"verdict_DQB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci match except for C, where the recipient has C*03:615 and the donor has C*03:373.\"}",
     "subtype": "framework_shift",
     "task_id": "hla_matching.r3.T2.framework_shift.0000"
   },
@@ -640,8 +640,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"5/5\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"mismatch\", \"verdict_DRB1\": \"match\", \"verdict_DQB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci match except for C locus, where the donor has C*12:276 and C*07:78 while the recipient has C*03:535 and C*07:78.\"}",
     "subtype": "framework_shift",
     "task_id": "hla_matching.r3.T2.framework_shift.0001"
   },
@@ -702,8 +702,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"6/6\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"mismatch\", \"verdict_DRB1\": \"match\", \"verdict_DQB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci match except for C locus, where the recipient has C*02:13 and the donor has C*03:615.\"}",
     "subtype": "framework_shift",
     "task_id": "hla_matching.r3.T2.framework_shift.0002"
   },
@@ -757,8 +757,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci resolved to current nomenclature. DRB1 alleles differ between donor and recipient.\"}",
     "subtype": "direction",
     "task_id": "hla_matching.r3.T3.direction.0000"
   },
@@ -812,8 +812,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci are resolvable and match between donor and recipient.\"}",
     "subtype": "direction",
     "task_id": "hla_matching.r3.T3.direction.0001"
   },
@@ -867,8 +867,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"mismatch\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"A, C, and DRB1 are identical. B locus mismatch due to recipient having B*27:202 while donor has B*53:14.\"}",
     "subtype": "direction",
     "task_id": "hla_matching.r3.T3.direction.0002"
   },
@@ -920,8 +920,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"potential\"}, \"confidence\": \"medium\", \"flags\": [\"expression_suffix\"], \"reasoning\": \"DRB1*08:60N cannot be resolved to a current allele name due to the ambiguous suffix 'N'.\"}",
     "subtype": "null_trap_match",
     "task_id": "hla_matching.r3.T3.null_trap_match.0000"
   },
@@ -1099,8 +1099,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci are resolvable and match.\"}",
     "subtype": "resolution_insufficient",
     "task_id": "hla_matching.r3.T3.resolution_insufficient.0000"
   },
@@ -1152,8 +1152,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"mismatch\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"match\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci resolved to current nomenclature. A, C, and DRB1 match. B locus is a mismatch.\"}",
     "subtype": "resolution_insufficient",
     "task_id": "hla_matching.r3.T3.resolution_insufficient.0001"
   },
@@ -1205,8 +1205,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci except DRB1 match exactly. DRB1 alleles are different.\"}",
     "subtype": "resolution_insufficient",
     "task_id": "hla_matching.r3.T3.resolution_insufficient.0002"
   },
@@ -1258,8 +1258,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci except DRB1 match exactly. DRB1*14:17 (donor) and DRB1*14:253 (recipient) are different alleles.\"}",
     "subtype": "near_miss_pair",
     "task_id": "hla_matching.r3.T4.near_miss_pair.0000"
   },
@@ -1311,8 +1311,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci except DRB1 match exactly. DRB1 alleles are different.\"}",
     "subtype": "near_miss_pair",
     "task_id": "hla_matching.r3.T4.near_miss_pair.0001"
   },
@@ -1364,8 +1364,8 @@
         ]
       }
     },
-    "primary_failure_mode": "malformed_response",
-    "raw": "",
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\"answer\": {\"count\": \"4/4\", \"verdict_A\": \"match\", \"verdict_B\": \"match\", \"verdict_C\": \"match\", \"verdict_DRB1\": \"mismatch\"}, \"confidence\": \"high\", \"flags\": [], \"reasoning\": \"All loci except DRB1 match exactly. DRB1 alleles are different.\"}",
     "subtype": "near_miss_pair",
     "task_id": "hla_matching.r3.T4.near_miss_pair.0002"
   }
