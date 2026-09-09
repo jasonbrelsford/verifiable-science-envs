@@ -7,7 +7,7 @@ import pytest
 from sci_envs.reference import ImgtReference
 from sci_envs.families.nomenclature import generate_suite, write_suite
 from sci_envs.harness import models as M
-from sci_envs.harness.run import run_model, load_suite
+from sci_envs.harness.run import run_model, load_suite, cache_usable
 from sci_envs.harness.report import render
 
 
@@ -40,3 +40,26 @@ def test_resolve_specs():
     assert M.resolve("baseline-naive-string").name == "baseline-naive-string"
     with pytest.raises(ValueError):
         M.resolve("nonsense/model")
+
+
+def test_cache_usable_rejects_backend_failures():
+    assert cache_usable('{"answer": "A*01:01"}')
+    assert not cache_usable("")
+    assert not cache_usable("   \n")
+    assert not cache_usable("ERROR: 500 b'boom'")
+
+
+def test_ollama_retries_empty_replies(monkeypatch):
+    calls = []
+
+    def fake_post(url, headers, body, timeout=120, **kw):
+        calls.append(body)
+        content = "" if len(calls) < 3 else '{"answer": 1}'
+        return {"message": {"content": content}}
+
+    monkeypatch.setattr(M, "_post", fake_post)
+    monkeypatch.setattr(M.time, "sleep", lambda s: None)
+    m = M.OllamaModel("gemma3:12b")
+    out = m.answer({"task_id": "t", "subtype": "expand_ambiguity", "tier": 1, "instructions": "x", "input": {}})
+    assert out == '{"answer": 1}' and len(calls) == 3
+    assert calls[0]["options"]["num_ctx"] == 8192

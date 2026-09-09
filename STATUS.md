@@ -111,6 +111,11 @@ Adapters for `verifiers` (Prime Intellect) and Inspect AI are in
   (Python tuple hashing is process-randomized — a real bug we hit).
 - Committed wrong-answer samples are stratified (≤3 per subtype) so every
   subtype's failure shape is auditable without publishing the sealed split.
+- gemma3:12b (2026-09-09): first pass is **invalid** — 460/550 replies came back
+  empty after Ollama's llama-server crashed under a 131k-token default context
+  on the 8 GB card. Harness now pins `num_ctx` (8k), retries empty replies, and
+  never reuses empty/errored cache entries; the re-run is queued and the row
+  will be replaced when it lands.
 - Reproducibility (2026-09-09): family C regraded to the identical score
   (13/205) under a third runner configuration (different service account,
   Python 3.14, harness via `python -m`); one raw response of 205 changed form

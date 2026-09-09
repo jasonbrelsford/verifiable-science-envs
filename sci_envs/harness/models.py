@@ -231,13 +231,27 @@ class OllamaModel:
         self.max_tokens = max_tokens
         self.name = f"ollama/{model}"
 
+    # Pin the context window: Ollama otherwise sizes it to the model's training context
+    # (131k for gemma3), whose KV cache does not fit an 8 GB card + 32 GB host — the runner
+    # crashed mid-run (llama-server exit 0xe06d7363) and 460/550 replies came back empty.
+    # Prompts here are a few hundred tokens; 8k leaves ample room for num_predict.
+    num_ctx = int(os.environ.get("HLA_BENCH_OLLAMA_NUM_CTX", "8192"))
+    empty_retries = 3
+
     def answer(self, t: dict) -> str:
-        r = _post(f"{self.host}/api/chat", {},
-                  {"model": self.model, "stream": False, "format": "json",
-                   "options": {"temperature": 0, "num_predict": self.max_tokens},
-                   "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]},
-                  timeout=600)
-        return r["message"]["content"]
+        body = {"model": self.model, "stream": False, "format": "json",
+                "options": {"temperature": 0, "num_predict": self.max_tokens, "num_ctx": self.num_ctx},
+                "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]}
+        content = ""
+        for attempt in range(self.empty_retries):
+            r = _post(f"{self.host}/api/chat", {}, body, timeout=600)
+            content = r.get("message", {}).get("content", "") or ""
+            if content.strip():
+                break
+            # An empty body with HTTP 200 is a degraded backend (crashed/restarting runner),
+            # not a model answer: back off and ask again before recording it.
+            time.sleep(5 * (attempt + 1))
+        return content
 
 
 BASELINES = {

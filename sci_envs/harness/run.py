@@ -38,6 +38,13 @@ def _agent_view(t: dict) -> dict:
     return {k: v for k, v in t.items() if k not in ("answer", "scorer_notes")}
 
 
+def cache_usable(raw: str) -> bool:
+    """A cached response is reused only if it is a real model reply. Empty bodies and
+    transport errors (recorded as 'ERROR: ...') are backend failures and are re-asked
+    on the next run, so a degraded Ollama session cannot poison the cache."""
+    return bool(raw and raw.strip()) and not raw.startswith("ERROR:")
+
+
 def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path, split: str,
               limit: Optional[int] = None, verbose: bool = True) -> tuple[list[Score], dict]:
     safe = model.name.replace("/", "__").replace(":", "_")   # ":" is illegal in Windows paths (ollama/qwen2.5:7b)
@@ -49,8 +56,9 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
     for i, tid in enumerate(ids, 1):
         t = full[tid]
         rfile = rdir / f"{tid}.json"
-        if rfile.exists():
-            raw = json.loads(rfile.read_text())["raw"]
+        cached = json.loads(rfile.read_text())["raw"] if rfile.exists() else None
+        if cached is not None and cache_usable(cached):
+            raw = cached
         else:
             try:
                 raw = model.answer(_agent_view(t))
