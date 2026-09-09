@@ -64,12 +64,15 @@ budget; the harness now allows 1600 and a clean re-run is queued.
 | oracle (rules engine) | 100% |
 | qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
+| llama3.1:8b | 3.9% [2.0–7.5] |
 | gemma3:12b | 0% [0–1.8] |
 | naive-string baseline | **0%** |
 | cautious-abstainer baseline | 0% |
 
 - Unlike nomenclature (family A), a matching verdict **cannot be reached by
   string manipulation** — the naive baseline falls from 28% to 0%.
+- llama3.1:8b (3.9%) shows the same denominator invention ("6/6" for 8/8,
+  "9/10" beside all-match verdicts); 197/205 wrong-but-overconfident.
 - gemma3:12b scores 0/205: it answers "4/4" for every 8/8 pair and "5/5" or
   "6/6" for 10/10, whatever the truth — loci as both numerator and denominator.
 - qwen2.5:14b (11.7%) nearly doubles 7B, but the entire gain is on the
