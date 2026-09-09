@@ -47,6 +47,16 @@ def test_cache_usable_rejects_backend_failures():
     assert not cache_usable("")
     assert not cache_usable("   \n")
     assert not cache_usable("ERROR: 500 b'boom'")
+    assert cache_usable({"answer": "A*01:01", "confidence": "high"})   # baseline payloads are dicts
+    assert not cache_usable(None)
+
+
+def test_second_run_reuses_cache(suite_dir):
+    d, ref = suite_dir
+    _, full = load_suite(d, "dev")
+    _, first = run_model(M.NaiveStringBaseline(), full, ref, d, "dev", verbose=False)
+    _, second = run_model(M.NaiveStringBaseline(), full, ref, d, "dev", verbose=False)   # cache hit path
+    assert first["overall"] == second["overall"]
 
 
 def test_ollama_retries_empty_replies(monkeypatch):
