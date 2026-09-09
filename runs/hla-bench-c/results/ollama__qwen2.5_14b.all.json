@@ -31,12 +31,12 @@
       "n": 30
     },
     "count_simple": {
-      "acc": 0.0,
+      "acc": 0.6,
       "ci95": [
-        -0.0,
-        0.1135
+        0.4232,
+        0.7541
       ],
-      "correct": 0,
+      "correct": 18,
       "n": 30
     },
     "direction": {
@@ -49,12 +49,12 @@
       "n": 25
     },
     "framework_shift": {
-      "acc": 0.0,
+      "acc": 0.2,
       "ci95": [
-        -0.0,
-        0.1611
+        0.0807,
+        0.416
       ],
-      "correct": 0,
+      "correct": 4,
       "n": 20
     },
     "near_miss_pair": {
@@ -85,32 +85,32 @@
       "n": 25
     },
     "same_after_normalize": {
-      "acc": 0.0,
+      "acc": 0.0667,
       "ci95": [
-        -0.0,
-        0.1135
+        0.0185,
+        0.2132
       ],
-      "correct": 0,
+      "correct": 2,
       "n": 30
     }
   },
   "by_tier": {
     "1": {
-      "acc": 0.0,
+      "acc": 0.3333,
       "ci95": [
-        -0.0,
-        0.0602
+        0.2273,
+        0.4594
       ],
-      "correct": 0,
+      "correct": 20,
       "n": 60
     },
     "2": {
-      "acc": 0.0,
+      "acc": 0.08,
       "ci95": [
-        0.0,
-        0.0714
+        0.0315,
+        0.1884
       ],
-      "correct": 0,
+      "correct": 4,
       "n": 50
     },
     "3": {
@@ -150,26 +150,85 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.078,
+    "tasks_with_hallucinated_names": 14,
+    "top20": [
+      [
+        "C*1481",
+        2
+      ],
+      [
+        "A*2524",
+        2
+      ],
+      [
+        "A*2562",
+        1
+      ],
+      [
+        "A*2339",
+        1
+      ],
+      [
+        "B*5643",
+        1
+      ],
+      [
+        "DRB1*03:740",
+        1
+      ],
+      [
+        "A*0192",
+        1
+      ],
+      [
+        "A*3284",
+        1
+      ],
+      [
+        "C*0745",
+        1
+      ],
+      [
+        "A*6883",
+        1
+      ],
+      [
+        "C*0213",
+        1
+      ],
+      [
+        "B*5195",
+        1
+      ],
+      [
+        "C*0686",
+        1
+      ],
+      [
+        "C*18:84",
+        1
+      ]
+    ]
   },
-  "model": "baseline-naive-string",
+  "model": "ollama/qwen2.5:14b",
   "n": 205,
   "n_tasks": 205,
   "overall": {
-    "acc": 0.0,
+    "acc": 0.1171,
     "ci95": [
-      0.0,
-      0.0184
+      0.0799,
+      0.1683
     ],
-    "correct": 0,
+    "correct": 24,
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "clean_correct": 23,
+    "wrong_but_overconfident": 181,
+    "wrong_calibrated": 1
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T09:42:27Z",
+  "run_at": "2026-09-09T11:27:07Z",
   "split": "all"
 }

@@ -1,1 +1,1 @@
-{"benchmark": "HLA-Bench-A-v0.1@IMGT-3.65.0", "total": 550, "split": {"dev": 112, "test": 438}}
+{"benchmark": "HLA-Bench-C-v0.1@IMGT-3.65.0", "total": 205, "split": {"dev": 43, "test": 162}}
