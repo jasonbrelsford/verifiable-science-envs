@@ -31,12 +31,12 @@
       "n": 30
     },
     "count_simple": {
-      "acc": 0.0,
+      "acc": 0.2333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.1179,
+        0.4093
       ],
-      "correct": 0,
+      "correct": 7,
       "n": 30
     },
     "direction": {
@@ -85,23 +85,23 @@
       "n": 25
     },
     "same_after_normalize": {
-      "acc": 0.0,
+      "acc": 0.0333,
       "ci95": [
-        -0.0,
-        0.1135
+        0.0059,
+        0.1667
       ],
-      "correct": 0,
+      "correct": 1,
       "n": 30
     }
   },
   "by_tier": {
     "1": {
-      "acc": 0.0,
+      "acc": 0.1333,
       "ci95": [
-        -0.0,
-        0.0602
+        0.0691,
+        0.2417
       ],
-      "correct": 0,
+      "correct": 8,
       "n": 60
     },
     "2": {
@@ -133,10 +133,10 @@
     }
   },
   "calibration": {
-    "calibrated_fraction": 1.0,
+    "calibrated_fraction": 0.878,
     "stated_vs_expected": {
-      "low->high": 180,
-      "low->medium": 25
+      "high->high": 180,
+      "high->medium": 25
     }
   },
   "contamination_resistant": {
@@ -150,26 +150,40 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.0146,
+    "tasks_with_hallucinated_names": 3,
+    "top20": [
+      [
+        "C*0788",
+        1
+      ],
+      [
+        "DRB1*14:17:01",
+        1
+      ],
+      [
+        "C*0745",
+        1
+      ]
+    ]
   },
-  "model": "baseline-cautious-abstainer",
+  "model": "ollama/llama3.1:8b",
   "n": 205,
   "n_tasks": 205,
   "overall": {
-    "acc": 0.0,
+    "acc": 0.039,
     "ci95": [
-      0.0,
-      0.0184
+      0.0199,
+      0.0751
     ],
-    "correct": 0,
+    "correct": 8,
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "clean_correct": 8,
+    "wrong_but_overconfident": 197
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T16:22:07Z",
+  "run_at": "2026-09-09T16:47:48Z",
   "split": "all"
 }
