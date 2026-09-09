@@ -1,0 +1,33 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260908200646
+Username: WORKGROUP\TOWER$
+RunAs User: WORKGROUP\TOWER$
+Configuration Name: 
+Machine: TOWER (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.EXE -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command . 'C:\actions-runner\_work\_temp\3c5010d8-74af-4c72-8228-88d133a111a1.ps1'
+Process ID: 5716
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+
+
+
+
+PS>TerminatingError(Set-NetAdapterPowerManagement): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: A device attached to the system is not functioning. "
+WoL not settable:
+PS>TerminatingError(Set-NetAdapterPowerManagement): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: A device attached to the system is not functioning. "
+WoL not settable:
+
+    Current AC Power Setting Index: 0x00000000
+**********************
+Windows PowerShell transcript end
+End time: 20260908200648
+**********************
