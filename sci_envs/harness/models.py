@@ -236,21 +236,31 @@ class OllamaModel:
     # crashed mid-run (llama-server exit 0xe06d7363) and 460/550 replies came back empty.
     # Prompts here are a few hundred tokens; 8k leaves ample room for num_predict.
     num_ctx = int(os.environ.get("HLA_BENCH_OLLAMA_NUM_CTX", "8192"))
-    empty_retries = 3
+    # Fallback ladder for degenerate replies (empty body, or token spam such as
+    # "<unused57>..." that gemma3:12b emits on ~800-token prompts under Vulkan partial
+    # offload at the default 512 prompt batch): retry with a small prompt batch on the
+    # GPU, then on CPU only. Each rung is a different computation, so a deterministic
+    # failure at temperature 0 is not simply re-asked.
+    FALLBACK_LADDER = ({}, {"num_batch": 64}, {"num_gpu": 0})
+    last_fallback: Optional[str] = None
+
+    @staticmethod
+    def degenerate(content: str) -> bool:
+        return not content.strip() or "<unused" in content or "{" not in content
 
     def answer(self, t: dict) -> str:
-        body = {"model": self.model, "stream": False, "format": "json",
-                "options": {"temperature": 0, "num_predict": self.max_tokens, "num_ctx": self.num_ctx},
-                "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]}
         content = ""
-        for attempt in range(self.empty_retries):
-            r = _post(f"{self.host}/api/chat", {}, body, timeout=600)
+        self.last_fallback = None
+        for i, extra in enumerate(self.FALLBACK_LADDER):
+            body = {"model": self.model, "stream": False, "format": "json",
+                    "options": {"temperature": 0, "num_predict": self.max_tokens, "num_ctx": self.num_ctx, **extra},
+                    "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _prompt(t)}]}
+            r = _post(f"{self.host}/api/chat", {}, body, timeout=1800)
             content = r.get("message", {}).get("content", "") or ""
-            if content.strip():
+            if not self.degenerate(content):
+                self.last_fallback = json.dumps(extra) if extra else None
                 break
-            # An empty body with HTTP 200 is a degraded backend (crashed/restarting runner),
-            # not a model answer: back off and ask again before recording it.
-            time.sleep(5 * (attempt + 1))
+            time.sleep(2)
         return content
 
 

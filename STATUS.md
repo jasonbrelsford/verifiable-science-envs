@@ -126,6 +126,12 @@ Adapters for `verifiers` (Prime Intellect) and Inspect AI are in
   by the retry) is the row in the table: 28% — a tie with the string baseline,
   the highest fabrication rate tested (0.20/task, 80 tasks), 0% on
   `expand_ambiguity` and on the null-allele trap.
+- gemma3:12b on family C (2026-09-09): first pass invalid — 199/205 empty
+  replies with the server up; probing showed the model emits nothing (or
+  `<unused57>` token spam) on the ~800-token matching prompts under Vulkan
+  partial offload at the default 512 prompt batch, while a 64-token batch or
+  CPU-only inference answers normally. Harness now walks that fallback ladder
+  on degenerate replies and records which rung answered; re-run queued.
 - Reproducibility (2026-09-09): family C regraded to the identical score
   (13/205) under a third runner configuration (different service account,
   Python 3.14, harness via `python -m`); one raw response of 205 changed form
