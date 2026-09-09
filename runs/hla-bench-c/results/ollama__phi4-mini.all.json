@@ -133,10 +133,11 @@
     }
   },
   "calibration": {
-    "calibrated_fraction": 1.0,
+    "calibrated_fraction": 0.878,
     "stated_vs_expected": {
-      "low->high": 180,
-      "low->medium": 25
+      "high->high": 173,
+      "high->medium": 25,
+      "medium->high": 7
     }
   },
   "contamination_resistant": {
@@ -150,11 +151,36 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.0293,
+    "tasks_with_hallucinated_names": 6,
+    "top20": [
+      [
+        "DRB1*1008",
+        1
+      ],
+      [
+        "DRB1*1023",
+        1
+      ],
+      [
+        "C*07:03:468",
+        1
+      ],
+      [
+        "DRB1*17:89",
+        1
+      ],
+      [
+        "DRB1*17:93",
+        1
+      ],
+      [
+        "DRB1*17:98",
+        1
+      ]
+    ]
   },
-  "model": "baseline-cautious-abstainer",
+  "model": "ollama/phi4-mini",
   "n": 205,
   "n_tasks": 205,
   "overall": {
@@ -167,9 +193,11 @@
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "resolution_mismatch": 139,
+    "wrong_but_overconfident": 64,
+    "wrong_calibrated": 2
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-09T17:55:50Z",
+  "run_at": "2026-09-09T18:10:52Z",
   "split": "all"
 }

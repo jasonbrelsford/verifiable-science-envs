@@ -1,0 +1,1372 @@
+[
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:523",
+          "A*03:395"
+        ],
+        "B": [
+          "B*15:46",
+          "B*42:43"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:515"
+        ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
+        "DRB1": [
+          "DRB1*03:165",
+          "DRB1*11:18"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*24:523",
+          "A*03:395"
+        ],
+        "B": [
+          "B*15:46",
+          "B*42:43"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:515"
+        ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
+        "DRB1": [
+          "DRB1*03:165",
+          "DRB1*11:18"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient for the 10/10 framework.\"\n}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0000"
+  },
+  {
+    "canonical": {
+      "count": "6/8",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*23:30",
+          "A*31:255"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*04:584",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*23:30",
+          "A*66:29"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*01:27",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": 7,\n    \"verdict\": {\n      \"A\": \"match\",\n      \"B\": \"match\",\n      \"C\": \"mismatch\",\n      \"DRB1\": \"match\"\n    }\n  },\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"7/8 loci matched, 1 mismatch at C locus\"\n}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0001"
+  },
+  {
+    "canonical": {
+      "count": "8/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:103",
+          "A*33:199"
+        ],
+        "B": [
+          "B*35:41",
+          "B*15:586"
+        ],
+        "C": [
+          "C*03:608",
+          "C*04:412"
+        ],
+        "DQB1": [
+          "DQB1*06:253",
+          "DQB1*05:355"
+        ],
+        "DRB1": [
+          "DRB1*13:279",
+          "DRB1*04:279"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*01:103",
+          "A*02:1067"
+        ],
+        "B": [
+          "B*35:41",
+          "B*15:586"
+        ],
+        "C": [
+          "C*07:88",
+          "C*04:412"
+        ],
+        "DQB1": [
+          "DQB1*06:253",
+          "DQB1*05:355"
+        ],
+        "DRB1": [
+          "DRB1*13:279",
+          "DRB1*04:279"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"9/10\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Donor and recipient match for A, B, C, DQB1, DRB1 alleles. One mismatch in C locus (C*07:88 vs C*03:608).\"\n}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0002"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*3043",
+          "A*26:174"
+        ],
+        "B": [
+          "B*07:187",
+          "B*15:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:964"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:121"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*30:43",
+          "A*26:174"
+        ],
+        "B": [
+          "B*07:187",
+          "B*15:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:964"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:121"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient according to the 8/8 framework.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0000"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*11:425",
+          "A*2562"
+        ],
+        "B": [
+          "B*4496",
+          "B*07:541"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*13:238",
+          "DRB1*04:360"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*11:425",
+          "A*25:62"
+        ],
+        "B": [
+          "B*44:96",
+          "B*07:541"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*13:238",
+          "DRB1*04:360"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/8\",\n  \"verdict_A\": \"match\",\n  \"verdict_B\": \"match\",\n  \"verdict_C\": \"match\",\n  \"verdict_DRB1\": \"match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All loci match except for A*25:62 which is not present in the donor's A locus.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0001"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [
+      "DRB1*1008"
+    ],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:500",
+          "A*2339"
+        ],
+        "B": [
+          "B*08:261",
+          "B*27:202"
+        ],
+        "C": [
+          "C*06:99",
+          "C*03:186"
+        ],
+        "DRB1": [
+          "DRB1*1008",
+          "DRB1*13:138"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*01:500",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:261",
+          "B*27:202"
+        ],
+        "C": [
+          "C*06:99",
+          "C*03:186"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*13:138"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": 7,\n    \"verdict\": {\n      \"A\": \"match\",\n      \"B\": \"match\",\n      \"C\": \"match\",\n      \"DRB1\": \"mismatch\"\n    }\n  },\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"7 out of 8 loci match, but DRB1*10:08 does not match with DRB1*1008.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0002"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*66:37",
+          "A*32:15"
+        ],
+        "B": [
+          "B*35:41",
+          "B*56:43"
+        ],
+        "C": [
+          "C*12:202",
+          "C*14:84"
+        ],
+        "DQB1": [
+          "DQB1*06:301",
+          "DQB1*05:327"
+        ],
+        "DRB1": [
+          "DRB1*11:305",
+          "DRB1*03:16"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*66:37",
+          "A*32:15"
+        ],
+        "B": [
+          "B*35:366",
+          "B*56:43"
+        ],
+        "C": [
+          "C*12:202",
+          "C*14:84"
+        ],
+        "DQB1": [
+          "DQB1*06:301",
+          "DQB1*05:327"
+        ],
+        "DRB1": [
+          "DRB1*11:305",
+          "DRB1*03:16"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All donor and recipient typings match at antigen level for the specified framework.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0000"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*68:86",
+          "A*02:02"
+        ],
+        "B": [
+          "B*59:08",
+          "B*56:53"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:724"
+        ],
+        "DQB1": [
+          "DQB1*05:315",
+          "DQB1*02:197"
+        ],
+        "DRB1": [
+          "DRB1*04:365",
+          "DRB1*14:104"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*68:86",
+          "A*02:02"
+        ],
+        "B": [
+          "B*59:08",
+          "B*56:53"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:724"
+        ],
+        "DQB1": [
+          "DQB1*05:315",
+          "DQB1*02:197"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*14:104"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/6 match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All antigen level typings match between donor and recipient.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0001"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:238",
+          "DRB1*09:23"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:261",
+          "DRB1*09:23"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/6 match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All antigen level typings match between donor and recipient.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0002"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:21",
+          "A*03:373"
+        ],
+        "B": [
+          "B*15:586",
+          "B*08:243"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:373"
+        ],
+        "DQB1": [
+          "DQB1*05:145",
+          "DQB1*03:557"
+        ],
+        "DRB1": [
+          "DRB1*08:57",
+          "DRB1*14:104"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*01:21",
+          "A*03:373"
+        ],
+        "B": [
+          "B*15:586",
+          "B*08:243"
+        ],
+        "C": [
+          "C*03:615",
+          "C*03:373"
+        ],
+        "DQB1": [
+          "DQB1*05:145",
+          "DQB1*03:557"
+        ],
+        "DRB1": [
+          "DRB1*08:57",
+          "DRB1*14:104"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": 6,\n    \"verdict_A\": \"match\",\n    \"verdict_B\": \"match\",\n    \"verdict_C\": \"mismatch\",\n    \"verdict_DRB1\": \"match\"\n  },\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The recipient and donor match for A, B, and DRB1 alleles. There is a mismatch for C*03:373 allele.\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0000"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*11:513",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:28",
+          "B*08:261"
+        ],
+        "C": [
+          "C*12:276",
+          "C*07:78"
+        ],
+        "DQB1": [
+          "DQB1*02:90",
+          "DQB1*02:191"
+        ],
+        "DRB1": [
+          "DRB1*11:180",
+          "DRB1*14:258"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*11:513",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:28",
+          "B*08:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:78"
+        ],
+        "DQB1": [
+          "DQB1*02:90",
+          "DQB1*02:191"
+        ],
+        "DRB1": [
+          "DRB1*11:180",
+          "DRB1*14:258"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/6 match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All donor and recipient HLA typings match at antigen level for A, B, C, DRB1, and DQB1 loci.\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*05:216",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"9/10\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"A and B match antigen level, C mismatch, DQB1 match\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 1,
+      "hvg_mismatches": 0,
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*11:289"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*13:279"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_calibrated",
+    "raw": "{\n  \"answer\": {\n    \"count\": \"8/10\",\n    \"verdict_A\": \"match\",\n    \"verdict_B\": \"match\",\n    \"verdict_C\": \"match\",\n    \"verdict_DRB1\": \"mismatch\",\n    \"hvg_mismatches\": 1,\n    \"gvh_mismatches\": 1\n  },\n  \"confidence\": \"medium\",\n  \"flags\": [\"ambiguous_input\"],\n  \"reasoning\": \"Mismatch at DRB1 locus due to unconfirmed allele.\"\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0000"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 0,
+      "hvg_mismatches": 1,
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:92",
+          "A*24:257"
+        ],
+        "B": [
+          "B*56:43",
+          "B*35:659"
+        ],
+        "C": [
+          "C*07:51",
+          "C*03:308"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*13:366"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*01:92",
+          "A*01:92"
+        ],
+        "B": [
+          "B*56:43",
+          "B*35:659"
+        ],
+        "C": [
+          "C*07:51",
+          "C*03:308"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*13:366"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": \"8/8\",\n    \"verdict_A\": \"match\",\n    \"verdict_B\": \"match\",\n    \"verdict_C\": \"match\",\n    \"verdict_DRB1\": \"match\",\n    \"hvg_mismatches\": 0,\n    \"gvh_mismatches\": 0\n  },\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient according to the 8/8 framework.\"\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0001"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 1,
+      "hvg_mismatches": 0,
+      "verdict_A": "match",
+      "verdict_B": "mismatch",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:373",
+          "A*32:84"
+        ],
+        "B": [
+          "B*53:14",
+          "B*53:14"
+        ],
+        "C": [
+          "C*03:608",
+          "C*06:99"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*01:30"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:373",
+          "A*32:84"
+        ],
+        "B": [
+          "B*53:14",
+          "B*27:202"
+        ],
+        "C": [
+          "C*03:608",
+          "C*06:99"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*01:30"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": \"8/8\",\n    \"verdict_A\": \"match\",\n    \"verdict_B\": \"mismatch\",\n    \"verdict_C\": \"match\",\n    \"verdict_DRB1\": \"match\",\n    \"hvg_mismatches\": 1,\n    \"gvh_mismatches\": 1\n  },\n  \"confidence\": \"high\",\n  \"flags\": [\"hvg_mismatches\", \"gvh_mismatches\"],\n  \"reasoning\": \"The donor and recipient match at A, C, and DRB1 loci, but there is a mismatch at B locus.\"\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*30:202",
+          "A*26:190"
+        ],
+        "B": [
+          "B*27:274",
+          "B*27:90"
+        ],
+        "C": [
+          "C*06:395",
+          "C*07:588"
+        ],
+        "DRB1": [
+          "DRB1*04:261",
+          "DRB1*08:101"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*30:202",
+          "A*26:190"
+        ],
+        "B": [
+          "B*27:274",
+          "B*27:90"
+        ],
+        "C": [
+          "C*06:395",
+          "C*07:588"
+        ],
+        "DRB1": [
+          "DRB1*08:60N",
+          "DRB1*08:101"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient HLA typings match for the 8/8 framework at the allele level.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0000"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "mismatch",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:395",
+          "A*23:39"
+        ],
+        "B": [
+          "B*39:185",
+          "B*45:14"
+        ],
+        "C": [
+          "C*03:440",
+          "C*04:584"
+        ],
+        "DQB1": [
+          "DQB1*05:367",
+          "DQB1*05:161"
+        ],
+        "DRB1": [
+          "DRB1*14:37",
+          "DRB1*13:248"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*03:395",
+          "A*23:39"
+        ],
+        "B": [
+          "B*14:131N",
+          "B*45:14"
+        ],
+        "C": [
+          "C*03:440",
+          "C*04:584"
+        ],
+        "DQB1": [
+          "DQB1*05:367",
+          "DQB1*05:161"
+        ],
+        "DRB1": [
+          "DRB1*14:37",
+          "DRB1*13:248"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/6 match\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All antigen level typings match between donor and recipient.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*26:190",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:96N",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      }
+    },
+    "primary_failure_mode": "wrong_but_overconfident",
+    "raw": "{\n  \"answer\": {\n    \"count\": 6,\n    \"verdict_A\": \"match\",\n    \"verdict_B\": \"match\",\n    \"verdict_C\": \"match\",\n    \"verdict_DRB1\": \"match\"\n  },\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All alleles match at antigen level for the specified framework.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0002"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "potential",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*80:83",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*32:55",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient according to the 8/8 framework.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0000"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "match",
+      "verdict_B": "potential",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*95:85",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*27:09",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"6/8\",\n  \"verdict_A\": \"match\",\n  \"verdict_B\": \"mismatch\",\n  \"verdict_C\": \"match\",\n  \"verdict_DRB1\": \"match\",\n  \"confidence\": \"high\",\n  \"flags\": [\"expression_suffix\"],\n  \"reasoning\": \"The donor and recipient match for loci A, C, and DRB1 at allele level. Mismatch for locus B at allele level.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0001"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "potential"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*32:21",
+          "A*31:217"
+        ],
+        "B": [
+          "B*27:09",
+          "B*27:247"
+        ],
+        "C": [
+          "C*15:40",
+          "C*12:202"
+        ],
+        "DRB1": [
+          "DRB1*17:95",
+          "DRB1*13:81"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*32:21",
+          "A*31:217"
+        ],
+        "B": [
+          "B*27:09",
+          "B*27:247"
+        ],
+        "C": [
+          "C*15:40",
+          "C*12:202"
+        ],
+        "DRB1": [
+          "DRB1*11:356",
+          "DRB1*13:81"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"verdict_A\": \"match\",\n  \"verdict_B\": \"match\",\n  \"verdict_C\": \"match\",\n  \"verdict_DRB1\": \"mismatch\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient match at antigen level for A, B, and C loci. However, there is a mismatch at the allele level for DRB1 locus.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*68:48",
+          "A*32:35"
+        ],
+        "B": [
+          "B*48:01",
+          "B*56:53"
+        ],
+        "C": [
+          "C*04:103",
+          "C*01:223"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*11:219"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*68:48",
+          "A*32:35"
+        ],
+        "B": [
+          "B*48:01",
+          "B*56:53"
+        ],
+        "C": [
+          "C*04:103",
+          "C*01:223"
+        ],
+        "DRB1": [
+          "DRB1*14:253",
+          "DRB1*11:219"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0000"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:230",
+          "A*32:21"
+        ],
+        "B": [
+          "B*08:243",
+          "B*18:250"
+        ],
+        "C": [
+          "C*01:214",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*08:101",
+          "DRB1*14:17"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*24:230",
+          "A*32:21"
+        ],
+        "B": [
+          "B*08:243",
+          "B*18:250"
+        ],
+        "C": [
+          "C*01:214",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*08:125",
+          "DRB1*14:17"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient HLA typings match for the 8/8 framework at the allele level.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0001"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:120",
+          "A*68:48"
+        ],
+        "B": [
+          "B*07:109",
+          "B*56:10"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*02:24"
+        ],
+        "DRB1": [
+          "DRB1*04:365",
+          "DRB1*14:121"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:120",
+          "A*68:48"
+        ],
+        "B": [
+          "B*07:109",
+          "B*56:10"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*02:24"
+        ],
+        "DRB1": [
+          "DRB1*04:238",
+          "DRB1*14:121"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"8/8\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"All HLA typings match between donor and recipient.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0002"
+  }
+]
