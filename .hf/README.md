@@ -11,7 +11,7 @@ pretty_name: HLA-Bench (public dev splits)
 two-field ambiguity expansion**, the core clinical trap in HLA typing (a 2-field
 name like `A*02:01` denotes 2–389 full-resolution alleles). Models fabricate
 allele names at 0.05–0.14 per task. On donor–recipient matching, naive string
-manipulation collapses to 0% and a 7B model reaches 6.3% — it counts matched
+manipulation collapses to 0% and open models reach 0–12% — it counts matched
 loci instead of chromosomes.
 
 HLA-Bench grades every answer with an **executable oracle** computed from the

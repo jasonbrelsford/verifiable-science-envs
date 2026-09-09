@@ -173,6 +173,7 @@ re-run.
 | oracle | 100% |
 | qwen2.5:14b | 11.7% [8.0–16.8] |
 | qwen2.5:7b | 6.3% [3.7–10.6] |
+| gemma3:12b | 0% [0–1.8] |
 | naive-string baseline | 0% [0–1.8] |
 | cautious-abstainer | 0% [0–1.8] |
 
@@ -182,7 +183,10 @@ the whole gain sits on the simplest counting subtype (60% vs 33%); the 14B model
 still returns "4/4" for an 8/8 framework and "5/6" for 10/10 — the wrong
 denominator as well as loci-not-chromosomes — and is 0% on every clinical-risk
 slice, with 181/205 answers wrong-but-overconfident and no `potential` verdict
-ever emitted. qwen2.5:7b succeeds only on tier-1 counting (22%); 0% on antigen-vs-
+ever emitted. gemma3:12b scores 0/205 (203 wrong-but-overconfident): it reports the
+locus count as both numerator and denominator — "4/4" for every 8/8 pair —
+so it cannot score even a perfect match correctly. qwen2.5:7b succeeds only
+on tier-1 counting (22%); 0% on antigen-vs-
 allele, null traps, directionality, framework shifts, and resolution-
 insufficient cases. Hand-audit of the stratified wrong sample shows two dominant
 error modes: counting matched **loci** instead of chromosomes ("4/8" when four
