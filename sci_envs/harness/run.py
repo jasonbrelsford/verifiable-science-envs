@@ -44,7 +44,7 @@ def cache_usable(raw: str) -> bool:
     on the next run, so a degraded Ollama session cannot poison the cache."""
     if not isinstance(raw, str):          # baselines/oracle cache structured answers
         return raw is not None
-    return bool(raw.strip()) and not raw.startswith("ERROR:")
+    return bool(raw.strip()) and not raw.startswith("ERROR:") and "<unused" not in raw
 
 
 def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path, split: str,
@@ -66,7 +66,10 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
                 raw = model.answer(_agent_view(t))
             except Exception as e:  # keep going; the grader will record malformed_response
                 raw = f"ERROR: {e}"
-            rfile.write_text(dumps({"task_id": tid, "model": model.name, "raw": raw}))
+            rec = {"task_id": tid, "model": model.name, "raw": raw}
+            if getattr(model, "last_fallback", None):
+                rec["backend_fallback"] = model.last_fallback   # which ladder rung produced the reply
+            rfile.write_text(dumps(rec))
         s = grade(t, raw, ref)
         scores.append(s)
         if verbose and (i % 25 == 0 or i == len(ids)):

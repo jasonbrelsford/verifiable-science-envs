@@ -59,12 +59,13 @@ def test_second_run_reuses_cache(suite_dir):
     assert first["overall"] == second["overall"]
 
 
-def test_ollama_retries_empty_replies(monkeypatch):
+def test_ollama_fallback_ladder_on_degenerate_replies(monkeypatch):
     calls = []
 
     def fake_post(url, headers, body, timeout=120, **kw):
-        calls.append(body)
-        content = "" if len(calls) < 3 else '{"answer": 1}'
+        calls.append(body["options"])
+        n = len(calls)
+        content = "" if n == 1 else ("<unused57><unused57>" if n == 2 else '{"answer": 1}')
         return {"message": {"content": content}}
 
     monkeypatch.setattr(M, "_post", fake_post)
@@ -72,4 +73,7 @@ def test_ollama_retries_empty_replies(monkeypatch):
     m = M.OllamaModel("gemma3:12b")
     out = m.answer({"task_id": "t", "subtype": "expand_ambiguity", "tier": 1, "instructions": "x", "input": {}})
     assert out == '{"answer": 1}' and len(calls) == 3
-    assert calls[0]["options"]["num_ctx"] == 8192
+    assert calls[0]["num_ctx"] == 8192 and "num_batch" not in calls[0]
+    assert calls[1]["num_batch"] == 64 and calls[2]["num_gpu"] == 0
+    assert m.last_fallback == '{"num_gpu": 0}'
+    assert not cache_usable("<unused57><unused57>")
