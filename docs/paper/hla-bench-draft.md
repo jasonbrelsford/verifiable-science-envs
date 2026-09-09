@@ -177,6 +177,7 @@ re-run.
 | qwen2.5:7b | 6.3% [3.7–10.6] |
 | llama3.1:8b | 3.9% [2.0–7.5] |
 | gemma3:12b | 0% [0–1.8] |
+| phi4-mini | 0% [0–1.8] |
 | naive-string baseline | 0% [0–1.8] |
 | cautious-abstainer | 0% [0–1.8] |
 
@@ -190,7 +191,9 @@ still returns "4/4" for an 8/8 framework and "5/6" for 10/10 — the wrong
 denominator as well as loci-not-chromosomes — and is 0% on every clinical-risk
 slice, with 181/205 answers wrong-but-overconfident and no `potential` verdict
 ever emitted. llama3.1:8b (3.9%, 197/205 wrong-but-overconfident) invents denominators the same
-way ("6/6" for an 8/8 framework). gemma3:12b scores 0/205 (203 wrong-but-overconfident): it reports the
+way ("6/6" for an 8/8 framework). phi4-mini scores 0/205, 139 of them schema failures (a bare count or "match"
+in place of the per-locus object, sometimes with the right number) — an
+unparseable verdict is graded as no verdict. gemma3:12b scores 0/205 (203 wrong-but-overconfident): it reports the
 locus count as both numerator and denominator — "4/4" for every 8/8 pair —
 so it cannot score even a perfect match correctly. qwen2.5:7b succeeds only
 on tier-1 counting (22%); 0% on antigen-vs-
