@@ -1,1 +1,1 @@
-{"models": "ollama/gemma3:12b", "split": "all", "family": "c", "commit": "true", "note": "run 12 - Gemma on HLA-Bench-C"}
+{"models": "ollama/gemma3:12b", "split": "all", "family": "c", "commit": "true", "note": "run 13 - gemma3:12b on HLA-Bench-C with the fallback ladder"}
