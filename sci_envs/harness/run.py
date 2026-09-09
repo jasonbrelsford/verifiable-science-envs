@@ -42,7 +42,9 @@ def cache_usable(raw: str) -> bool:
     """A cached response is reused only if it is a real model reply. Empty bodies and
     transport errors (recorded as 'ERROR: ...') are backend failures and are re-asked
     on the next run, so a degraded Ollama session cannot poison the cache."""
-    return bool(raw and raw.strip()) and not raw.startswith("ERROR:")
+    if not isinstance(raw, str):          # baselines/oracle cache structured answers
+        return raw is not None
+    return bool(raw.strip()) and not raw.startswith("ERROR:")
 
 
 def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path, split: str,
