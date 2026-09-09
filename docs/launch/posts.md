@@ -165,7 +165,7 @@ set can't have.
 scores 28%. A 3B model lands below the string baseline.
 
 5/ The universal failure: `expand_ambiguity`. A 2-field name like A*02:01 covers 2–389
-full-resolution alleles. 0% across every model family. Same failure at 3B, 7B, and
+full-resolution alleles. 0% across every model family. Same failure at 3B, 7B, 14B and
 frontier scale — a representational gap, not a size problem.
 
 6/ Matching (205 donor–recipient pairs): string manipulation collapses to 0%. Best open
