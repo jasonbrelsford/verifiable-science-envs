@@ -1,6 +1,6 @@
 # Launch posts — copy-ready
 
-*Prepared 2026-09-08. Every number below is from `STATUS.md` / `bench/` at that date;
+*Prepared 2026-09-08, numbers refreshed 2026-09-09. Every number below is from `STATUS.md` / `bench/` at that date;
 re-check the headline table before posting if a newer tower run has landed. Post from
 Jason's own accounts. Links: repo https://github.com/jasonbrelsford/verifiable-science-envs ·
 dataset https://huggingface.co/datasets/jason-brelsford/hla-bench · demo https://hlaverify.com/demo*
@@ -33,16 +33,16 @@ deterministically from (release tag, seed). Because ground truth regenerates eve
 quarter, a share of tasks is post-training-cutoff by construction — contamination
 resistance you can't get from a static question set.
 
-What we found across Claude, Qwen, Mistral, Llama and Phi:
+What we found across Claude, Qwen, Mistral, Llama, Phi and Gemma:
 
 - Every model family scores **0% on two-field ambiguity expansion** — none knows that a
   name like A*02:01 denotes anywhere from 2 to 389 full-resolution alleles. That's the core
   clinical trap in HLA typing.
 - On nomenclature, models land between 15% and 35% against a 28% *string-manipulation
   baseline*. A 3B model scores below it.
-- On donor–recipient matching, string manipulation collapses to 0% and the best open 7B
-  reaches 6% — it counts matched loci instead of chromosomes and never says "this typing
-  is too coarse to call".
+- On donor–recipient matching, string manipulation collapses to 0% and open models
+  reach 0–12% — they count matched loci instead of chromosomes (Gemma even reports "4/4"
+  for an 8/8 framework) and never say "this typing is too coarse to call".
 - Models fabricate allele names at 0.05–0.14 per task (invented 4th fields, made-up G
   groups, legacy colon-less forms). The grader checks every emitted name against the
   release.
@@ -84,10 +84,10 @@ Two suites:
   itself the error. Rules R1–R6 are in one Python file written for lab-director audit.
 
 Results (Wilson 95% CIs on the bench pages):
-- Nomenclature: qwen2.5:7b 31%, mistral:7b 29%, naive-string baseline 28%, qwen2.5:3b
-  28%, phi4-mini 24%, llama3.1:8b 21%, llama3.2:3b 15%; claude-sonnet-4-6 34.7% (lower
+- Nomenclature: qwen2.5:7b 31%, mistral:7b 29%, gemma3:12b 28%, naive-string baseline 28%,
+  qwen2.5:3b 28%, qwen2.5:14b 26% (refuses 22% of tasks), phi4-mini 24%, llama3.1:8b 21%, llama3.2:3b 15%; claude-sonnet-4-6 34.7% (lower
   bound, token-truncated re-run pending).
-- **0% on `expand_ambiguity` for every family** — Claude, Qwen, Mistral, Llama, Phi.
+- **0% on `expand_ambiguity` for every family** — Claude, Qwen, Mistral, Llama, Phi, Gemma.
 - Matching: naive baseline 0%; qwen2.5:14b 11.7%, qwen2.5:7b 6.3%, gemma3:12b 0%; dominant error is counting
   matched loci instead of chromosomes, plus self-contradiction between per-locus verdicts
   and the total.
@@ -124,12 +124,12 @@ every answer is computed from the IPD-IMGT/HLA release itself by auditable rules
 human answer key, no AI judge. Because the database ships quarterly, the benchmark
 regenerates with it, so models can't have memorized the newest tasks.
 
-What we found across Claude, Qwen, Mistral, Llama and Phi:
+What we found across Claude, Qwen, Mistral, Llama, Phi and Gemma:
 
 → Every model family scores 0% on two-field ambiguity expansion — the core clinical trap
 in HLA typing.
-→ On matching, string manipulation gets 0% and the best open 7B model gets 6%, because it
-counts matched loci instead of chromosomes.
+→ On matching, string manipulation gets 0% and open models get 0–12%, because they
+count matched loci instead of chromosomes.
 → Models invent allele names at 0.05–0.14 per task.
 
 The same graders now run as HLA-Verify: a deterministic check of every allele name in a
@@ -208,8 +208,8 @@ Sharing a benchmark with two properties I haven't seen combined elsewhere:
 
 Findings (7 models, Wilson CIs in the repo):
 - Nomenclature (550 tasks): 15–35% vs a 28% naive string baseline. **0% on 2-field
-  ambiguity expansion for every family tested (Claude, Qwen, Mistral, Llama, Phi)** —
-  identical failure at 3B, 7B and frontier scale.
+  ambiguity expansion for every family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma)** —
+  identical failure at 3B, 7B, 14B and frontier scale.
 - Matching (205 pairs): naive baseline 0%; open models 0–11.7% (qwen2.5 7B/14B, gemma3 12B). Systematic error: counts
   matched loci rather than chromosomes; never emits the "unresolvable" verdict.
 - Fabrication rate 0.05–0.14 allele names per task; every emitted name is checked.
@@ -233,11 +233,12 @@ grader. Best result: 6%. Here's exactly how they fail.
 
 **Body:**
 
-Ran qwen2.5 (3B/7B), llama3.1:8b, llama3.2:3b, mistral:7b and phi4-mini through Ollama at
+Ran qwen2.5 (3B/7B/14B), gemma3:12b, llama3.1:8b, llama3.2:3b, mistral:7b and phi4-mini through Ollama at
 temp 0, JSON-forced, against two suites where the answer key is computed from the HLA
 database itself (no human labels).
 
-Nomenclature (550 tasks): qwen2.5:7b 31%, mistral 29%, qwen2.5:3b 28%, phi4-mini 24%,
+Nomenclature (550 tasks): qwen2.5:7b 31%, mistral 29%, gemma3:12b 28%, qwen2.5:3b 28%,
+qwen2.5:14b 26% (it refuses 22% of tasks — scale bought caution, not knowledge), phi4-mini 24%,
 llama3.1:8b 21%, llama3.2:3b 15%. A dumb string-manipulation baseline gets 28%. Qwen
 beats Llama at every size.
 
@@ -253,6 +254,6 @@ Reasoning models: deepseek-r1:8b under `format: json` spends the entire token bu
 `<think>` and returns nothing. Excluded; a think-then-parse client is on the list.
 
 Everything runs free locally with Ollama: `hla-bench run ollama/<model>`. If you want to
-try a 14B/32B and send me the results file, I'll add the row with your credit.
+try a 32B and send me the results file, I'll add the row with your credit.
 
 https://github.com/jasonbrelsford/verifiable-science-envs
