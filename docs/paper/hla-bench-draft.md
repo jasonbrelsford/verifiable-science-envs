@@ -183,10 +183,18 @@ scripts in `docs/` runbook.]
 
 ### 4.4 Reproducibility across environments
 
-The family-C suite regraded bit-identically (n=205, 13/205 correct, identical
-CIs) after a complete teardown and reinstall of the grading runner — same
-(release tag, seed), different runner service account and process — consistent
-with the deterministic-seeding design (sha256-derived per-task seeds).
+The family-C suite regraded to an identical score (n=205, 13/205 correct,
+identical CIs, identical per-subtype and per-tier tables) across three runner
+configurations: the original interactive runner; a torn-down-and-reinstalled
+service runner; and a third configuration under a different Windows service
+account, Python 3.14 instead of 3.12, and a different launcher path — same
+(release tag, seed) each time, consistent with the deterministic-seeding
+design (sha256-derived per-task seeds). Across the three runs, exactly one of
+the 205 raw model responses differed in form (a malformed JSON object in place
+of a wrong-but-overconfident answer at temperature 0 — inference-backend
+nondeterminism, not the grader); it was scored wrong in both forms, so the
+score and every reported table were unaffected. We report this rather than
+claim raw-response determinism, which no local inference stack guarantees.
 
 ### 4.5 External validation against NMDP tooling
 
