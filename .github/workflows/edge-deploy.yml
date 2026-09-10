@@ -1,0 +1,34 @@
+# Deploy the HLA-Verify API Worker (edge/) to Cloudflare. Tables are regenerated from the
+# pinned release on every deploy, so a release bump is: change HLA_VERIFY_TAG, push.
+# Secrets: CF_WORKERS_TOKEN (Workers Scripts + Routes + Custom Domains edit on the account/zone).
+name: edge-deploy
+# Manual until the repo has secret CF_WORKERS_TOKEN and variable CLOUDFLARE_ACCOUNT_ID
+# (Settings -> Secrets and variables -> Actions). Local deploy: cd edge && npx wrangler deploy.
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sci_envs/imgt
+          key: imgt-v3.65.0-alpha
+      - run: pip install -e ".[service]"
+      - run: python -m sci_envs.service.edge_export
+      - run: cd edge && node --test test/golden.test.mjs
+      - name: wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_WORKERS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: cd edge && npx --yes wrangler@4 deploy
+      - name: smoke
+        run: |
+          curl -sf https://api.hlaverify.com/healthz
+          curl -sf https://api.hlaverify.com/v1/verify -H 'content-type: application/json' -d '{"text":"A*0101 DQB1*05:03:26:99"}' | grep -q '"hallucinated":1'

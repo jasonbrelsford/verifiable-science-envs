@@ -52,9 +52,11 @@ resolved, a confident count is wrong by definition — report `potential` and th
 
 ## Or use the hosted service
 
-`POST https://hlaverify.com` endpoints (demo at /demo runs fully in-browser).
-Local API: `pip install -e ".[service]" && uvicorn sci_envs.service.app:app`,
-then `POST /v1/verify` with free text — it checks every allele-shaped token.
+Live, no install: `https://api.hlaverify.com` (reference at /docs, OpenAPI at
+/openapi.json; open at 60 requests/minute, header `X-API-Key` for keyed access).
+`POST /v1/verify {"text"}`, `POST /v1/normalize {"typings"}`, `GET /v1/allele/{name}`,
+`POST /v1/match {"framework","recipient","donor"}`. Same verdicts as the Python engine
+(golden-tested). Local API: `pip install -e ".[service]" && uvicorn sci_envs.service.app:app`.
 
 ## Rules
 

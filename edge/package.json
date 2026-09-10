@@ -1,0 +1,17 @@
+{
+  "name": "hlaverify-edge",
+  "private": true,
+  "type": "module",
+  "description": "HLA-Verify API on Cloudflare Workers — lookup tables precomputed by the HLA-Bench grader engine",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "scripts": {
+    "export": "cd .. && python -m sci_envs.service.edge_export",
+    "fixtures": "cd .. && python edge/test/gen_fixtures.py",
+    "test": "node --test test/golden.test.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.0"
+  }
+}

@@ -14,3 +14,7 @@ runs/*/full/
 runs/*/responses/
 runs/*/scores/
 *.egg-info/
+# edge Worker: generated tables (regenerate with `python -m sci_envs.service.edge_export`), wrangler state
+edge/public/data/
+edge/public/manifest.json
+edge/.wrangler/

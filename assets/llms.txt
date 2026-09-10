@@ -15,6 +15,13 @@ release; verification is pinned to an exact release version.
 
 ## Use
 
+- Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 60 req/min; keys for
+  production): https://api.hlaverify.com — reference https://api.hlaverify.com/docs,
+  OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…
+    POST /v1/verify    {"text": "..."}                -> every allele-shaped token classified
+    POST /v1/normalize {"typings": ["A*0101", ...]}   -> current name, 2-field name, G group, flags
+    GET  /v1/allele/A*24:09N                          -> assigned | valid_prefix | deleted (+successor)
+    POST /v1/match     {"framework": "8/8", "recipient": {...}, "donor": {...}} -> count, verdicts, GvH/HvG, flags
 - Interactive demo (runs fully client-side, nothing leaves the browser):
   https://hlaverify.com/demo
   (mirror on Hugging Face Spaces: https://huggingface.co/spaces/jason-brelsford/hla-verify)
@@ -25,8 +32,8 @@ release; verification is pinned to an exact release version.
   `from sci_envs.families.matching.rules import score` (match verdicts).
 - MCP server (add HLA-Verify as agent tools — verify_text, normalize_allele, match_score):
   `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
-- Keyed API for labs / LIMS / agent platforms and commercial licensing:
-  hello@hlaverify.com
+- API keys (no per-minute cap, per-key usage reporting, release-change notices) for labs /
+  LIMS / agent platforms, and commercial licensing: hello@hlaverify.com
 
 ## Benchmarks (for model developers)
 
