@@ -2,9 +2,14 @@
 # pinned release on every deploy, so a release bump is: change HLA_VERIFY_TAG, push.
 # Secrets: CF_WORKERS_TOKEN (Workers Scripts + Routes + Custom Domains edit on the account/zone).
 name: edge-deploy
-# Manual until the repo has secret CF_WORKERS_TOKEN and variable CLOUDFLARE_ACCOUNT_ID
-# (Settings -> Secrets and variables -> Actions). Local deploy: cd edge && npx wrangler deploy.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "edge/src/**"
+      - "edge/wrangler.jsonc"
+      - "sci_envs/service/edge_export.py"
+      - ".github/workflows/edge-deploy.yml"
   workflow_dispatch:
 jobs:
   deploy:
