@@ -63,3 +63,17 @@ def test_api_key_gate(monkeypatch):
 def test_demo_page():
     r = client.get("/")
     assert r.status_code == 200 and "HLA-Verify" in r.text and "3.65.0" in r.text
+
+
+def test_match_endpoint_null_trap():
+    body = {"framework": "8/8",
+            "recipient": {"A": ["A*02:01", "A*24:02"], "B": ["B*07:02", "B*44:02"], "C": ["C*07:02", "C*05:01"], "DRB1": ["DRB1*15:01", "DRB1*04:01"]},
+            "donor": {"A": ["A*02:01", "A*24:09N"], "B": ["B*07:02", "B*44:02"], "C": ["C*07:02", "C*05:01"], "DRB1": ["DRB1*15:01", "DRB1*04:01"]}}
+    d = client.post("/v1/match", json=body).json()
+    assert d["count"] == "7/8" and d["verdicts"]["A"] == "mismatch" and "null_allele" in d["flags"]
+    assert client.post("/v1/match", json={**body, "framework": "9/9"}).status_code == 422
+
+
+def test_allele_suffixed_prefix_no_crash():
+    d = client.get("/v1/allele/A*24:09N").json()
+    assert d["status"] in ("assigned", "valid_prefix")

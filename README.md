@@ -15,7 +15,16 @@ Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llam
 
 ## HLA-Verify — the graders as an API
 
-The same engine as a verification service (no LLM, no storage): `POST /v1/verify` checks every allele-shaped token in free text against the pinned release (fabricated / deleted-with-successor / legacy / valid, with G groups and flags); `POST /v1/normalize` fixes typing reports; `GET /v1/allele/<name>` returns the facts.
+The same engine as a verification service (no LLM, no storage): `POST /v1/verify` checks every allele-shaped token in free text against the pinned release (fabricated / deleted-with-successor / legacy / valid, with G groups and flags); `POST /v1/normalize` fixes typing reports; `GET /v1/allele/<name>` returns the facts; `POST /v1/match` scores a donor–recipient pair under the published rules R1–R6.
+
+**Hosted, live: [api.hlaverify.com](https://api.hlaverify.com/docs)** (also `https://hlaverify.com/v1/…`). Open for evaluation at 60 requests/minute per IP; keyed access for labs, LIMS vendors and agent platforms (hello@hlaverify.com).
+
+```bash
+curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \
+  -d '{"text": "A*0101, B*15:504:01, DQB1*05:03:26:99"}'
+```
+
+The hosted API is a Cloudflare Worker (`edge/`) that looks names up in tables exported from the pinned release by this repository's Python engine (`python -m sci_envs.service.edge_export`); a golden test (`edge/test/`) proves the Worker's output is byte-identical to the Python service on thousands of generated inputs. Self-hosted Python service:
 
 ```bash
 pip install -e ".[service]" && uvicorn sci_envs.service.app:app
@@ -60,7 +69,8 @@ sci_envs/
   families/matching/        # family C: rules engine (R1–R6, documented for lab audit)
   harness/                  # runners, model clients, report
   adapters/                 # verifiers (Prime Intellect) + Inspect AI exports
-  service/                  # HLA-Verify API (PolyForm-NC)
+  service/                  # HLA-Verify API: FastAPI service + edge table exporter (PolyForm-NC)
+edge/                       # HLA-Verify API on Cloudflare Workers + golden test vs the Python oracle (PolyForm-NC)
 environments/hla_nomenclature/   # pip-installable verifiers environment
 harbor/                     # Terminal-Bench-style task
 docs/                       # task + grader specs (families A, B, C)
@@ -72,6 +82,6 @@ Every graded answer is computed from public, versioned data — the pinned IPD-I
 
 ## Licence
 
-Open core: benchmark, generators, graders, harness, and adapters are **Apache-2.0** (LICENSE). The HLA-Verify service (`sci_envs/service/`) is **PolyForm Noncommercial 1.0.0** — free for research and evaluation; commercial use requires a licence from Brelsford Software LLC (hello@hlaverify.com). Reference data are fetched at runtime from IPD-IMGT/HLA under CC-BY-ND (Barker DJ et al., *NAR* 2025) and never redistributed.
+Open core: benchmark, generators, graders, harness, and adapters are **Apache-2.0** (LICENSE). The HLA-Verify service (`sci_envs/service/`, `edge/`) is **PolyForm Noncommercial 1.0.0** — free for research and evaluation; commercial use requires a licence from Brelsford Software LLC (hello@hlaverify.com). Reference data are fetched at runtime from IPD-IMGT/HLA under CC-BY-ND (Barker DJ et al., *NAR* 2025) and never redistributed.
 
 Scope: human clinical-genomics informatics only. No sequences, no pathogens, no wet-lab protocols.

@@ -13,3 +13,20 @@ jobs:
           key: imgt-v3.65.0-alpha
       - run: pip install -e ".[dev,service]"
       - run: pytest -q
+  edge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sci_envs/imgt
+          key: imgt-v3.65.0-alpha
+      - run: pip install -e ".[service]"
+      - name: Export edge tables from the pinned release
+        run: python -m sci_envs.service.edge_export
+      - name: Golden test — Worker output must equal the Python oracle
+        run: cd edge && node --test test/golden.test.mjs

@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 
 from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name
+from sci_envs.families.matching.rules import FRAMEWORKS, score
 
 TAG = os.environ.get("HLA_VERIFY_TAG", "v3.65.0-alpha")
 ATTRIBUTION = ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), "
@@ -55,6 +56,12 @@ class VerifyIn(BaseModel):
 
 class NormalizeIn(BaseModel):
     typings: list[str] = Field(..., max_length=5_000, description="Reported typing strings, any era.")
+
+
+class MatchIn(BaseModel):
+    framework: str = Field("8/8", description="6/6, 8/8, 10/10, 12/12, or antigen")
+    recipient: dict[str, list[str]] = Field(..., description='{"A": ["A*02:01", "A*24:02"], ...} any nomenclature era')
+    donor: dict[str, list[str]]
 
 
 STATUS_HELP = {
@@ -114,6 +121,22 @@ def normalize_batch(body: NormalizeIn, _: None = Depends(_auth)):
     return {"release": r.release, "rows": rows, "attribution": ATTRIBUTION}
 
 
+@app.post("/v1/match")
+def match(body: MatchIn, _: None = Depends(_auth)):
+    """Donor-recipient match verdict under the published rules R1-R6 (sci_envs/families/matching/rules.py)."""
+    r = ref()
+    _stats["requests"] += 1
+    if body.framework not in FRAMEWORKS:
+        raise HTTPException(422, f"framework must be one of {sorted(FRAMEWORKS)}")
+    for side in (body.recipient, body.donor):
+        if len(side) > 24 or any(len(v) > 4 or any(len(x) > 64 for x in v) for v in side.values()):
+            raise HTTPException(422, "at most 24 loci and 4 reported alleles per locus")
+    s = score(r, body.framework, body.recipient, body.donor)
+    return {"release": r.release, "framework": body.framework, "count": s["count"], "verdicts": s["verdicts"],
+            "hvg_mismatches": s["hvg_mismatches"], "gvh_mismatches": s["gvh_mismatches"], "flags": s["flags"],
+            "attribution": ATTRIBUTION}
+
+
 @app.get("/v1/allele/{name:path}")
 def allele(name: str, _: None = Depends(_auth)):
     r = ref()
@@ -142,7 +165,10 @@ def allele(name: str, _: None = Depends(_auth)):
         if split_allele(name)[2] == "N":
             out["null_allele"] = True
     else:
-        members = r.expand(name)
+        locus, fields, suffix = split_allele(name)
+        members = r.expand(f"{locus}*{':'.join(fields)}")
+        if suffix:  # a prefix carrying a suffix names only the members that share it
+            members = [m for m in members if split_allele(m)[2] == suffix]
         out["members_count"] = len(members)
         out["members_sample"] = members[:10]
     return out

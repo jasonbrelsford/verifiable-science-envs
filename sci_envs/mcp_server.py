@@ -94,6 +94,7 @@ def about() -> dict:
         "why": "Every LLM family tested scores 0% on 2-field ambiguity expansion "
                "and fabricates allele names at 0.05-0.14/task (HLA-Bench).",
         "code": "https://github.com/jasonbrelsford/verifiable-science-envs",
+        "api": "https://api.hlaverify.com/docs",
         "demo": "https://hlaverify.com/demo", "agents": "https://hlaverify.com/llms.txt",
         "commercial": "hello@hlaverify.com (Brelsford Software LLC)",
         "disclaimer": "Research-and-evaluation tool; not a medical device.",

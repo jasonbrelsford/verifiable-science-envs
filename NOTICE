@@ -2,9 +2,10 @@ verifiable-science-envs
 Copyright 2026 Jason Brelsford
 
 Licensing is per-directory (open core):
-- Everything except sci_envs/service/ : Apache License 2.0 (see LICENSE)
-- sci_envs/service/ (the HLA-Verify API): PolyForm Noncommercial 1.0.0
-  (see sci_envs/service/LICENSE) — free for research, evaluation, and
+- Everything except sci_envs/service/ and edge/ : Apache License 2.0 (see LICENSE)
+- sci_envs/service/ and edge/ (the HLA-Verify API — Python service and the
+  Cloudflare Worker with its exported tables): PolyForm Noncommercial 1.0.0
+  (see sci_envs/service/LICENSE, edge/LICENSE) — free for research, evaluation, and
   personal use; commercial use requires a licence from
   Brelsford Software LLC (hello@hlaverify.com).
 

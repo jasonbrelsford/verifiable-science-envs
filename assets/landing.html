@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify — deterministic HLA nomenclature verification</title>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HLA-Verify","applicationCategory":"Bioinformatics","operatingSystem":"Web, Python","url":"https://hlaverify.com","description":"Deterministic verification of HLA allele names, typing reports, and donor-recipient match claims against a pinned IPD-IMGT/HLA release. No LLM in the loop.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free in-browser demo and open-source engine; commercial licences from Brelsford Software LLC"},"publisher":{"@type":"Organization","name":"Brelsford Software LLC","email":"hello@hlaverify.com"},"sameAs":["https://github.com/jasonbrelsford/verifiable-science-envs","https://huggingface.co/datasets/jason-brelsford/hla-bench"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HLA-Verify","applicationCategory":"Bioinformatics","operatingSystem":"Web, Python","url":"https://hlaverify.com","description":"Deterministic verification of HLA allele names, typing reports, and donor-recipient match claims against a pinned IPD-IMGT/HLA release. No LLM in the loop.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Free in-browser demo, open hosted API (60 req/min) and open-source engine; keyed API access and commercial licences from Brelsford Software LLC"},"publisher":{"@type":"Organization","name":"Brelsford Software LLC","email":"hello@hlaverify.com"},"sameAs":["https://github.com/jasonbrelsford/verifiable-science-envs","https://huggingface.co/datasets/jason-brelsford/hla-bench"]}</script>
 <meta name="description" content="Check every HLA allele name in a typing report or AI output against a pinned IPD-IMGT/HLA release. Fabricated, deleted, legacy — caught deterministically. No LLM.">
 <style>
 :root{--green:#2F5D3A;--dark:#1E4028;--ink:#1E3A28;--mint:#8FD69B;--paper:#FAFAF4;--mut:#5A6B5D}
@@ -51,6 +51,10 @@ Patient typing: <span class="tok old" title="legacy format → A*01:01">A*0101 �
 <div class="card"><h3>Nothing stored</h3><p>Reports are processed in memory and discarded; we log counts, not content. Reference data are fetched from the official source under CC-BY-ND and never redistributed.</p></div>
 </div>
 
+<h2 style="font-family:Georgia,serif;font-size:1.4rem;margin:34px 0 8px">Hosted API — live at <a href="https://api.hlaverify.com/docs" style="color:var(--green)">api.hlaverify.com</a></h2>
+<p class="lead" style="font-size:1rem;margin:0 0 14px">Four endpoints, JSON in and out, pinned to IPD-IMGT/HLA 3.65.0, served from Cloudflare's edge in well under a second. <code>/v1/verify</code> checks free text, <code>/v1/normalize</code> fixes typing strings from any era, <code>/v1/allele</code> returns the facts, <code>/v1/match</code> scores a donor–recipient pair with the published rules (per-chromosome counts, GvH/HvG, null-allele traps, and <em>potential</em> when the typing is too coarse to call). Open for evaluation at 60 requests/minute; keyed access for labs, LIMS vendors and agent platforms.</p>
+<div class="sample" style="margin:0 0 30px;line-height:1.6">curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \<br>&nbsp;&nbsp;-d '{"text": "Patient typing: A*0101, B*15:504:01. Assistant suggested DQB1*05:03:26:99"}'<br><span style="color:var(--mut)">→ {"clean": false, "counts": {"valid": 1, "deleted": 1, "hallucinated": 1, …}, "tokens": [{"token": "DQB1*05:03:26:99", "status": "hallucinated", …}]}</span></div>
+
 <div class="why" style="margin-top:6px">
 <div class="card"><h3>Free — demo &amp; open source</h3><p>In-browser verifier (nothing leaves your machine), open benchmark, Python engine on GitHub. Apache-2.0 for the benchmark and graders.</p></div>
 <div class="card"><h3>Pilot — $12k, 6 weeks</h3><p>Your reports or model outputs, verified against a pinned release with a full audit trail and a findings letter. Fee credited toward a first-year licence.</p></div>
@@ -60,10 +64,11 @@ Patient typing: <span class="tok old" title="legacy format → A*01:01">A*0101 �
 
 <div class="cta">
 <a class="btn p" href="/demo">Try it now — runs in your browser</a>
-<a class="btn s" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20pilot">hello@hlaverify.com</a>
+<a class="btn s" href="https://api.hlaverify.com/docs">API docs</a>
+<a class="btn s" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20API%20key">Get an API key</a>
 <a class="btn s" href="https://github.com/jasonbrelsford/verifiable-science-envs">Benchmark &amp; code</a>
 </div>
-<p class="lead" style="font-size:.95rem">The demo runs entirely client-side — nothing you paste leaves your machine. Keyed API for labs and LIMS vendors: pilot slots open.</p>
+<p class="lead" style="font-size:.95rem">The demo runs entirely client-side — nothing you paste leaves your machine; the hosted API stores nothing and meters counts, never content. Keyed API for labs and LIMS vendors: pilot slots open.</p>
 
 <footer>
 Computed from IPD-IMGT/HLA (Barker DJ et&nbsp;al., Nucleic Acids Research 2025), fetched at runtime under CC-BY-ND — never redistributed. HLA-Verify is a research-and-evaluation tool and is not a medical device; verification output supports, and does not replace, clinical judgment. © 2026 Jason Brelsford · <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>

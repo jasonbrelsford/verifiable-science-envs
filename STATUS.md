@@ -6,6 +6,7 @@
 | Reference | IPD-IMGT/HLA 3.65.0 (fetched at runtime, md5-verified — never redistributed; CC-BY-ND) |
 | Licence | Apache-2.0, except `sci_envs/service/` under PolyForm Noncommercial 1.0.0 (see NOTICE) |
 | Contact | Brelsford Software LLC — hello@hlaverify.com · [hlaverify.com](https://hlaverify.com) · [in-browser demo](https://hlaverify.com/demo) |
+| HLA-Verify API | **Live** at [api.hlaverify.com](https://api.hlaverify.com/docs) (Cloudflare Worker, tables exported from the pinned release; golden-tested against the Python service). Open at 60 req/min; keyed access by request. |
 
 ## What this is
 

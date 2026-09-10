@@ -78,9 +78,15 @@ def antigen_of(ref: ImgtReference, reported: str) -> str:
     name, _ = resolve_name(ref, reported)
     if name is None:
         return UNCERTAIN
-    if split_allele(name)[2] == "N":
+    locus, fields, suffix = split_allele(name)
+    if suffix == "N":
         return NULL
-    members = [name] if ref.exists(name) else ref.expand(name)
+    if ref.exists(name):
+        members = [name]
+    else:                                 # lower-resolution prefix, possibly with a shared suffix
+        members = ref.expand(f"{locus}*{':'.join(fields)}")
+        if suffix:
+            members = [m for m in members if split_allele(m)[2] == suffix]
     if not members:
         return UNCERTAIN
     antigens = set()
