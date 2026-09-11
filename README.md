@@ -35,7 +35,20 @@ Live demo (runs entirely in your browser — typing data never leaves your machi
 ## For AI agents: MCP server
 
 Any MCP-capable agent can add HLA-Verify as a tool server and verify HLA
-content before presenting it (`verify_text`, `normalize_allele`, `match_score`):
+content before presenting it (`verify_text`, `normalize_allele`, `allele_info`,
+`match_score`, `about`) — as a remote server, or self-hosted over stdio.
+
+Remote (Streamable HTTP, JSON-RPC 2.0, stateless — nothing to install):
+
+```json
+{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
+```
+
+Add `"headers": {"Authorization": "Bearer YOUR_KEY"}` for a keyed tier; anonymous
+calls share the free tier's 60 req/min. Works in Claude Desktop, claude.ai
+connectors, Cursor, and any other MCP-capable client.
+
+Local (stdio):
 
 ```bash
 pip install -e ".[mcp]"

@@ -24,7 +24,16 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
 
 <h2>Authentication and limits</h2>
-<p>Without a key the API is open for evaluation at <b>60 requests per minute per IP</b>. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with no per-minute cap, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Without a key the API is open for evaluation at <b>60 requests per minute per IP</b>. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped per-minute limit, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Every response carries <code>x-hla-verify-tier</code>. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<table>
+<tr><th>Tier</th><th>Limit</th><th>Auth</th></tr>
+<tr><td><code>free</code></td><td>60 req/min per IP</td><td>none (anonymous)</td></tr>
+<tr><td><code>starter</code></td><td>600 req/min per key</td><td>API key</td></tr>
+<tr><td><code>pro</code></td><td>6,000 req/min per key</td><td>API key</td></tr>
+<tr><td><code>enterprise</code></td><td>uncapped</td><td>API key</td></tr>
+</table>
+<h3>Self-serve keys</h3>
+<p>Starter and Pro keys are issued automatically: buy a licence through the HLA-Verify pricing page, and the checkout provider's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. A cancelled, refunded, or disabled licence is revoked the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
@@ -60,6 +69,17 @@ ${curl(`{"release":"${m.release}","framework":"8/8","count":"7/8",
 <h3><span class="pill">GET</span><code>/healthz</code></h3>
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
+<h2>MCP for agents</h2>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>about</code>. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
+<h3>Claude Desktop / claude.ai connectors</h3>
+${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
+<h3>Claude Desktop / claude.ai, with a key</h3>
+${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp",
+  "headers": {"Authorization": "Bearer YOUR_KEY"}}}}`)}
+<h3>Cursor (<code>.cursor/mcp.json</code>)</h3>
+${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
+<p class="mut">Prefer a local process instead? <code>python -m sci_envs.mcp_server</code> is the same tool surface over stdio — see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
+
 <h2>Integrating into a pipeline</h2>
 <table>
 <tr><th>Where</th><th>Call</th><th>Gate on</th></tr>
@@ -74,7 +94,7 @@ ${curl(`{"release":"${m.release}","framework":"8/8","count":"7/8",
 <p>This deployment is pinned to <b>${esc(m.release)}</b>; the tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; keyed customers receive a diff of changed verdicts before the pin moves, and an older release can be kept for a customer on request.</p>
 
 <h2>Errors</h2>
-<p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 bad key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 anonymous rate limit, 500 (nothing stored).</p>
+<p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 missing/invalid/revoked key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 rate limited (tier-specific), 500 (nothing stored). MCP <code>tools/call</code> validation failures are not HTTP or JSON-RPC errors — they come back as a normal tool result with <code>isError:true</code> and an explanatory text block, per the MCP spec.</p>
 
 <h2>Terms</h2>
 <p class="mut">HLA-Verify is a research-and-evaluation tool and not a medical device; output supports and does not replace clinical judgement. Service code: PolyForm Noncommercial 1.0.0 — commercial use requires a licence from Brelsford Software LLC (<a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>). Reference data: IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Research 2025), CC-BY-ND, fetched from the official source and never redistributed in bulk. Requests are processed in memory and discarded; metering records counts per key, never content.</p>
@@ -130,6 +150,12 @@ export function openapi(m) {
           verdicts: { type: "object", additionalProperties: { type: "string", enum: ["match", "mismatch", "potential"] } },
           hvg_mismatches: { type: "integer" }, gvh_mismatches: { type: "integer" },
           flags: { type: "array", items: { type: "string" } }, attribution } } } } } } } },
+      "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, about. See the MCP for agents section above.",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object",
+          required: ["jsonrpc", "method"],
+          properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },
+        responses: { 200: { description: "JSON-RPC 2.0 response or error" }, 202: { description: "notification acknowledged (no body)" }, 405: { description: "GET not supported" } } } },
     },
   };
 }

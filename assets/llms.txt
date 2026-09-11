@@ -30,10 +30,14 @@ release; verification is pinned to an exact release version.
 - Python: `pip install -e .` then
   `from sci_envs.families.nomenclature.normalize import normalize` (allele names) and
   `from sci_envs.families.matching.rules import score` (match verdicts).
-- MCP server (add HLA-Verify as agent tools — verify_text, normalize_allele, match_score):
-  `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
-- API keys (no per-minute cap, per-key usage reporting, release-change notices) for labs /
-  LIMS / agent platforms, and commercial licensing: hello@hlaverify.com
+- MCP server (add HLA-Verify as agent tools — verify_text, normalize_allele, allele_info, match_score, about):
+    Remote (Streamable HTTP, no install): https://api.hlaverify.com/mcp
+      config: {"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
+    Local (stdio): `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
+- API keys: free 60 req/min per IP with no key; starter/pro/enterprise keys (higher or
+  uncapped per-minute limits, per-key usage reporting, release-change notices) self-serve
+  at checkout or by request for labs / LIMS / agent platforms, and commercial licensing:
+  hello@hlaverify.com
 
 ## Benchmarks (for model developers)
 

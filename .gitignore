@@ -18,3 +18,4 @@ runs/*/scores/
 edge/public/data/
 edge/public/manifest.json
 edge/.wrangler/
+edge/.dev.vars
