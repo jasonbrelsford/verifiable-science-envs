@@ -1,1 +1,1 @@
-{"models": "ollama/phi4-mini", "split": "all", "family": "c", "commit": "true", "note": "run 16 - Phi family row on HLA-Bench-C (completes the five open families)"}
+{"models": "ollama/qwen2.5:3b", "split": "all", "family": "c", "commit": "true", "note": "run 17 - qwen2.5:3b on HLA-Bench-C; closes a family-C coverage gap vs family A (qwen2.5:3b and llama3.2:3b are tested on A but missing from C)"}
