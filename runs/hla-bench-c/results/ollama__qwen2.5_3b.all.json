@@ -133,10 +133,14 @@
     }
   },
   "calibration": {
-    "calibrated_fraction": 0.878,
+    "calibrated_fraction": 0.9659,
     "stated_vs_expected": {
-      "high->high": 180,
-      "high->medium": 25
+      "None->high": 3,
+      "None->medium": 1,
+      "high->high": 127,
+      "high->medium": 3,
+      "low->high": 50,
+      "low->medium": 21
     }
   },
   "contamination_resistant": {
@@ -150,11 +154,84 @@
   },
   "grader_version": "A-0.1",
   "hallucination": {
-    "rate_per_task": 0.0,
-    "tasks_with_hallucinated_names": 0,
-    "top20": []
+    "rate_per_task": 0.0878,
+    "tasks_with_hallucinated_names": 18,
+    "top20": [
+      [
+        "A*2562",
+        1
+      ],
+      [
+        "A*2339",
+        1
+      ],
+      [
+        "A*2524",
+        1
+      ],
+      [
+        "C*0135",
+        1
+      ],
+      [
+        "C*0745",
+        1
+      ],
+      [
+        "B*2790",
+        1
+      ],
+      [
+        "C*0213",
+        1
+      ],
+      [
+        "DRB1*1023",
+        1
+      ],
+      [
+        "C*0686",
+        1
+      ],
+      [
+        "A*80:83",
+        1
+      ],
+      [
+        "A*80:96",
+        1
+      ],
+      [
+        "DRB1*17:83",
+        1
+      ],
+      [
+        "A*26:01:193",
+        1
+      ],
+      [
+        "A*80:86",
+        1
+      ],
+      [
+        "DRB1*17:97",
+        1
+      ],
+      [
+        "DRB1*17:88",
+        1
+      ],
+      [
+        "A*80:87",
+        1
+      ],
+      [
+        "DRB1*17:86",
+        1
+      ]
+    ]
   },
-  "model": "baseline-naive-string",
+  "model": "ollama/qwen2.5:3b",
   "n": 205,
   "n_tasks": 205,
   "overall": {
@@ -167,9 +244,11 @@
     "n": 205
   },
   "primary_failure_modes": {
-    "resolution_mismatch": 205
+    "malformed_response": 3,
+    "resolution_mismatch": 195,
+    "wrong_but_overconfident": 7
   },
   "prompt_rev": "clamp-v1",
-  "run_at": "2026-09-11T20:36:53Z",
+  "run_at": "2026-09-11T21:02:49Z",
   "split": "all"
 }

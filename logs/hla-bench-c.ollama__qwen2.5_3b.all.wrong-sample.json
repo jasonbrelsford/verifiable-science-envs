@@ -1,0 +1,1376 @@
+[
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:523",
+          "A*03:395"
+        ],
+        "B": [
+          "B*15:46",
+          "B*42:43"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:515"
+        ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
+        "DRB1": [
+          "DRB1*03:165",
+          "DRB1*11:18"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*24:523",
+          "A*03:395"
+        ],
+        "B": [
+          "B*15:46",
+          "B*42:43"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:515"
+        ],
+        "DQB1": [
+          "DQB1*05:270",
+          "DQB1*06:195"
+        ],
+        "DRB1": [
+          "DRB1*03:165",
+          "DRB1*11:18"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA typings for all loci (A, B, C, DRB1, DQB1). Given the 10/10 match framework, this is a perfect match.\"\n}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0000"
+  },
+  {
+    "canonical": {
+      "count": "6/8",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*23:30",
+          "A*31:255"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*04:584",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*23:30",
+          "A*66:29"
+        ],
+        "B": [
+          "B*51:04",
+          "B*35:232"
+        ],
+        "C": [
+          "C*01:27",
+          "C*04:116"
+        ],
+        "DRB1": [
+          "DRB1*14:117",
+          "DRB1*08:66"
+        ]
+      }
+    },
+    "primary_failure_mode": "malformed_response",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The recipient's A*66:29 and C*04:116 alleles are not found in the donor's typing, and the recipient's A*23:30 and C*01:27 alleles are not found in the donor's typing. The donor's A*23:30 and C*04:116 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's typing. The donor's A*23:30 and C*01:27 alleles are not found in the recipient's typing. The donor's A*66:29 and C*01:27 alleles are not found in the recipient's",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0001"
+  },
+  {
+    "canonical": {
+      "count": "8/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:103",
+          "A*33:199"
+        ],
+        "B": [
+          "B*35:41",
+          "B*15:586"
+        ],
+        "C": [
+          "C*03:608",
+          "C*04:412"
+        ],
+        "DQB1": [
+          "DQB1*06:253",
+          "DQB1*05:355"
+        ],
+        "DRB1": [
+          "DRB1*13:279",
+          "DRB1*04:279"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*01:103",
+          "A*02:1067"
+        ],
+        "B": [
+          "B*35:41",
+          "B*15:586"
+        ],
+        "C": [
+          "C*07:88",
+          "C*04:412"
+        ],
+        "DQB1": [
+          "DQB1*06:253",
+          "DQB1*05:355"
+        ],
+        "DRB1": [
+          "DRB1*13:279",
+          "DRB1*04:279"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both donor and recipient have identical HLA-A, HLA-B, HLA-C, HLA-DQB1, and HLA-DRB1 alleles. The donor has an additional HLA-A*02:1067 allele, which is a null allele and does not express any antigen. This does not affect the match score as null alleles are not considered in antigen level matches. The recipient has an additional HLA-A*02:1067 allele, which is also a null allele and does not affect the match score. The donor and recipient have a match at the antigen level for all loci.\"\n}",
+    "subtype": "count_simple",
+    "task_id": "hla_matching.r3.T1.count_simple.0002"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*3043",
+          "A*26:174"
+        ],
+        "B": [
+          "B*07:187",
+          "B*15:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:964"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:121"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*30:43",
+          "A*26:174"
+        ],
+        "B": [
+          "B*07:187",
+          "B*15:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:964"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:121"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor and recipient alleles for A, B, and C loci match exactly. However, the DRB1 alleles are reported in different formats (DRB1*01:30, DRB1*14:121 vs DRB1*01:30, DRB1*14:121). This inconsistency could be due to a release mismatch or unconfirmed allele, making it impossible to score the pair with certainty.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0000"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [
+      "A*2562"
+    ],
+    "input": {
+      "donor": {
+        "A": [
+          "A*11:425",
+          "A*2562"
+        ],
+        "B": [
+          "B*4496",
+          "B*07:541"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*13:238",
+          "DRB1*04:360"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*11:425",
+          "A*25:62"
+        ],
+        "B": [
+          "B*44:96",
+          "B*07:541"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*13:238",
+          "DRB1*04:360"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor and recipient alleles for A*2562 and A*25:62 are not recognized in the current IPD-IMGT/HLA nomenclature. The allele A*25:62 is not a valid allele in the current release, and A*2562 is not recognized as a valid allele in the current release either. This ambiguity prevents a definitive match score.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0001"
+  },
+  {
+    "canonical": {
+      "count": "8/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [
+      "A*2339"
+    ],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:500",
+          "A*2339"
+        ],
+        "B": [
+          "B*08:261",
+          "B*27:202"
+        ],
+        "C": [
+          "C*06:99",
+          "C*03:186"
+        ],
+        "DRB1": [
+          "DRB1*1008",
+          "DRB1*13:138"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*01:500",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:261",
+          "B*27:202"
+        ],
+        "C": [
+          "C*06:99",
+          "C*03:186"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*13:138"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor's A*2339 and recipient's A*23:39 do not match, and the donor's A*2339 is a legacy name not recognized in the current IPD-IMGT/HLA nomenclature.\"\n}",
+    "subtype": "same_after_normalize",
+    "task_id": "hla_matching.r3.T1.same_after_normalize.0002"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*66:37",
+          "A*32:15"
+        ],
+        "B": [
+          "B*35:41",
+          "B*56:43"
+        ],
+        "C": [
+          "C*12:202",
+          "C*14:84"
+        ],
+        "DQB1": [
+          "DQB1*06:301",
+          "DQB1*05:327"
+        ],
+        "DRB1": [
+          "DRB1*11:305",
+          "DRB1*03:16"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*66:37",
+          "A*32:15"
+        ],
+        "B": [
+          "B*35:366",
+          "B*56:43"
+        ],
+        "C": [
+          "C*12:202",
+          "C*14:84"
+        ],
+        "DQB1": [
+          "DQB1*06:301",
+          "DQB1*05:327"
+        ],
+        "DRB1": [
+          "DRB1*11:305",
+          "DRB1*03:16"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles, and all alleles are expressed. The match is confirmed at all levels.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0000"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*68:86",
+          "A*02:02"
+        ],
+        "B": [
+          "B*59:08",
+          "B*56:53"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:724"
+        ],
+        "DQB1": [
+          "DQB1*05:315",
+          "DQB1*02:197"
+        ],
+        "DRB1": [
+          "DRB1*04:365",
+          "DRB1*14:104"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*68:86",
+          "A*02:02"
+        ],
+        "B": [
+          "B*59:08",
+          "B*56:53"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:724"
+        ],
+        "DQB1": [
+          "DQB1*05:315",
+          "DQB1*02:197"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*14:104"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both the donor and recipient have identical HLA-A, HLA-B, HLA-C, HLA-DQB1, and HLA-DRB1 alleles. The donor and recipient have no null alleles and all alleles are expressed. The donor and recipient have no alleles that are not expressed. The donor and recipient have no alleles that are expressed but not present in the other. The donor and recipient have no alleles that are not expressed but present in the other. The donor and recipient have no alleles that are expressed and present in the other but are not the same allele. The donor and recipient have no alleles that are not expressed and present in the other but are not the same allele.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0001"
+  },
+  {
+    "canonical": {
+      "count": "10/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:238",
+          "DRB1*09:23"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:199",
+          "A*68:98"
+        ],
+        "B": [
+          "B*44:450",
+          "B*51:04"
+        ],
+        "C": [
+          "C*07:588",
+          "C*04:450"
+        ],
+        "DQB1": [
+          "DQB1*06:210",
+          "DQB1*03:245"
+        ],
+        "DRB1": [
+          "DRB1*04:261",
+          "DRB1*09:23"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles or other ambiguities.\"\n}",
+    "subtype": "antigen_vs_allele",
+    "task_id": "hla_matching.r3.T2.antigen_vs_allele.0002"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:21",
+          "A*03:373"
+        ],
+        "B": [
+          "B*15:586",
+          "B*08:243"
+        ],
+        "C": [
+          "C*02:101",
+          "C*03:373"
+        ],
+        "DQB1": [
+          "DQB1*05:145",
+          "DQB1*03:557"
+        ],
+        "DRB1": [
+          "DRB1*08:57",
+          "DRB1*14:104"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*01:21",
+          "A*03:373"
+        ],
+        "B": [
+          "B*15:586",
+          "B*08:243"
+        ],
+        "C": [
+          "C*03:615",
+          "C*03:373"
+        ],
+        "DQB1": [
+          "DQB1*05:145",
+          "DQB1*03:557"
+        ],
+        "DRB1": [
+          "DRB1*08:57",
+          "DRB1*14:104"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles, and all alleles are expressed. The match is perfect at all levels.\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0000"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*11:513",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:28",
+          "B*08:261"
+        ],
+        "C": [
+          "C*12:276",
+          "C*07:78"
+        ],
+        "DQB1": [
+          "DQB1*02:90",
+          "DQB1*02:191"
+        ],
+        "DRB1": [
+          "DRB1*11:180",
+          "DRB1*14:258"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*11:513",
+          "A*23:39"
+        ],
+        "B": [
+          "B*08:28",
+          "B*08:261"
+        ],
+        "C": [
+          "C*03:535",
+          "C*07:78"
+        ],
+        "DQB1": [
+          "DQB1*02:90",
+          "DQB1*02:191"
+        ],
+        "DRB1": [
+          "DRB1*11:180",
+          "DRB1*14:258"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles, and all alleles are expressed. The match is perfect at all levels.\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "mismatch",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*05:216",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      },
+      "framework": "10/10",
+      "recipient": {
+        "A": [
+          "A*24:557",
+          "A*29:133"
+        ],
+        "B": [
+          "B*15:476",
+          "B*07:139"
+        ],
+        "C": [
+          "C*02:13",
+          "C*03:615"
+        ],
+        "DQB1": [
+          "DQB1*05:256",
+          "DQB1*02:16"
+        ],
+        "DRB1": [
+          "DRB1*01:30",
+          "DRB1*14:37"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA alleles at all tested loci. There are no null alleles, and all alleles are expressed. The match framework is 10/10, which includes A, B, C, DRB1, and DQB1 alleles at the antigen level.\"\n}",
+    "subtype": "framework_shift",
+    "task_id": "hla_matching.r3.T2.framework_shift.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 1,
+      "hvg_mismatches": 0,
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*11:289"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:447",
+          "A*02:191"
+        ],
+        "B": [
+          "B*44:106",
+          "B*07:344"
+        ],
+        "C": [
+          "C*03:609",
+          "C*03:440"
+        ],
+        "DRB1": [
+          "DRB1*11:289",
+          "DRB1*13:279"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA typings for all loci, including antigen level matches for A, B, C, and DRB1. There are no null alleles or ambiguous input issues. The HLA nomenclature is consistent across the donor and recipient, and all alleles are expressed.\",\n  \"hvg_mismatches\": 0,\n  \"gvh_mismatches\": 0\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0000"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 0,
+      "hvg_mismatches": 1,
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*01:92",
+          "A*24:257"
+        ],
+        "B": [
+          "B*56:43",
+          "B*35:659"
+        ],
+        "C": [
+          "C*07:51",
+          "C*03:308"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*13:366"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*01:92",
+          "A*01:92"
+        ],
+        "B": [
+          "B*56:43",
+          "B*35:659"
+        ],
+        "C": [
+          "C*07:51",
+          "C*03:308"
+        ],
+        "DRB1": [
+          "DRB1*04:269",
+          "DRB1*13:366"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA typings for all loci (A, B, C, DRB1) at the allele level, as specified in the 8/8 framework. There are no null alleles, no mismatches in antigen expression, and no deprecated names. The HLA nomenclature is consistent across the donor and recipient, and all alleles are expressed.\",\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\"release_mismatch\"],\n  \"reasoning\": \"The input data is from an older HLA nomenclature era (likely legacy names) and needs to be normalized to the current IPD-IMGT/HLA nomenclature for accurate comparison and scoring.\"\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0001"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "gvh_mismatches": 1,
+      "hvg_mismatches": 0,
+      "verdict_A": "match",
+      "verdict_B": "mismatch",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:373",
+          "A*32:84"
+        ],
+        "B": [
+          "B*53:14",
+          "B*53:14"
+        ],
+        "C": [
+          "C*03:608",
+          "C*06:99"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*01:30"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:373",
+          "A*32:84"
+        ],
+        "B": [
+          "B*53:14",
+          "B*27:202"
+        ],
+        "C": [
+          "C*03:608",
+          "C*06:99"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*01:30"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA-A, HLA-B, HLA-C, and HLA-DRB1 alleles. There are no null alleles, and all alleles are expressed. The match framework is 8/8, indicating a full match at the allele level for A, B, C, and DRB1. The recipient and donor do not have any mismatched alleles, and there are no flags or ambiguities in the input.\"\n}",
+    "subtype": "direction",
+    "task_id": "hla_matching.r3.T3.direction.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*30:202",
+          "A*26:190"
+        ],
+        "B": [
+          "B*27:274",
+          "B*27:90"
+        ],
+        "C": [
+          "C*06:395",
+          "C*07:588"
+        ],
+        "DRB1": [
+          "DRB1*04:261",
+          "DRB1*08:101"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*30:202",
+          "A*26:190"
+        ],
+        "B": [
+          "B*27:274",
+          "B*27:90"
+        ],
+        "C": [
+          "C*06:395",
+          "C*07:588"
+        ],
+        "DRB1": [
+          "DRB1*08:60N",
+          "DRB1*08:101"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"release_mismatch\"\n  ],\n  \"reasoning\": \"The input data uses legacy colon-less nomenclature for HLA alleles, which is not supported by the current IPD-IMGT/HLA release 3.65.0. This makes it impossible to resolve the HLA typing accurately.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0000"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "match",
+      "verdict_B": "mismatch",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:395",
+          "A*23:39"
+        ],
+        "B": [
+          "B*39:185",
+          "B*45:14"
+        ],
+        "C": [
+          "C*03:440",
+          "C*04:584"
+        ],
+        "DQB1": [
+          "DQB1*05:367",
+          "DQB1*05:161"
+        ],
+        "DRB1": [
+          "DRB1*14:37",
+          "DRB1*13:248"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*03:395",
+          "A*23:39"
+        ],
+        "B": [
+          "B*14:131N",
+          "B*45:14"
+        ],
+        "C": [
+          "C*03:440",
+          "C*04:584"
+        ],
+        "DQB1": [
+          "DQB1*05:367",
+          "DQB1*05:161"
+        ],
+        "DRB1": [
+          "DRB1*14:37",
+          "DRB1*13:248"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles, and all alleles are expressed. The donor and recipient match at all loci specified in the framework.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0001"
+  },
+  {
+    "canonical": {
+      "count": "9/10",
+      "verdict_A": "mismatch",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DQB1": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*26:190",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      },
+      "framework": "antigen",
+      "recipient": {
+        "A": [
+          "A*33:96N",
+          "A*02:664"
+        ],
+        "B": [
+          "B*44:222",
+          "B*59:08"
+        ],
+        "C": [
+          "C*07:51",
+          "C*02:13"
+        ],
+        "DQB1": [
+          "DQB1*02:236",
+          "DQB1*05:256"
+        ],
+        "DRB1": [
+          "DRB1*03:96",
+          "DRB1*01:12"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"Both donor and recipient have identical HLA alleles at all loci, including antigen level. There are no null alleles, and all alleles are expressed.\"\n}",
+    "subtype": "null_trap_match",
+    "task_id": "hla_matching.r3.T3.null_trap_match.0002"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "potential",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [
+      "A*80:83"
+    ],
+    "input": {
+      "donor": {
+        "A": [
+          "A*80:83",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*32:55",
+          "A*03:373"
+        ],
+        "B": [
+          "B*07:253",
+          "B*07:139"
+        ],
+        "C": [
+          "C*07:647",
+          "C*07:45"
+        ],
+        "DRB1": [
+          "DRB1*10:08",
+          "DRB1*08:57"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor and recipient have identical alleles for A, B, C, and DRB1 loci. However, the donor's A*80:83 allele is not recognized in the current IPD-IMGT/HLA release 3.65.0. This unknown allele prevents a definitive match score.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0000"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "match",
+      "verdict_B": "potential",
+      "verdict_C": "match",
+      "verdict_DRB1": "match"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*95:85",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*02:191",
+          "A*30:187"
+        ],
+        "B": [
+          "B*27:09",
+          "B*35:659"
+        ],
+        "C": [
+          "C*02:13",
+          "C*04:450"
+        ],
+        "DRB1": [
+          "DRB1*13:81",
+          "DRB1*11:18"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"release_mismatch\"\n  ],\n  \"reasoning\": \"The input data uses legacy colon-less nomenclature which is not accepted. The HLA nomenclature has transitioned to the colon-delimited format (e.g., A*02:191 instead of A*02:191). This makes it impossible to resolve the HLA typing using the current IPD-IMGT/HLA release 3.65.0.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0001"
+  },
+  {
+    "canonical": {
+      "count": "6/6",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "potential"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*32:21",
+          "A*31:217"
+        ],
+        "B": [
+          "B*27:09",
+          "B*27:247"
+        ],
+        "C": [
+          "C*15:40",
+          "C*12:202"
+        ],
+        "DRB1": [
+          "DRB1*17:95",
+          "DRB1*13:81"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*32:21",
+          "A*31:217"
+        ],
+        "B": [
+          "B*27:09",
+          "B*27:247"
+        ],
+        "C": [
+          "C*15:40",
+          "C*12:202"
+        ],
+        "DRB1": [
+          "DRB1*11:356",
+          "DRB1*13:81"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor and recipient have identical alleles for A, B, C, and DRB1 loci. However, the donor has two alleles for A and B loci, which is not possible in the current nomenclature. This indicates a potential release mismatch or an unconfirmed allele issue.\"\n}",
+    "subtype": "resolution_insufficient",
+    "task_id": "hla_matching.r3.T3.resolution_insufficient.0002"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*68:48",
+          "A*32:35"
+        ],
+        "B": [
+          "B*48:01",
+          "B*56:53"
+        ],
+        "C": [
+          "C*04:103",
+          "C*01:223"
+        ],
+        "DRB1": [
+          "DRB1*14:17",
+          "DRB1*11:219"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*68:48",
+          "A*32:35"
+        ],
+        "B": [
+          "B*48:01",
+          "B*56:53"
+        ],
+        "C": [
+          "C*04:103",
+          "C*01:223"
+        ],
+        "DRB1": [
+          "DRB1*14:253",
+          "DRB1*11:219"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"UNRESOLVABLE\",\n  \"confidence\": \"low\",\n  \"flags\": [\n    \"unconfirmed_allele\"\n  ],\n  \"reasoning\": \"The donor and recipient have identical HLA-A, HLA-B, and HLA-C alleles. However, the DRB1 alleles are reported in different formats (DRB1*14:253 vs DRB1*14:17 and DRB1*11:219 vs DRB1*11:219). The DRB1*14:253 is a legacy name and cannot be confirmed in the current IPD-IMGT/HLA nomenclature. The DRB1*14:17 and DRB1*11:219 are in the correct format but differ in the second colon, indicating different alleles. This discrepancy prevents a definitive match or mismatch.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0000"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*24:230",
+          "A*32:21"
+        ],
+        "B": [
+          "B*08:243",
+          "B*18:250"
+        ],
+        "C": [
+          "C*01:214",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*08:101",
+          "DRB1*14:17"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*24:230",
+          "A*32:21"
+        ],
+        "B": [
+          "B*08:243",
+          "B*18:250"
+        ],
+        "C": [
+          "C*01:214",
+          "C*07:874"
+        ],
+        "DRB1": [
+          "DRB1*08:125",
+          "DRB1*14:17"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA alleles at all loci, including antigen level for A, B, C, DRB1, and DQB1. There are no null alleles or other discrepancies.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0001"
+  },
+  {
+    "canonical": {
+      "count": "7/8",
+      "verdict_A": "match",
+      "verdict_B": "match",
+      "verdict_C": "match",
+      "verdict_DRB1": "mismatch"
+    },
+    "hallucinated": [],
+    "input": {
+      "donor": {
+        "A": [
+          "A*03:120",
+          "A*68:48"
+        ],
+        "B": [
+          "B*07:109",
+          "B*56:10"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*02:24"
+        ],
+        "DRB1": [
+          "DRB1*04:365",
+          "DRB1*14:121"
+        ]
+      },
+      "framework": "8/8",
+      "recipient": {
+        "A": [
+          "A*03:120",
+          "A*68:48"
+        ],
+        "B": [
+          "B*07:109",
+          "B*56:10"
+        ],
+        "C": [
+          "C*07:1171",
+          "C*02:24"
+        ],
+        "DRB1": [
+          "DRB1*04:238",
+          "DRB1*14:121"
+        ]
+      }
+    },
+    "primary_failure_mode": "resolution_mismatch",
+    "raw": "{\n  \"answer\": \"high\",\n  \"confidence\": \"high\",\n  \"flags\": [],\n  \"reasoning\": \"The donor and recipient have identical HLA typings for all loci (A, B, C, DRB1) at the allele level. The donor and recipient have two alleles for A, B, and C loci, and four alleles for DRB1 loci. The donor and recipient have the same alleles at each locus, and the framework score is 8/8, indicating a perfect match at the allele level for A, B, C, and DRB1 loci.\"\n}",
+    "subtype": "near_miss_pair",
+    "task_id": "hla_matching.r3.T4.near_miss_pair.0002"
+  }
+]
