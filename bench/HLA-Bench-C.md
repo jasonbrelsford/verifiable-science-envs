@@ -16,6 +16,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `baseline-naive-string` | all | 205 | 0% <sub>[0–2]</sub> | 0 | 0.00 | 88% | `resolution_mismatch` |
 | `ollama/gemma3:12b` | all | 205 | 0% <sub>[0–2]</sub> | 8 | 0.04 | 88% | `wrong_but_overconfident` |
 | `ollama/phi4-mini` | all | 205 | 0% <sub>[0–2]</sub> | 6 | 0.03 | 88% | `resolution_mismatch` |
+| `ollama/qwen2.5:3b` | all | 205 | 0% <sub>[0–2]</sub> | 18 | 0.09 | 97% | `resolution_mismatch` |
 
 ## By tier
 
@@ -29,6 +30,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `baseline-naive-string` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 | `ollama/gemma3:12b` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 | `ollama/phi4-mini` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
+| `ollama/qwen2.5:3b` | all | 0% <sub>[0–6]</sub> | 0% <sub>[0–7]</sub> | 0% <sub>[0–5]</sub> | 0% <sub>[0–16]</sub> |
 
 ## By slice (where clinical risk concentrates)
 
@@ -42,19 +44,20 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `baseline-naive-string` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
 | `ollama/gemma3:12b` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
 | `ollama/phi4-mini` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
+| `ollama/qwen2.5:3b` | all | 0% <sub>[0–13]</sub> | — | — | — | — | — | — | — | — |
 
 ## By subtype
 
-| Subtype | `ollama/mistral:7b` (all) | `ollama/qwen2.5:14b` (all) | `ollama/qwen2.5:7b` (all) | `ollama/llama3.1:8b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) | `ollama/gemma3:12b` (all) | `ollama/phi4-mini` (all) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `antigen_vs_allele` | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
-| `count_simple` | 37% <sub>[22–54]</sub> | 60% <sub>[42–75]</sub> | 33% <sub>[19–51]</sub> | 23% <sub>[12–41]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
-| `direction` | 4% <sub>[1–20]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `framework_shift` | 0% <sub>[0–16]</sub> | 20% <sub>[8–42]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
-| `near_miss_pair` | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
-| `null_trap_match` | 8% <sub>[2–25]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `resolution_insufficient` | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
-| `same_after_normalize` | 43% <sub>[27–61]</sub> | 7% <sub>[2–21]</sub> | 10% <sub>[3–26]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| Subtype | `ollama/mistral:7b` (all) | `ollama/qwen2.5:14b` (all) | `ollama/qwen2.5:7b` (all) | `ollama/llama3.1:8b` (all) | `baseline-cautious-abstainer` (all) | `baseline-naive-string` (all) | `ollama/gemma3:12b` (all) | `ollama/phi4-mini` (all) | `ollama/qwen2.5:3b` (all) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `antigen_vs_allele` | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| `count_simple` | 37% <sub>[22–54]</sub> | 60% <sub>[42–75]</sub> | 33% <sub>[19–51]</sub> | 23% <sub>[12–41]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
+| `direction` | 4% <sub>[1–20]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `framework_shift` | 0% <sub>[0–16]</sub> | 20% <sub>[8–42]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
+| `near_miss_pair` | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> |
+| `null_trap_match` | 8% <sub>[2–25]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `resolution_insufficient` | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> | 0% <sub>[0–13]</sub> |
+| `same_after_normalize` | 43% <sub>[27–61]</sub> | 7% <sub>[2–21]</sub> | 10% <sub>[3–26]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> |
 
 ## Fabricated names (top 10 per model)
 
@@ -66,6 +69,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 - `baseline-naive-string` (all): none
 - `ollama/gemma3:12b` (all): `C*0224`×1, `A*2524`×1, `A*33:096`×1, `C*18:87`×1, `A*80:85`×1, `A*80:86`×1, `DRB1*17:93`×1, `DRB1*17:91`×1
 - `ollama/phi4-mini` (all): `DRB1*1008`×1, `DRB1*1023`×1, `C*07:03:468`×1, `DRB1*17:89`×1, `DRB1*17:93`×1, `DRB1*17:98`×1
+- `ollama/qwen2.5:3b` (all): `A*2562`×1, `A*2339`×1, `A*2524`×1, `C*0135`×1, `C*0745`×1, `B*2790`×1, `C*0213`×1, `DRB1*1023`×1, `C*0686`×1, `A*80:83`×1
 
 ## Failure modes (primary, per task)
 
@@ -79,6 +83,7 @@ Dev split: 43 tasks (public). Sealed split: 162 tasks (server-side). Regenerated
 | `baseline-naive-string` | all | 0 | 0 | 205 | 0 | 0 |
 | `ollama/gemma3:12b` | all | 0 | 0 | 0 | 203 | 2 |
 | `ollama/phi4-mini` | all | 0 | 0 | 139 | 64 | 2 |
+| `ollama/qwen2.5:3b` | all | 0 | 3 | 195 | 7 | 0 |
 
 ## Method
 
