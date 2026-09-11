@@ -34,12 +34,12 @@
     // Maps a Stripe price id to a tier for self-serve key issuance (src/stripe.js),
     // used only when checkout.session.completed has no metadata.tier; anything not
     // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"pro"}.
-    "STRIPE_TIER_MAP": "{}",
+    "STRIPE_TIER_MAP": "{\"price_1UEZpKPULaK83987DPGNMPdD\": \"starter\", \"price_1UEZpLPULaK83987RyGL96dG\": \"pro\"}",
     // Stripe Payment Links shown as buttons on GET /pricing; each renders as
     // "coming soon" until set. Set metadata.tier on the underlying price (or on
     // the Payment Link itself) so the webhook can read session.metadata.tier.
-    "STRIPE_STARTER_LINK": "",
-    "STRIPE_PRO_LINK": ""
+    "STRIPE_STARTER_LINK": "https://buy.stripe.com/test_14A14p4GJ1pt5owcAdcZa00",
+    "STRIPE_PRO_LINK": "https://buy.stripe.com/test_00wcN7ddf6JN4ks0RvcZa01"
   }
   // Secrets (wrangler secret put):
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
