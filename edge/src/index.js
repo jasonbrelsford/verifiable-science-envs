@@ -8,9 +8,12 @@
 import { createEngine, FRAMEWORKS } from "./engine.js";
 import manifest from "../public/manifest.json";
 import { DOCS_HTML, openapi } from "./docs.js";
+import { parseKeys } from "./keys.js";
+import { doVerify, doNormalize, doAllele, doMatch } from "./handlers.js";
+import { handleMcp } from "./mcp.js";
+import { handleWebhook } from "./webhook.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
-const MAX_TEXT = 200_000, MAX_TYPINGS = 5_000, MAX_LOCI = 24, MAX_PER_LOCUS = 4;
 const ANON_LIMIT_NOTE = "60 requests/minute without an API key — keys for labs, LIMS vendors and agent platforms: hello@hlaverify.com";
 
 let engine = null;
@@ -41,17 +44,14 @@ function json(body, status = 200, extra = {}) {
   });
 }
 const err = (status, detail) => json({ detail }, status);
+const tierHeader = (who) => ({ "x-hla-verify-tier": who.tier });
 
-function parseKeys(s) {
-  const out = new Map();
-  for (const part of (s || "").split(",")) {
-    const p = part.trim();
-    if (!p) continue;
-    const i = p.indexOf("=");
-    if (i > 0) out.set(p.slice(0, i).trim(), p.slice(i + 1).trim() || "key");
-    else out.set(p, "key");
-  }
-  return out;
+// Tier -> rate-limit binding. "free" (anonymous) is metered by IP on RL;
+// "enterprise" is uncapped; "starter"/"pro" are metered by the presented key.
+function limiterFor(env, tier) {
+  if (tier === "starter") return env.RL_STARTER;
+  if (tier === "pro") return env.RL_PRO;
+  return null;
 }
 
 async function authorize(req, env) {
@@ -59,10 +59,34 @@ async function authorize(req, env) {
   let presented = req.headers.get("x-api-key") || "";
   const bearer = req.headers.get("authorization") || "";
   if (!presented && bearer.toLowerCase().startsWith("bearer ")) presented = bearer.slice(7).trim();
+
   if (presented) {
-    if (keys.has(presented)) return { label: keys.get(presented), keyed: true };
+    if (keys.has(presented)) {
+      const { label, tier } = keys.get(presented);
+      return { label, tier, keyed: true };
+    }
+    if (env.KEYS) {
+      let rec = null;
+      try {
+        const raw = await env.KEYS.get(presented);
+        rec = raw ? JSON.parse(raw) : null;
+      } catch (_) { /* malformed record: treat as absent */ }
+      if (rec) {
+        if (rec.status === "revoked") return err(401, "API key revoked");
+        const tier = rec.tier || "starter";
+        const rl = limiterFor(env, tier);
+        if (rl) {
+          try {
+            const { success } = await rl.limit({ key: presented });
+            if (!success) return err(429, `rate limited for the ${tier} tier`);
+          } catch (_) { /* limiter unavailable: fail open */ }
+        }
+        return { label: rec.label || "self-serve", tier, keyed: true };
+      }
+    }
     return err(401, "missing or invalid X-API-Key");
   }
+
   if (env.PUBLIC_ACCESS === "0") return err(401, "missing or invalid X-API-Key");
   if (env.RL) {
     const ip = req.headers.get("cf-connecting-ip") || "unknown";
@@ -71,7 +95,7 @@ async function authorize(req, env) {
       if (!success) return err(429, `rate limited: ${ANON_LIMIT_NOTE}`);
     } catch (_) { /* limiter unavailable: fail open */ }
   }
-  return { label: "anonymous", keyed: false };
+  return { label: "anonymous", tier: "free", keyed: false };
 }
 
 function meter(env, ctx, who, endpoint, status, units, ms) {
@@ -79,7 +103,7 @@ function meter(env, ctx, who, endpoint, status, units, ms) {
   try {
     env.USAGE.writeDataPoint({
       indexes: [who.label],
-      blobs: [who.label, endpoint, manifest.release, String(status), who.keyed ? "keyed" : "anon"],
+      blobs: [who.label, endpoint, manifest.release, String(status), who.keyed ? "keyed" : "anon", who.tier],
       doubles: [units, ms],
     });
   } catch (_) { /* metering must never break a verdict */ }
@@ -92,18 +116,6 @@ async function readJson(req) {
   try { body = await req.json(); } catch (_) { return [null, err(400, "malformed JSON body")]; }
   if (!body || typeof body !== "object" || Array.isArray(body)) return [null, err(422, "body must be a JSON object")];
   return [body, null];
-}
-
-function validateTyping(obj, side) {
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return `${side} must be an object mapping locus -> [reported alleles]`;
-  const loci = Object.keys(obj);
-  if (loci.length > MAX_LOCI) return `${side}: at most ${MAX_LOCI} loci`;
-  for (const l of loci) {
-    const v = obj[l];
-    if (!Array.isArray(v) || v.length > MAX_PER_LOCUS || !v.every((x) => typeof x === "string" && x.length <= 64))
-      return `${side}.${l} must be a list of up to ${MAX_PER_LOCUS} reported allele strings`;
-  }
-  return null;
 }
 
 export default {
@@ -125,6 +137,35 @@ export default {
       return json(openapi(manifest), 200, { "cache-control": "public, max-age=300" });
     if (path === "/llms.txt") return Response.redirect("https://hlaverify.com/llms.txt", 302);
 
+    // Self-serve key issuance: verifies its own signature, no API key needed.
+    if (path === "/webhooks/lemonsqueezy") {
+      if (req.method !== "POST") return err(405, "POST (signed webhook)");
+      return handleWebhook(req, env);
+    }
+
+    // Remote MCP endpoint: stateless Streamable HTTP transport, one JSON
+    // response per POST. Same keys, same rate limits, same engine as /v1/*.
+    if (path === "/mcp") {
+      if (req.method === "GET")
+        return json({ detail: "GET not supported on /mcp", hint: "POST a JSON-RPC 2.0 message (MCP Streamable HTTP transport)." }, 405);
+      if (req.method !== "POST") return err(405, "POST JSON-RPC 2.0 to /mcp");
+      const who = await authorize(req, env);
+      if (who instanceof Response) return who;
+      const t0 = Date.now();
+      const eng = getEngine(env);
+      const resp = await handleMcp(req, eng, who, manifest, (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0));
+      const body = await resp.text();
+      return new Response(body || null, {
+        status: resp.status,
+        headers: {
+          ...(body ? { "content-type": resp.headers.get("content-type") || "application/json; charset=utf-8" } : {}),
+          "x-hla-verify-release": manifest.release,
+          ...tierHeader(who),
+          ...CORS,
+        },
+      });
+    }
+
     if (!path.startsWith("/v1/")) return err(404, "Not Found");
 
     const who = await authorize(req, env);
@@ -135,41 +176,35 @@ export default {
       if (path === "/v1/verify") {
         if (req.method !== "POST") return err(405, "POST {\"text\": ...}");
         const [body, e] = await readJson(req); if (e) return e;
-        if (typeof body.text !== "string") return err(422, "text must be a string");
-        if (body.text.length > MAX_TEXT) return err(422, `text must be at most ${MAX_TEXT} characters`);
-        const out = await eng.verify(body.text);
-        meter(env, ctx, who, "verify", 200, out.tokens.length, Date.now() - t0);
-        return json(out);
+        const r = await doVerify(eng, manifest, body.text);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "verify", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
       }
       if (path === "/v1/normalize") {
         if (req.method !== "POST") return err(405, "POST {\"typings\": [...]}");
         const [body, e] = await readJson(req); if (e) return e;
-        if (!Array.isArray(body.typings) || !body.typings.every((s) => typeof s === "string"))
-          return err(422, "typings must be a list of strings");
-        if (body.typings.length > MAX_TYPINGS) return err(422, `typings must have at most ${MAX_TYPINGS} items`);
-        const out = await eng.normalizeBatch(body.typings);
-        meter(env, ctx, who, "normalize", 200, body.typings.length, Date.now() - t0);
-        return json(out);
+        const r = await doNormalize(eng, manifest, body.typings);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "normalize", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
       }
       if (path.startsWith("/v1/allele/")) {
         if (req.method !== "GET") return err(405, "GET /v1/allele/{name}");
         let name;
         try { name = decodeURIComponent(url.pathname.slice("/v1/allele/".length)); } catch (_) { return err(400, "bad name encoding"); }
-        if (name.length > 64) return err(422, "name too long");
-        const { status, body } = await eng.allele(name);
-        meter(env, ctx, who, "allele", status, 1, Date.now() - t0);
-        return json(body, status);
+        const r = await doAllele(eng, manifest, name);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "allele", r.status, r.units, Date.now() - t0);
+        return json(r.body, r.status, tierHeader(who));
       }
       if (path === "/v1/match") {
         if (req.method !== "POST") return err(405, "POST {\"framework\": \"8/8\", \"recipient\": {...}, \"donor\": {...}}");
         const [body, e] = await readJson(req); if (e) return e;
-        const fw = body.framework ?? "8/8";
-        if (!Object.prototype.hasOwnProperty.call(FRAMEWORKS, fw)) return err(422, `framework must be one of ${Object.keys(FRAMEWORKS).sort().join(", ")}`);
-        const v = validateTyping(body.recipient, "recipient") || validateTyping(body.donor, "donor");
-        if (v) return err(422, v);
-        const out = await eng.match(fw, body.recipient, body.donor);
-        meter(env, ctx, who, "match", 200, FRAMEWORKS[fw].length, Date.now() - t0);
-        return json(out);
+        const r = await doMatch(eng, manifest, body.framework, body.recipient, body.donor);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "match", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
       }
       return err(404, "Not Found");
     } catch (ex) {
@@ -178,3 +213,5 @@ export default {
     }
   },
 };
+
+export { FRAMEWORKS };

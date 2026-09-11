@@ -13,12 +13,29 @@
     { "pattern": "www.hlaverify.com/v1/*", "zone_name": "hlaverify.com" }
   ],
   "ratelimits": [
-    { "name": "RL", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }
+    { "name": "RL", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+    { "name": "RL_STARTER", "namespace_id": "1002", "simple": { "limit": 600, "period": 60 } },
+    { "name": "RL_PRO", "namespace_id": "1003", "simple": { "limit": 6000, "period": 60 } }
+  ],
+  // KV namespace for self-serve/tiered keys (record shape documented in
+  // src/webhook.js). The overseer creates this once with
+  // `wrangler kv namespace create KEYS` and pastes the returned id below,
+  // replacing 8360bbe6d4904699ab019702427fc19d. Until then, env.KEYS is undefined and the API falls
+  // back to secret-only keys (HLA_VERIFY_API_KEYS) plus anonymous free tier.
+  "kv_namespaces": [
+    { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" }
   ],
   "analytics_engine_datasets": [
     { "binding": "USAGE", "dataset": "hlaverify_usage" }
   ],
   "observability": { "enabled": true },
-  "vars": { "PUBLIC_ACCESS": "1" }
-  // Secrets (wrangler secret put): HLA_VERIFY_API_KEYS = "key=label,key2=label2"
+  "vars": {
+    "PUBLIC_ACCESS": "1",
+    // Maps a Lemon Squeezy product/variant name to a tier for self-serve key
+    // issuance (src/webhook.js); anything not listed here falls back to "starter".
+    "TIER_MAP": "{\"HLA-Verify Starter\":\"starter\",\"HLA-Verify Pro\":\"pro\"}"
+  }
+  // Secrets (wrangler secret put):
+  //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
+  //   LEMONSQUEEZY_WEBHOOK_SECRET = "<the signing secret from the Lemon Squeezy webhook settings>"
 }
