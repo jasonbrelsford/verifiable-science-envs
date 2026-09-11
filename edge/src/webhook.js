@@ -1,3 +1,9 @@
+// NOT ROUTED; kept in the repo as a documented option for a merchant-of-record
+// provider (Lemon Squeezy handles VAT/sales-tax remittance itself, which Stripe
+// does not do on its own). Jason has decided to use Stripe only for now — see
+// stripe.js, wired up at POST /webhooks/stripe in index.js. This file's tests
+// still run and still pass; it is simply not reachable from index.js anymore.
+//
 // Self-serve key issuance webhook. Provider-agnostic by design: the KV record
 // format below does not mention Lemon Squeezy, so a different billing provider
 // can write the same shape and everything downstream (authorize() in index.js)

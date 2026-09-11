@@ -6,15 +6,16 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { createEngine, FRAMEWORKS } from "./engine.js";
-import manifest from "../public/manifest.json";
-import { DOCS_HTML, openapi } from "./docs.js";
+import manifest from "../public/manifest.json" with { type: "json" };
+import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
-import { handleWebhook } from "./webhook.js";
+import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
-const ANON_LIMIT_NOTE = "60 requests/minute without an API key — keys for labs, LIMS vendors and agent platforms: hello@hlaverify.com";
+const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
+const ANON_LIMIT_NOTE = `60 requests/minute without an API key — keys for labs, LIMS vendors and agent platforms: ${PRICING_NOTE}`;
 
 let engine = null;
 function getEngine(env) {
@@ -78,7 +79,7 @@ async function authorize(req, env) {
         if (rl) {
           try {
             const { success } = await rl.limit({ key: presented });
-            if (!success) return err(429, `rate limited for the ${tier} tier`);
+            if (!success) return err(429, `rate limited for the ${tier} tier — upgrade at ${PRICING_NOTE}`);
           } catch (_) { /* limiter unavailable: fail open */ }
         }
         return { label: rec.label || "self-serve", tier, keyed: true };
@@ -137,10 +138,25 @@ export default {
       return json(openapi(manifest), 200, { "cache-control": "public, max-age=300" });
     if (path === "/llms.txt") return Response.redirect("https://hlaverify.com/llms.txt", 302);
 
+    if (path === "/pricing") {
+      if (req.method !== "GET") return err(405, "GET /pricing");
+      return new Response(PRICING_HTML(manifest, { starterLink: env.STRIPE_STARTER_LINK, proLink: env.STRIPE_PRO_LINK }),
+        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", ...CORS } });
+    }
+
+    // Landing page after Stripe Checkout redirects back; shows the issued key once.
+    if (path === "/checkout/success") {
+      if (req.method !== "GET") return err(405, "GET /checkout/success?session_id=...");
+      const result = await resolveCheckoutSuccess(url.searchParams.get("session_id") || "", env);
+      return new Response(CHECKOUT_SUCCESS_HTML(manifest, result),
+        { status: result.status === "not_found" ? 404 : 200,
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", ...CORS } });
+    }
+
     // Self-serve key issuance: verifies its own signature, no API key needed.
-    if (path === "/webhooks/lemonsqueezy") {
+    if (path === "/webhooks/stripe") {
       if (req.method !== "POST") return err(405, "POST (signed webhook)");
-      return handleWebhook(req, env);
+      return handleStripeWebhook(req, env);
     }
 
     // Remote MCP endpoint: stateless Streamable HTTP transport, one JSON

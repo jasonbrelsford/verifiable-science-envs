@@ -13,7 +13,9 @@ Every response carries the release tag and the attribution line.
 Base URL `https://api.hlaverify.com` (also `https://hlaverify.com/v1/…`). Open without a
 key at 60 requests per minute per IP. Keyed access (`X-API-Key: …` or
 `Authorization: Bearer …`) removes the per-minute cap, adds per-key usage reporting, and
-sends a diff of changed verdicts before each quarterly release. Keys: hello@hlaverify.com.
+sends a diff of changed verdicts before each quarterly release. Starter/Pro keys are
+self-serve at https://api.hlaverify.com/pricing (Stripe checkout, key issued within
+seconds); enterprise keys and volume licensing: hello@hlaverify.com.
 
 ## Where it plugs into a typing pipeline
 

@@ -33,7 +33,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <tr><td><code>enterprise</code></td><td>uncapped</td><td>API key</td></tr>
 </table>
 <h3>Self-serve keys</h3>
-<p>Starter and Pro keys are issued automatically: buy a licence through the HLA-Verify pricing page, and the checkout provider's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. A cancelled, refunded, or disabled licence is revoked the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Starter and Pro keys are issued automatically through Stripe: buy on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
@@ -98,6 +98,81 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 
 <h2>Terms</h2>
 <p class="mut">HLA-Verify is a research-and-evaluation tool and not a medical device; output supports and does not replace clinical judgement. Service code: PolyForm Noncommercial 1.0.0 — commercial use requires a licence from Brelsford Software LLC (<a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>). Reference data: IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Research 2025), CC-BY-ND, fetched from the official source and never redistributed in bulk. Requests are processed in memory and discarded; metering records counts per key, never content.</p>
+</div></body></html>`;
+}
+
+// /pricing — plain HTML, same styling as DOCS_HTML. Buttons link to Stripe
+// Payment Links passed in as starterLink/proLink (env vars STRIPE_STARTER_LINK,
+// STRIPE_PRO_LINK); either renders as "coming soon" text when unset so the page
+// never links to nothing.
+export function PRICING_HTML(m, { starterLink, proLink } = {}) {
+  const buy = (link, label) =>
+    link ? `<a class="btn" href="${esc(link)}">${esc(label)}</a>` : `<span class="btn mut" aria-disabled="true">coming soon</span>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLA-Verify — pricing</title>
+<meta name="description" content="HLA-Verify API pricing: free evaluation tier, self-serve Starter and Pro keys, Enterprise by request.">
+<style>
+:root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
+.wrap{max-width:860px;margin:0 auto;padding:28px 22px 60px}
+h1{font-family:Georgia,serif;font-size:2rem;margin:.2em 0}
+table{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:1.2em}td,th{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
+a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
+.btn{display:inline-block;background:var(--green);color:#fff;border-radius:8px;padding:8px 16px;text-decoration:none;font-weight:600}
+.btn.mut{background:#EEECE4;color:var(--mut)}
+</style></head><body><div class="wrap">
+<nav><a href="/docs">API reference</a><a href="https://hlaverify.com">hlaverify.com</a></nav>
+<h1>Pricing</h1>
+<p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Prices and billing period are set at checkout; cancel anytime from the Stripe customer portal link in your receipt.</p>
+<table>
+<tr><th>Tier</th><th>Limit</th><th></th></tr>
+<tr><td><b>Free</b></td><td>60 req/min per IP, no key required</td><td class="mut">just start calling the API</td></tr>
+<tr><td><b>Starter</b></td><td>600 req/min per key</td><td>${buy(starterLink, "Buy Starter")}</td></tr>
+<tr><td><b>Pro</b></td><td>6,000 req/min per key</td><td>${buy(proLink, "Buy Pro")}</td></tr>
+<tr><td><b>Enterprise</b></td><td>uncapped, custom SLA</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
+</table>
+<p class="mut" style="margin-top:2em">After payment you'll land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Full endpoint reference: <a href="/docs">/docs</a>.</p>
+</div></body></html>`;
+}
+
+// GET /checkout/success?session_id=... — shown right after Stripe redirects
+// back. `result` is resolveCheckoutSuccess()'s return value from stripe.js:
+// {status:"ok",key,tier,label} | {status:"pending"} | {status:"not_found"} | {status:"no_secret"}.
+export function CHECKOUT_SUCCESS_HTML(m, result = {}) {
+  const body = (() => {
+    if (result.status === "ok") {
+      return `<p class="pill">Payment received</p>
+<h2>Your HLA-Verify API key</h2>
+<pre><code>${esc(result.key)}</code></pre>
+<p>Tier: <b>${esc(result.tier || "starter")}</b>. This key is shown <b>once</b> — copy it now. It is also saved to your Stripe customer record (visible in your receipt email and the Stripe customer portal) if you ever need to look it up again.</p>
+<h3>Use it</h3>
+<pre><code>curl -s https://api.hlaverify.com/v1/allele/A*01:01 -H 'X-API-Key: ${esc(result.key)}'</code></pre>
+<pre><code>{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp",
+  "headers": {"Authorization": "Bearer ${esc(result.key)}"}}}}</code></pre>
+<p class="mut">Full reference: <a href="/docs">/docs</a>. Cancel anytime from the customer portal link in your receipt — that revokes this key.</p>`;
+    }
+    if (result.status === "pending") {
+      return `<p class="pill">Payment received</p><h2>Issuing your key…</h2>
+<p>Your payment went through, but the key isn't in our store quite yet (webhook lag, usually a few seconds). <a href="javascript:location.reload()">Refresh in a few seconds</a>. If this page still doesn't show a key after a minute or two, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a> with your receipt.</p>`;
+    }
+    if (result.status === "no_secret") {
+      return `<h2>Checkout received</h2><p>Payment confirmation isn't wired up on this deployment yet. Your key will still be issued by the webhook — check your email receipt from Stripe, or email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>`;
+    }
+    return `<h2>We couldn't confirm this checkout</h2><p>Either the session id is missing/invalid, or payment hasn't completed yet. If you just paid, check your email receipt, or email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>`;
+  })();
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLA-Verify — checkout</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
+.wrap{max-width:680px;margin:0 auto;padding:28px 22px 60px}
+h2{font-family:Georgia,serif;color:var(--green)}
+pre{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.5}pre code{background:none;padding:0}
+.pill{display:inline-block;background:#DCEFDC;color:var(--green);border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:600}
+a{color:var(--green)}.mut{color:var(--mut)}
+</style></head><body><div class="wrap">
+${body}
 </div></body></html>`;
 }
 
