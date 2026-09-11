@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "assets/landing.html"
+      - "assets/product.html"
       - "assets/demo.template.html"
       - "assets/llms.txt"
       - ".github/workflows/cloudflare.yml"

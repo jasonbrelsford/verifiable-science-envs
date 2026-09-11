@@ -15,6 +15,10 @@ release; verification is pinned to an exact release version.
 
 ## Use
 
+- Product page (plans, pipeline integration points, MCP setup, for lab directors, LIMS
+  product managers, and AI platform teams): https://hlaverify.com/product
+- Pricing (free/starter/pro/enterprise tiers, self-serve Stripe checkout for starter and
+  pro): https://api.hlaverify.com/pricing
 - Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 60 req/min; keys for
   production): https://api.hlaverify.com — reference https://api.hlaverify.com/docs,
   OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…

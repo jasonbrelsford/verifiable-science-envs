@@ -7,9 +7,12 @@
 :root{--green:#2F5D3A;--dark:#1E4028;--ink:#1E3A28;--mint:#8FD69B;--paper:#FAFAF4;--mut:#5A6B5D}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
 .wrap{max-width:880px;margin:0 auto;padding:0 24px}
-header{display:flex;align-items:center;gap:14px;padding:28px 0}
+header{display:flex;align-items:center;gap:14px;padding:28px 0;flex-wrap:wrap}
 header svg{width:52px;height:52px;flex:none}
 header .name{font-family:Georgia,serif;font-weight:bold;font-size:1.5rem}
+nav.topnav{display:flex;gap:18px;flex-wrap:wrap;margin-left:auto;font-size:.95rem}
+nav.topnav a{color:var(--green);text-decoration:none;font-weight:600}
+nav.topnav a:hover{text-decoration:underline}
 .hero{padding:36px 0 8px}
 h1{font-family:Georgia,serif;font-size:clamp(1.8rem,4.5vw,2.8rem);line-height:1.15;margin:0 0 18px}
 h1 em{font-style:normal;color:var(--green)}
@@ -31,6 +34,7 @@ footer a{color:var(--green)}
 <header>
 <svg viewBox="0 0 512 512" role="img" aria-label="HLA-Verify logo"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F5D3A"/><stop offset="1" stop-color="#1E4028"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="104" fill="url(#bg)"/><g transform="translate(218,242)" stroke="#FAFAF4" stroke-width="52" stroke-linecap="round"><line x1="0" y1="-118" x2="0" y2="118"/><line x1="-102" y1="-59" x2="102" y2="59"/><line x1="-102" y1="59" x2="102" y2="-59"/></g><circle cx="366" cy="356" r="98" fill="#8FD69B" stroke="#1E4028" stroke-width="14"/><path d="M318 356 l36 38 l64 -74" fill="none" stroke="#123420" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/></svg>
 <span class="name">HLA-Verify</span>
+<nav class="topnav"><a href="/product">Product</a><a href="/demo">Demo</a><a href="https://api.hlaverify.com/docs">API docs</a><a href="https://api.hlaverify.com/pricing">Pricing</a><a href="https://github.com/jasonbrelsford/verifiable-science-envs">GitHub</a></nav>
 </header>
 
 <div class="hero">
@@ -53,6 +57,7 @@ Patient typing: <span class="tok old" title="legacy format → A*01:01">A*0101 �
 
 <h2 style="font-family:Georgia,serif;font-size:1.4rem;margin:34px 0 8px">Hosted API — live at <a href="https://api.hlaverify.com/docs" style="color:var(--green)">api.hlaverify.com</a></h2>
 <p class="lead" style="font-size:1rem;margin:0 0 14px">Four endpoints, JSON in and out, pinned to IPD-IMGT/HLA 3.65.0, served from Cloudflare's edge in well under a second. <code>/v1/verify</code> checks free text, <code>/v1/normalize</code> fixes typing strings from any era, <code>/v1/allele</code> returns the facts, <code>/v1/match</code> scores a donor–recipient pair with the published rules (per-chromosome counts, GvH/HvG, null-allele traps, and <em>potential</em> when the typing is too coarse to call). Open for evaluation at 60 requests/minute; keyed access for labs, LIMS vendors and agent platforms.</p>
+<p class="lead" style="font-size:.95rem;margin:0 0 14px">Lab director, LIMS product manager, or AI platform team? See the <a href="/product" style="color:var(--green)">full product page</a> — plans, pipeline integration points, and MCP setup.</p>
 <div class="sample" style="margin:0 0 30px;line-height:1.6">curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \<br>&nbsp;&nbsp;-d '{"text": "Patient typing: A*0101, B*15:504:01. Assistant suggested DQB1*05:03:26:99"}'<br><span style="color:var(--mut)">→ {"clean": false, "counts": {"valid": 1, "deleted": 1, "hallucinated": 1, …}, "tokens": [{"token": "DQB1*05:03:26:99", "status": "hallucinated", …}]}</span></div>
 
 <div class="why" style="margin-top:6px">
