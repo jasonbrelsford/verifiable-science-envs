@@ -18,7 +18,7 @@
     { "name": "RL_PRO", "namespace_id": "1003", "simple": { "limit": 6000, "period": 60 } }
   ],
   // KV namespace for self-serve/tiered keys (record shape documented in
-  // src/webhook.js). The overseer creates this once with
+  // src/stripe.js). The overseer creates this once with
   // `wrangler kv namespace create KEYS` and pastes the returned id below,
   // replacing 8360bbe6d4904699ab019702427fc19d. Until then, env.KEYS is undefined and the API falls
   // back to secret-only keys (HLA_VERIFY_API_KEYS) plus anonymous free tier.
@@ -31,11 +31,18 @@
   "observability": { "enabled": true },
   "vars": {
     "PUBLIC_ACCESS": "1",
-    // Maps a Lemon Squeezy product/variant name to a tier for self-serve key
-    // issuance (src/webhook.js); anything not listed here falls back to "starter".
-    "TIER_MAP": "{\"HLA-Verify Starter\":\"starter\",\"HLA-Verify Pro\":\"pro\"}"
+    // Maps a Stripe price id to a tier for self-serve key issuance (src/stripe.js),
+    // used only when checkout.session.completed has no metadata.tier; anything not
+    // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"pro"}.
+    "STRIPE_TIER_MAP": "{}",
+    // Stripe Payment Links shown as buttons on GET /pricing; each renders as
+    // "coming soon" until set. Set metadata.tier on the underlying price (or on
+    // the Payment Link itself) so the webhook can read session.metadata.tier.
+    "STRIPE_STARTER_LINK": "",
+    "STRIPE_PRO_LINK": ""
   }
   // Secrets (wrangler secret put):
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
-  //   LEMONSQUEEZY_WEBHOOK_SECRET = "<the signing secret from the Lemon Squeezy webhook settings>"
+  //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
+  //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
 }

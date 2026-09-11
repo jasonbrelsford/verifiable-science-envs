@@ -34,10 +34,10 @@ release; verification is pinned to an exact release version.
     Remote (Streamable HTTP, no install): https://api.hlaverify.com/mcp
       config: {"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
     Local (stdio): `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
-- API keys: free 60 req/min per IP with no key; starter/pro/enterprise keys (higher or
-  uncapped per-minute limits, per-key usage reporting, release-change notices) self-serve
-  at checkout or by request for labs / LIMS / agent platforms, and commercial licensing:
-  hello@hlaverify.com
+- API keys: free 60 req/min per IP with no key; starter/pro keys (higher per-minute limits,
+  per-key usage reporting, release-change notices) self-serve via Stripe checkout at
+  https://api.hlaverify.com/pricing; enterprise keys (uncapped) and commercial licensing
+  by request: hello@hlaverify.com
 
 ## Benchmarks (for model developers)
 
