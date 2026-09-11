@@ -17,6 +17,16 @@ vocabulary: draft -> sent -> replied -> call-scheduled -> pilot -> closed -> dea
 | 8 | CIBMTR | cibmtr.org bioinformatics research page | draft | Draft C1 day-0 email as a Gmail draft, addressed to bioinformatics research director | outreach agent | 2026-09-11 |
 | 9 | Anthropic (Claude for Life Sciences / Claude Science) | anthropic.com contact; Claude for Life Sciences partner form | draft | Draft C1 day-0 email as a Gmail draft; also note the MCP server as a ready-made connector | outreach agent | 2026-09-11 |
 | 10 | Fred Hutch Clinical Immunogenetics Laboratory | fredhutch.org clinical-labs page; LinkedIn "Clinical Immunogenetics Laboratory Fred Hutch" | draft | Draft A1 day-0 email as a Gmail draft, addressed to lab director | outreach agent | 2026-09-11 |
+| 11 | LUMC HLA Laboratory / Eurotransplant Reference Laboratory (Leiden) | immunology.lumc.nl contact page | draft | Draft A1 day-0 email as a Gmail draft, addressed to head of ETRL/HLA lab (EPT-instrument angle) | outreach agent | 2026-09-11 |
+| 12 | HistoGenetics (Ossining, NY) | histogenetics.com contact | draft | Draft B1 day-0 email as a Gmail draft, addressed to bioinformatics director (G-code output angle) | outreach agent | 2026-09-11 |
+| 13 | PIRCHE AG (Berlin) | pirche.com contact | draft | Draft B1 day-0 email as a Gmail draft, addressed to CTO/product lead (epitope-matching input QC angle) | outreach agent | 2026-09-11 |
+| 14 | WMDA Search and Match Service (Leiden) | wmda.info contact | draft | Draft C1 day-0 email as a Gmail draft, addressed to head of Search and Match/IT director | outreach agent | 2026-09-11 |
+| 15 | UNOS / OPTN (UNet) | unos.org contact; OPTN public comment channel | draft | Draft C1 day-0 email as a Gmail draft, addressed to director of histocompatibility policy | outreach agent | 2026-09-11 |
+| 16 | NHS Blood and Transplant H&I (six-lab network) | hospital.blood.co.uk H&I page | draft | Draft A1 day-0 email as a Gmail draft, addressed to head of H&I (one integration covers six labs) | outreach agent | 2026-09-11 |
+| 17 | Johns Hopkins Immunogenetics Laboratory (Baltimore) | labs.pathology.jhu.edu/immunogenetics/contact | draft | Draft A1 day-0 email as a Gmail draft, addressed to lab director/technical director | outreach agent | 2026-09-11 |
+| 18 | Cytopar | LinkedIn company page "Cytopar" | draft | Draft B1 day-0 email as a Gmail draft, addressed to founder/product lead (VXM ingest angle) | outreach agent | 2026-09-11 |
+| 19 | OpenAI (HealthBench, OpenAI for Healthcare) | openai.com healthcare page contact | draft | Draft C1 day-0 email as a Gmail draft, addressed to health evals lead | outreach agent | 2026-09-11 |
+| 20 | Labcorp Transplant Services | labcorp.com transplant-services page | draft | Draft A1 day-0 email as a Gmail draft, addressed to medical director, transplant / LIMS product owner | outreach agent | 2026-09-11 |
 
 ## Notes for the agent updating this table
 
