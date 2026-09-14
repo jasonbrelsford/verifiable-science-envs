@@ -21,6 +21,18 @@ R3. Antigen-level: each expressed allele maps to the first antigen of the most
     depends on it is `potential`. Antigen '0' and expression
     suffix N both mean "expresses no antigen": a null allele contributes
     nothing to the antigen set (the A*24:09N trap) and raises `null_allele`.
+    Since IPD-IMGT/HLA 3.64.0, that WMDA column value can itself be a 4-digit
+    "associated antigen" code (e.g. `0201`) rather than the classic 1-2 digit
+    broad/split code (`2`) it used to be (docs/research-rel_dna_ser-3.65.md);
+    such a value is first collapsed via `ImgtReference.classic_antigen()`
+    (which resolves it through rel_ser_ser.txt's AssociatedAntigen column,
+    landing on whichever of broad/split that file currently attaches the code
+    to — usually the split, e.g. `2402`->A24 not A9, since rel_ser_ser.txt
+    nests associated-antigen lists under the split row when one exists) before
+    it is compared. A member whose value doesn't (yet) resolve — the code is
+    missing from this release's rel_ser_ser.txt — contributes nothing to the
+    antigen set, same as a member WMDA doesn't map at all; if that leaves no
+    antigen, the locus is UNCERTAIN, not silently dropped.
 R4. Direction (for homozygous cases): HvG mismatches = donor 2-field names
     absent from the recipient (host attacks graft); GvH = recipient names
     absent from the donor. The bidirectional per-locus count of R2 equals
@@ -98,7 +110,9 @@ def antigen_of(ref: ImgtReference, reported: str) -> str:
             continue                      # WMDA maps only a subset of full alleles
         best = s.best if s.best else None
         if best:
-            antigens.add(best[0])
+            mapped = ref.classic_antigen(locus, best[0])
+            if mapped is not None:        # None = 4-digit code not yet in rel_ser_ser.txt
+                antigens.add(mapped)
     if len(antigens) != 1:                # nothing mapped, or members disagree
         return UNCERTAIN
     a = antigens.pop()

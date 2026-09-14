@@ -14,10 +14,14 @@ TYPED = {"A": ["A*01:01", "A*02:01"], "B": ["B*07:02", "B*08:01"],
 
 
 def test_antigen_mapping_known_values():
+    # Since 3.64.0, rel_dna_ser.txt's Unambiguous column stores 4-digit
+    # "associated antigen" codes (e.g. '2402') rather than the classic
+    # broad/split code ('24'); antigen_of collapses through rel_ser_ser.txt
+    # (docs/research-rel_dna_ser-3.65.md §2) before comparison.
     assert antigen_of(REF, "A*01:01") == "1"
-    assert antigen_of(REF, "A*24:02") == "2402"
-    assert antigen_of(REF, "A*23:01") == "2301"
-    assert antigen_of(REF, "B*15:01") == "1501"
+    assert antigen_of(REF, "A*24:02") == "24"        # associated antigen 2402 -> A24
+    assert antigen_of(REF, "A*23:01") == "23"        # associated antigen 2301 -> A23
+    assert antigen_of(REF, "B*15:01") == "62"        # associated antigen 1501 -> B62 (a split of B15)
     assert antigen_of(REF, "A*24:09N") == NULL
     assert antigen_of(REF, "A*0101") == "1"          # legacy era resolves first
     assert antigen_of(REF, "B*9999") == UNCERTAIN    # fabricated

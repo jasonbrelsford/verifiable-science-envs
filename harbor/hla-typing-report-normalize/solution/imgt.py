@@ -48,6 +48,16 @@ LITE_FILES = ["Allelelist.txt", "Deleted_alleles.txt", "Allele_status.txt",
 LOCI_IN_SCOPE = ("A", "B", "C", "DRB1", "DRB3", "DRB4", "DRB5", "DQA1", "DQB1", "DPA1", "DPB1")
 CLASS_I = {"A", "B", "C"}
 
+# Molecular locus -> rel_ser_ser.txt's serology-locus label. Only these loci have
+# a broad/split/associated-antigen hierarchy in rel_ser_ser.txt (docs/research-
+# rel_dna_ser-3.65.md §2); DPB1/DPA1/DQA1/DRA are not classically serotyped and
+# are intentionally absent here.
+SEROLOGY_LOCUS = {
+    "A": "A", "B": "B", "C": "Cw",
+    "DRB1": "DR", "DRB3": "DR", "DRB4": "DR", "DRB5": "DR",
+    "DQB1": "DQ",
+}
+
 # Current-style allele name: LOCUS*dd[:dd[:dd[:dd]]][suffix]
 ALLELE_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,3})([NLSCAQ]?)$")
 # Legacy 4-digit style without colons (A*0101, A*020120, Cw*0702)
@@ -578,6 +588,64 @@ class ImgtReference:
             locus, broad, splits, assoc = (ln.split(";") + ["", ""])[:4]
             out.append((locus, broad, tuple(x for x in splits.split("/") if x), tuple(x for x in assoc.split("/") if x)))
         return out
+
+    @cached_property
+    def _associated_antigen_index(self) -> dict[str, dict[str, str]]:
+        """rel_ser_ser.txt serology-locus label -> {4-digit associated-antigen
+        code: the antigen field of the row that lists it}.
+
+        Built from serology_relations. Since 3.64.0, rel_ser_ser.txt nests each
+        row's AssociatedAntigen list under the antigen at the *finest* level IMGT
+        can currently assign it to: a row with a non-empty Split field (a broad
+        antigen, e.g. ``A;9;23/24;``) almost never carries an AssociatedAntigen
+        list itself — the list lives on the split's own row instead (e.g.
+        ``A;24;;2402/2403/...``) — so indexing by "the row's own antigen field"
+        already returns the *split* (A24, not the broad A9), matching WMDA
+        antigen-level matching convention. The one observed exception in 3.65.0
+        is ``B;21;49/50;4005``: a broad row that itself lists an associated
+        antigen because IMGT can only resolve B*40:05 to broad B21, not to split
+        B49 or B50 — returning the broad there is correct, not a shortcut, so no
+        special-casing is needed: we always return whatever antigen field the
+        matching row carries.
+        """
+        idx: dict[str, dict[str, str]] = {}
+        for locus, antigen, _splits, assoc in self.serology_relations:
+            if not antigen:
+                continue
+            bucket = idx.setdefault(locus, {})
+            for code in assoc:
+                bucket[code] = antigen
+        return idx
+
+    def classic_antigen(self, locus: str, value: str) -> Optional[str]:
+        """Collapse one raw wmda/rel_dna_ser.txt serology value to the classic
+        broad/split antigen code, per docs/research-rel_dna_ser-3.65.md §2.
+
+        Starting with IPD-IMGT/HLA 3.64.0, rel_dna_ser.txt's Unambiguous/
+        Possible/Assumed/Expert columns (and the new 7th HATS column) can carry
+        4-digit "associated antigen" codes (e.g. ``0201``) instead of the
+        classic 1-2 digit broad/split code (``2``) those columns used to hold.
+        For the classically-serotyped loci (A, B, C, DRB1, DRB3, DRB4, DRB5,
+        DQB1), a 4-digit value is resolved via `_associated_antigen_index`,
+        which is keyed off rel_ser_ser.txt's own AssociatedAntigen column — so
+        the result is whatever specificity (broad or split) that file currently
+        attaches the code to, not a fixed choice of one or the other. Returns
+        None when the code is not (yet) listed in this release's
+        rel_ser_ser.txt (a small IMGT cross-referencing lag, not a bug here) —
+        callers should treat that as "unmapped", not as a passthrough value.
+
+        `value` of 2 digits or fewer (including '', '0', '?') is already a
+        classic code and passes through unchanged. DP*/DQA1/DRA and any other
+        locus with no entry in SEROLOGY_LOCUS have no broad/split hierarchy in
+        rel_ser_ser.txt at all, so their 4-digit values are just the allele's
+        own number and also pass through unchanged.
+        """
+        if not value or len(value) <= 2 or not value.isdigit():
+            return value
+        ser_locus = SEROLOGY_LOCUS.get(locus)
+        if ser_locus is None:
+            return value
+        return self._associated_antigen_index.get(ser_locus, {}).get(value)
 
     # ------------------------------------------------------------ hallucination
     def classify_tokens(self, text: str) -> dict[str, list[str]]:
