@@ -7,7 +7,8 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { FRAMEWORKS } from "./engine.js";
-import { doVerify, doNormalize, doAllele, doMatch, MAX_TEXT, MAX_TYPINGS, MAX_NAME } from "./handlers.js";
+import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
+  MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS } from "./handlers.js";
 
 export const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 export const SERVER_INFO = { name: "hla-verify", version: "1.0.0" };
@@ -81,6 +82,56 @@ function toolDefs() {
       },
     },
     {
+      name: "check_typing",
+      description:
+        "QC-check one HLA typing (all loci) against the pinned release: resolves every " +
+        "reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags " +
+        "too-many/single/homozygous per locus, computes the B-leader (-21 M/T) and " +
+        'KIR-ligand (C1/C2/Bw4) profile, and DRB3/4/5 expected-vs-reported. typing: ' +
+        '{"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era).',
+      inputSchema: {
+        type: "object",
+        required: ["typing"],
+        properties: {
+          typing: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "donor_compat",
+      description:
+        "Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T, " +
+        "Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4) " +
+        'comparison, computed over each side\'s full typing QC. recipient/donor: ' +
+        '{"A": [...], "B": [...], "C": [...], "DRB1": [...], ...}. ' +
+        "Decision support only; not a medical device.",
+      inputSchema: {
+        type: "object",
+        required: ["recipient", "donor"],
+        properties: {
+          recipient: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+          donor: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "validate_gl_string",
+      description:
+        "Validate and normalize a GL String (Genotype List, ^ | + ~ / grammar): resolves " +
+        "every allele token, flags outdated/unresolvable names and structural problems " +
+        "(mixed loci within a slash-list, a repeated locus within a haplotype or across " +
+        "^ blocks, more than two haplotypes, differing loci across a genotype or genotype " +
+        "list, empty elements), and returns the normalized string.",
+      inputSchema: {
+        type: "object",
+        required: ["gl"],
+        properties: { gl: { type: "string", maxLength: MAX_GL_CHARS, description: "GL String to validate and normalize." } },
+        additionalProperties: false,
+      },
+    },
+    {
       name: "about",
       description: "What this server is, benchmark evidence for why to use it, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
@@ -130,6 +181,19 @@ async function callTool(name, args, eng, manifest) {
     }
     case "match_score": {
       const r = await doMatch(eng, manifest, args.framework, args.recipient, args.donor);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
+    case "check_typing": {
+      const r = await doTypingCheck(eng, manifest, args.typing);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
+    case "donor_compat": {
+      const r = await doCompat(eng, manifest, args.recipient, args.donor);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
+    case "validate_gl_string": {
+      if (typeof args.gl !== "string") return errResult("gl must be a string");
+      const r = await doGlString(eng, manifest, args.gl);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
     case "about":

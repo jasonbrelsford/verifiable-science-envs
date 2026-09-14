@@ -84,7 +84,10 @@ test("ping", async () => {
 test("tools/list: exact tool names", async () => {
   const { json } = await rpc("tools/list", {});
   const names = json.result.tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["about", "allele_info", "match_score", "normalize_allele", "verify_text"]);
+  assert.deepEqual(names, [
+    "about", "allele_info", "check_typing", "donor_compat", "match_score",
+    "normalize_allele", "validate_gl_string", "verify_text",
+  ]);
   for (const t of json.result.tools) {
     assert.equal(typeof t.description, "string");
     assert.ok(t.description.length > 0);
@@ -173,6 +176,35 @@ test(`mcp match_score matches the engine's /v1/match body for all ${fx.match.len
     assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
     const expected = await engine.match(c.input.framework, c.input.recipient, c.input.donor);
     assert.deepEqual(json.result.structuredContent, expected, `match_score mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`mcp check_typing matches REST /v1/typing/check for all ${fx.typing_check.length} fixtures`, async () => {
+  for (const c of fx.typing_check) {
+    const { json } = await callTool("check_typing", { typing: c.input });
+    assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    assert.deepEqual(json.result.structuredContent, c.expected, `check_typing mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`mcp donor_compat matches REST /v1/compat for all ${fx.compat.length} fixtures`, async () => {
+  for (const c of fx.compat) {
+    const { json } = await callTool("donor_compat", c.input);
+    assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    assert.deepEqual(json.result.structuredContent, c.expected, `donor_compat mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`mcp validate_gl_string matches REST /v1/glstring for all ${fx.glstring.length} fixtures`, async () => {
+  for (const c of fx.glstring) {
+    const { json } = await callTool("validate_gl_string", { gl: c.input });
+    if (c.status === 200) {
+      assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+      assert.deepEqual(json.result.structuredContent, c.expected, `validate_gl_string mismatch for ${JSON.stringify(c.input)}`);
+    } else {
+      assert.equal(json.result.isError, true, `expected an error for ${JSON.stringify(c.input)}`);
+      assert.equal(json.result.content[0].text, c.expected.detail, `detail mismatch for ${JSON.stringify(c.input)}`);
+    }
   }
 });
 

@@ -167,9 +167,168 @@ def gen_matches() -> list[dict]:
     return out
 
 
+# ------------------------------------------------------------ typing_check / compat
+
+LOCI_MAIN = ["A", "B", "C", "DRB1"]
+LOCI_EXTRA = ["DRB3", "DRB4", "DRB5", "DQA1", "DQB1", "DPA1", "DPB1"]
+
+
+def random_typing() -> dict:
+    typing: dict[str, list[str]] = {}
+    for l in LOCI_MAIN:
+        if rng.random() < 0.92:
+            pl = typing_pool(l)
+            if pl:
+                n = rng.choice([1, 2, 2, 2, 3, 4])
+                typing[l] = [rng.choice(pl) for _ in range(n)]
+    for l in LOCI_EXTRA:
+        if rng.random() < 0.3:
+            pl = typing_pool(l)
+            if pl:
+                n = rng.choice([1, 1, 2])
+                typing[l] = [rng.choice(pl) for _ in range(n)]
+    if not typing:
+        typing["A"] = [rng.choice(by_locus["A"])]
+
+    # locus-mismatch: append a wrong-locus allele under an existing key
+    if rng.random() < 0.15:
+        keys = [k for k in typing if len(typing[k]) < 4]
+        if keys:
+            k = rng.choice(keys)
+            others = [l for l in by_locus if l != k and by_locus[l]]
+            if others:
+                typing[k].append(rng.choice(by_locus[rng.choice(others)]))
+
+    # legacy "Cw" key form
+    if "C" in typing and rng.random() < 0.15:
+        typing["Cw"] = typing.pop("C")
+    # HLA- prefixed key
+    if typing and rng.random() < 0.1:
+        k = rng.choice(list(typing.keys()))
+        typing["HLA-" + k] = typing.pop(k)
+    return typing
+
+
+def gen_typing_checks() -> list[dict]:
+    out = []
+    for _ in range(330):
+        t = random_typing()
+        resp = client.post("/v1/typing/check", json={"typing": t})
+        out.append({"input": t, "status": resp.status_code, "expected": resp.json()})
+    return out
+
+
+def gen_compat_cases() -> list[dict]:
+    out = []
+    for _ in range(160):
+        rec = random_typing()
+        don = random_typing()
+        resp = client.post("/v1/compat", json={"recipient": rec, "donor": don})
+        out.append({"input": {"recipient": rec, "donor": don}, "status": resp.status_code, "expected": resp.json()})
+    return out
+
+
+# ------------------------------------------------------------------- glstring
+
+def gl_tok(loc: str | None = None) -> str:
+    a = rng.choice(by_locus[loc] if loc else alleles)
+    if rng.random() < 0.12:
+        a = legacy_of(a)
+    if rng.random() < 0.1:
+        a = "HLA-" + a
+    return a
+
+
+def gl_list(loc: str | None = None, n: int = 1) -> str:
+    toks = [gl_tok(loc) for _ in range(n)]
+    if rng.random() < 0.08:
+        toks.insert(rng.randrange(len(toks) + 1), "")
+    return "/".join(toks)
+
+
+def gl_haplotype(loc: str | None = None, n_lists: int = 1) -> str:
+    return "~".join(gl_list(loc, rng.choice([1, 1, 2])) for _ in range(n_lists))
+
+
+def gl_genotype(loc: str | None = None, n_haps: int = 1) -> str:
+    return "+".join(gl_haplotype(loc, rng.choice([1, 1, 2])) for _ in range(n_haps))
+
+
+def gl_block(loc: str | None = None, n_genos: int = 1) -> str:
+    return "|".join(gl_genotype(loc, rng.choice([1, 1, 2])) for _ in range(n_genos))
+
+
+def gen_gl_strings() -> list[str]:
+    out: list[str] = []
+    # well-formed strings across every operator, single-locus per block
+    for _ in range(110):
+        loc = rng.choice(list(by_locus))
+        out.append("^".join(gl_block(loc, rng.choice([1, 1, 2])) for _ in range(rng.choice([1, 1, 2]))))
+    # mixed-locus "/" list (mixed_locus_allele_list)
+    for _ in range(30):
+        out.append(f"{gl_tok('A')}/{gl_tok('B')}")
+    # haplotype repeats a locus (haplotype_repeats_locus)
+    for _ in range(20):
+        out.append(f"{gl_tok('A')}~{gl_tok('B')}~{gl_tok('A')}")
+    # more than two haplotypes (more_than_two_haplotypes)
+    for _ in range(15):
+        out.append("+".join(gl_tok("A") for _ in range(rng.choice([3, 4, 5]))))
+    # genotype pairs different loci (genotype_loci_differ)
+    for _ in range(15):
+        out.append(f"{gl_tok('A')}+{gl_tok('B')}")
+    # genotype list loci differ across | (genotype_list_loci_differ)
+    for _ in range(15):
+        out.append(f"{gl_tok('A')}+{gl_tok('A')}|{gl_tok('B')}+{gl_tok('B')}")
+    # locus repeated across ^ blocks (locus_repeated_across_blocks)
+    for _ in range(15):
+        out.append(f"{gl_tok('A')}^{gl_tok('A')}")
+    # empty elements
+    for _ in range(15):
+        a = gl_tok("A")
+        out.append(rng.choice([f"{a}/", f"/{a}", f"{a}//{a}", f"{a}/ /{a}"]))
+    # internal whitespace in a token
+    for _ in range(15):
+        a = gl_tok("A")
+        pos = rng.randrange(2, max(3, len(a) - 1))
+        out.append(a[:pos] + " " + a[pos:])
+    # legacy names (bare)
+    for _ in range(15):
+        out.append(legacy_of(rng.choice(alleles)))
+    # HLA- prefixed
+    for _ in range(10):
+        out.append("HLA-" + rng.choice(alleles))
+    # group names (real G/P groups)
+    groups = r.g_groups() + r.p_groups()
+    for _ in range(10):
+        out.append(rng.choice(groups))
+    # deleted names
+    if r.deleted:
+        for _ in range(10):
+            out.append(rng.choice(list(r.deleted.keys())))
+    # fabricated (unresolvable) names
+    for _ in range(10):
+        out.append(fabricated(rng.choice(alleles)))
+    out += [
+        "", "   ", "A*01:01", "notanallele", " A*02:01 ", "A*01:01/A*02:01",
+        "HLA-A*01:01+HLA-A*02:01", "A*01:01~B*07:02", "A*01:01|B*07:02^C*01:02",
+        "A*01:01/A*02:01+A*03:01~B*07:02", "A*01:01^A*01:01",
+    ]
+    rng.shuffle(out)
+    return out
+
+
+def gen_glstring_cases() -> list[dict]:
+    out = []
+    for gl in gen_gl_strings():
+        resp = client.post("/v1/glstring", json={"gl": gl})
+        out.append({"input": gl, "status": resp.status_code, "expected": resp.json()})
+    return out
+
+
 def main():
     p = pool()
-    fx = {"release": r.release, "verify": [], "normalize": [], "allele": [], "match": []}
+    fx = {"release": r.release, "verify": [], "normalize": [], "allele": [], "match": [],
+          "typing_check": [], "compat": [], "glstring": []}
     for text in verify_texts(p):
         resp = client.post("/v1/verify", json={"text": text})
         fx["verify"].append({"input": text, "status": resp.status_code, "expected": resp.json()})
@@ -181,6 +340,9 @@ def main():
         resp = client.get("/v1/allele/" + name)
         fx["allele"].append({"input": name, "status": resp.status_code, "expected": resp.json()})
     fx["match"] = gen_matches()
+    fx["typing_check"] = gen_typing_checks()
+    fx["compat"] = gen_compat_cases()
+    fx["glstring"] = gen_glstring_cases()
     out = Path(__file__).with_name("fixtures.json")
     out.write_text(json.dumps(fx, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print({k: len(v) for k, v in fx.items() if isinstance(v, list)}, "->", out, round(out.stat().st_size / 1e6, 2), "MB")

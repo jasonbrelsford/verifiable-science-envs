@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { createEngine } from "../src/engine.js";
+import { doGlString } from "../src/handlers.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, "..", "public");
@@ -61,5 +62,33 @@ test(`match: ${fx.match.length} pairs`, async () => {
     const got = await engine.match(c.input.framework, c.input.recipient, c.input.donor);
     delete got.attribution;
     assert.deepEqual(got, c.expected, `match mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`typing_check: ${fx.typing_check.length} typings`, async () => {
+  for (const c of fx.typing_check) {
+    const got = await engine.checkTyping(c.input);
+    assert.deepEqual(got, c.expected, `typing_check mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`compat: ${fx.compat.length} pairs`, async () => {
+  for (const c of fx.compat) {
+    const got = await engine.compat(c.input.recipient, c.input.donor);
+    assert.deepEqual(got, c.expected, `compat mismatch for ${JSON.stringify(c.input)}`);
+  }
+});
+
+test(`glstring: ${fx.glstring.length} strings`, async () => {
+  for (const c of fx.glstring) {
+    const r = await doGlString(engine, manifest, c.input);
+    if (c.status === 200) {
+      assert.equal(r.ok, true, `unexpected error for ${JSON.stringify(c.input)}: ${r.detail}`);
+      assert.deepEqual(r.body, c.expected, `glstring mismatch for ${JSON.stringify(c.input)}`);
+    } else {
+      assert.equal(r.ok, false, `expected a ${c.status} for ${JSON.stringify(c.input)}`);
+      assert.equal(r.status, c.status, `status mismatch for ${JSON.stringify(c.input)}`);
+      assert.equal(r.detail, c.expected.detail, `detail mismatch for ${JSON.stringify(c.input)}`);
+    }
   }
 });
