@@ -42,3 +42,32 @@ vocabulary: draft -> sent -> replied -> call-scheduled -> pilot -> closed -> dea
   newer bench run has landed, update the figures in the draft, not just this table.
 - Add rows for Tier A/B/C targets 11+ from `TARGETS.md` once the first 10 move past
   `draft`.
+
+## Follow-up schedule (day-5 / day-12)
+
+No scheduler lives inside this repo, so the daily routine (or any agent updating
+this table) checks dates against today by hand:
+
+- The `Date` column always holds the date of the row's most recent stage change.
+  When a row moves to `sent` (Jason sends the day-0 draft himself and says so, or
+  the routine confirms the draft left the Drafts folder — see above), set `Date` to
+  that send date, not today's date if they differ.
+- On every run, for each row at stage `sent`: compute `days_since = today - Date`.
+  - `days_since >= 5` and no day-5 follow-up drafted yet for this row → draft the
+    day-5 follow-up from `OUTREACH.md` (same tier) as a Gmail draft; do **not**
+    change `Stage` (it stays `sent` — only `replied`/`call-scheduled`/etc. move it
+    off `sent`) and do not overwrite `Date`. Instead append a short note to the
+    `Next step` cell, e.g. `day-5 follow-up drafted 2026-09-20`, so the next run
+    doesn't draft a duplicate.
+  - `days_since >= 12` and no day-12 follow-up drafted yet (per the same
+    `Next step` note check) → draft the day-12 follow-up the same way, appending
+    `day-12 follow-up drafted <date>`.
+  - If a row already shows `replied`, `call-scheduled`, `pilot`, `closed`, or
+    `dead` in `Stage`, skip it — follow-ups are for silence, not for rows that
+    already got a response.
+- This step still requires the Gmail connector (see the note above); until one is
+  attached, log the skip and fall through to the next available action, same as
+  action #1.
+- All 20 rows are currently at stage `draft` (no `sent` rows yet as of 2026-09-14),
+  so this schedule has nothing to act on until Jason starts sending day-0 drafts —
+  it is here so the mechanism exists the moment the first row moves to `sent`.
