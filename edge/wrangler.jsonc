@@ -24,13 +24,18 @@
   // back to secret-only keys (HLA_VERIFY_API_KEYS) plus anonymous free tier.
   "kv_namespaces": [
     { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" },
-    // OAuth 2.1 token/client/code storage for the Claude Connectors Directory listing
-    // (docs/CLAUDE-CONNECTOR.md). Jason must create this once with
-    // `wrangler kv namespace create OAUTH_KV` and paste the returned id below,
-    // replacing the PLACEHOLDER value. Until then env.OAUTH_KV is undefined and every
-    // OAuth endpoint (metadata, /register, /authorize, /token) returns a 500
-    // "OAuth storage not configured" — /mcp and /v1/* anonymous + legacy-API-key auth
-    // are completely unaffected either way.
+    // OAuth 2.1 storage for the Claude Connectors Directory listing (docs/CLAUDE-CONNECTOR.md
+    // section 6/6a). Deliberately NOT the primary store: clients, the consent-pending
+    // request, and access tokens are stateless (signed with the OAUTH_SIGNING_KEY secret
+    // below), to fit Cloudflare's free-plan 1,000-writes/day KV cap. This namespace holds
+    // only (1) single-use authorization codes (TTL 120s) and (2) a per-session
+    // refresh-token-rotation pointer (TTL 30d) — see the write-budget table in
+    // docs/CLAUDE-CONNECTOR.md section 6a. Jason must create this once with
+    // `wrangler kv namespace create OAUTH_KV` and paste the returned id below, replacing
+    // the PLACEHOLDER value. Until then env.OAUTH_KV is undefined and /authorize (POST)
+    // and /token return a 500 "OAuth storage not configured"; metadata, /register, and
+    // /authorize (GET) work without it. /mcp and /v1/* anonymous + legacy-API-key auth are
+    // completely unaffected either way.
     { "binding": "OAUTH_KV", "id": "PLACEHOLDER_CREATE_WITH_WRANGLER_KV_NAMESPACE_CREATE_OAUTH_KV" }
   ],
   "analytics_engine_datasets": [
@@ -53,4 +58,9 @@
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
   //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
   //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
+  //   OAUTH_SIGNING_KEY = "<a long random string, e.g. `openssl rand -base64 48`>" -- HMAC-signs
+  //     and AES-GCM-encrypts every stateless OAuth token (client_id, consent-pending token,
+  //     access token). Rotating it invalidates every outstanding OAuth token and client_id at
+  //     once (they all fail signature verification); that is a deliberate, low-cost way to
+  //     revoke everything OAuth-related if ever needed. Never reuse this value for anything else.
 }

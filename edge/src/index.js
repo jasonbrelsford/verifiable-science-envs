@@ -8,13 +8,13 @@
 import { createEngine, FRAMEWORKS } from "./engine.js";
 import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
-import { parseKeys } from "./keys.js";
+import { parseKeys, lookupApiKey } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 import {
   protectedResourceMetadata, authorizationServerMetadata, handleRegister,
-  handleAuthorizeGet, handleAuthorizePost, handleToken, resolveOAuthAccessToken, wwwAuthenticate,
+  handleAuthorizeGet, handleAuthorizePost, handleToken, verifyAccessToken, wwwAuthenticate, ACCESS_PREFIX,
 } from "./oauth.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
@@ -80,10 +80,39 @@ async function authorize(req, env) {
     // API keys by a literal prefix ("hoat_") that legacy keys never have (they're either
     // arbitrary secret-configured strings or "hlv_"-prefixed self-serve keys) — see
     // docs/CLAUDE-CONNECTOR.md section 6.
-    if (presented.startsWith("hoat_")) {
-      const resolved = await resolveOAuthAccessToken(presented, env);
-      if (!resolved) return err401(req, "invalid or expired OAuth access token");
-      return resolved;
+    if (presented.startsWith(ACCESS_PREFIX)) {
+      const claims = await verifyAccessToken(presented, env);
+      if (!claims) return err401(req, "invalid or expired OAuth access token");
+
+      if (claims.mode === "apikey") {
+        // Re-validate the underlying key on every call (a KV/secret read, exactly like a
+        // legacy key already gets) so a revocation takes effect immediately, and rate-limit
+        // by the SAME key identity as the legacy path — so an API key and every OAuth token
+        // minted from it share one bucket instead of each token getting its own allowance.
+        const found = await lookupApiKey(claims.apiKeyRef, env);
+        if (!found || found.revoked) return err401(req, "the underlying API key has been revoked");
+        const tier = found.tier;
+        const rl = limiterFor(env, tier);
+        if (rl) {
+          try {
+            const { success } = await rl.limit({ key: claims.apiKeyRef });
+            if (!success) return err(429, `rate limited for the ${tier} tier — upgrade at ${PRICING_NOTE}`);
+          } catch (_) { /* limiter unavailable: fail open */ }
+        }
+        return { label: found.label, tier, keyed: true, oauth: true };
+      }
+
+      // Free-mode OAuth identity: rate-limited by IP in the SAME bucket as anonymous
+      // callers (env.RL), not per-token — an unbounded number of free OAuth tokens must
+      // not be a way to escape the anonymous rate limit.
+      if (env.RL) {
+        const ip = req.headers.get("cf-connecting-ip") || "unknown";
+        try {
+          const { success } = await env.RL.limit({ key: ip });
+          if (!success) return err(429, `rate limited: ${ANON_LIMIT_NOTE}`);
+        } catch (_) { /* limiter unavailable: fail open */ }
+      }
+      return { label: claims.label, tier: "free", keyed: false, oauth: true };
     }
     if (keys.has(presented)) {
       const { label, tier } = keys.get(presented);

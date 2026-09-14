@@ -48,7 +48,7 @@ mandatory" simultaneously. See §6.
 | 16 | Claude's `/token` endpoint calls use `application/x-www-form-urlencoded`; DCR (`/register`) uses `application/json`. | [authentication](https://claude.com/docs/connectors/building/authentication#token-refresh) | **Implemented** — `/token` parses form-urlencoded body. |
 | 17 | Claude includes PKCE `code_challenge_method=S256` on every authorization request; AS metadata must advertise `code_challenge_methods_supported: ["S256"]`. | [authentication](https://claude.com/docs/connectors/building/authentication#dcr-and-cimd-details) | **Implemented**. |
 | 18 | Redirect URIs Claude uses (see §3). | [authentication](https://claude.com/docs/connectors/building/authentication#callback-urls) | **Implemented** — registered dynamically via DCR; loopback matched port-agnostically for Claude Code. |
-| 19 | Claude waits ≤10s for discovery/registration/token endpoints, ≤30s for refresh. | [authentication](https://claude.com/docs/connectors/building/authentication#endpoint-latency) | All our OAuth endpoints are single KV round-trips on Workers — well under budget; **UNVERIFIED in production** (no live deploy in this branch). |
+| 19 | Claude waits ≤10s for discovery/registration/token endpoints, ≤30s for refresh. | [authentication](https://claude.com/docs/connectors/building/authentication#endpoint-latency) | Metadata/DCR/`authorize`(GET) are stateless (WebCrypto only, no KV); `authorize`(POST) and `token` are at most one KV read + one KV write — all well under budget on Workers; **UNVERIFIED in production** (no live deploy in this branch). |
 | 20 | Discovery documents are cached ~5 min, keyed by URL, globally. | [lazy-authentication](https://claude.com/docs/connectors/building/lazy-authentication#oauth-discovery-caching) | Informational — no code change needed. |
 | 21 | Allowed link URIs: only relevant if the server calls `ui/open-link`. | [submission](https://claude.com/docs/connectors/building/submission#allowed-link-uris) | N/A — HLA-Verify's MCP tools return JSON, no `ui/open-link` capability. |
 
@@ -100,58 +100,142 @@ asserting something not asked for).
 
 ## 6. OAuth design implemented
 
+**Revised 2026-09-14 after COO review of commit 8ee9b50** found three blockers in the first
+version of this design (rate-limit bypass via free OAuth tokens, a KV write budget that would
+exhaust Cloudflare's free-plan daily cap in about a dozen users, and an unhardened consent page).
+All three are fixed below; the free-plan write budget is now in section 6a.
+
 ### Endpoints (edge/src/oauth.js, wired into edge/src/index.js)
 
 - `GET /.well-known/oauth-protected-resource` and `GET /.well-known/oauth-protected-resource/mcp`
   (RFC 9728) — advertise `resource: "https://api.hlaverify.com/mcp"`,
-  `authorization_servers: ["https://api.hlaverify.com"]`.
+  `authorization_servers: ["https://api.hlaverify.com"]`. Static, no storage.
 - `GET /.well-known/oauth-authorization-server` (RFC 8414) — advertises `/authorize`, `/token`,
   `/register`, `code_challenge_methods_supported: ["S256"]`, `token_endpoint_auth_methods_supported: ["none"]`
   (we do **not** advertise `client_id_metadata_document_supported`, so Claude does not attempt
   CIMD and falls back to DCR, per
   [authentication#dcr-and-cimd-details](https://claude.com/docs/connectors/building/authentication#dcr-and-cimd-details)).
+  Static, no storage.
 - `POST /register` (RFC 7591 DCR) — public client only (`token_endpoint_auth_method: "none"`),
   requires ≥1 `redirect_uris` entry, each `https://` or loopback; rejects anything else.
+  **Writes nothing to KV** (see "Stateless by design" below) and is rate-limited by IP.
 - `GET /authorize` — validates `client_id`, exact `redirect_uri` match, `code_challenge_method=S256`
-  required; renders the consent page (no password, ever — see below); stores the pending request
-  server-side under a single-use CSRF token.
-- `POST /authorize` — consent submission (CSRF-token-bound, see §6 security); issues a single-use,
-  120-second authorization code.
+  required; renders the consent page (no password, ever — see below). No storage; the pending
+  request is carried forward as a signed token in the form (see below), not a server-side record.
+- `POST /authorize` — consent submission, rate-limited by IP; issues a single-use, 120-second
+  authorization code (the one place before token issuance that still writes to KV).
 - `POST /token` — `authorization_code` (validates PKCE `code_verifier` against `code_challenge`)
   and `refresh_token` (rotates the refresh token; re-checks the underlying API key's revocation
   status if the grant was minted from a pasted API key) grants. `content-type:
   application/x-www-form-urlencoded` per spec.
+
+### Stateless by design (Cloudflare free-plan KV write budget)
+
+Cloudflare's free plan caps Workers KV at **1,000 writes/day** account-wide, and **deletes count
+as writes** ([developers.cloudflare.com/kv/platform/limits](https://developers.cloudflare.com/kv/platform/limits/)).
+The first version of this design (commit 8ee9b50) wrote a KV record for every client
+registration, every consent/CSRF round-trip, every access token, and every refresh token —
+roughly 7 writes per new connection plus 3 per hourly refresh, meaning a dozen active users (or
+one script looping `/register`) could exhaust the daily quota. The redesign below removes every
+write that doesn't strictly need one:
+
+- **`client_id` (DCR) is the client record.** It's a signed, expiring token —
+  `hcid_<base64url(JSON{redirect_uris, client_name, iat, exp})>.<HMAC-SHA256 signature>` — verified
+  on every `/authorize` call against the `OAUTH_SIGNING_KEY` secret. `/register` computes and
+  returns it; nothing is written to KV. TTL: 1 year (DCR clients don't need to survive forever,
+  just long enough to be used).
+- **The pending-authorization ("csrf") token is the same idea.** `GET /authorize` signs the
+  validated request (`client_id`, `redirect_uri`, `code_challenge`, `scope`, `resource`, `state`,
+  `client_name`) into a token embedded as the consent form's hidden field, TTL 10 minutes. `POST
+  /authorize` verifies the signature instead of looking anything up. Because the app has no
+  cookies or sessions at all, there's no ambient authority for a cross-site POST to ride on — the
+  entire request is self-contained and tamper-evident, which is what a CSRF token protects
+  against in a traditional (session-cookie-based) app. No KV.
+- **Access tokens are fully stateless.** `hoat_<base64url(JSON payload)>.<HMAC-SHA256 signature>`,
+  TTL 24h. No KV read or write validates one. An access token minted from a pasted API key
+  carries that key **AES-GCM-encrypted** (key derived from `OAUTH_SIGNING_KEY`, distinct from the
+  HMAC key) — never plaintext — and `authorize()` in `index.js` decrypts it and re-validates
+  against `HLA_VERIFY_API_KEYS`/`env.KEYS` **on every request** (a read, exactly like a legacy API
+  key already gets). That means revoking the underlying key takes effect on the very next
+  request, not after some TTL.
+- **Refresh tokens keep one KV write category: rotation.** A refresh token embeds a `sessionId`;
+  `OAUTH_KV["session:<sessionId>"]` holds the SHA-256 hash of the currently-valid refresh token
+  (TTL 30d). Refreshing reads that record (1 read), compares hashes, and — if they match — mints a
+  new access+refresh pair and overwrites the record with the new hash (1 write). A **mismatch
+  means the presented token was already rotated away** (theft signal): the whole session is
+  revoked immediately rather than silently ignored. This is the one place true statelessness gives
+  up a real security property (reuse detection), so it's the one place we still pay a KV write.
+- **Authorization codes are still KV-backed**, TTL 120s: 1 write on issuance, 1 write (delete) on
+  single-use redemption. This is short-lived, low-volume (one per connection attempt), and the
+  simplest way to guarantee true single-use.
+
+### 6a. Write-budget table
+
+| Event | KV writes (incl. deletes) | Frequency |
+|---|---|---|
+| `POST /register` (DCR) | **0** | once per new client (Claude re-registers per docs) |
+| `GET /authorize` (render consent) | 0 | once per new connection |
+| `POST /authorize` (consent → auth code) | 1 (`authcode:` put) | once per new connection |
+| `POST /token`, `authorization_code` grant | 2 (`authcode:` delete + `session:` put) | once per new connection |
+| `POST /token`, `refresh_token` grant (success) | 1 (`session:` put, overwrite) | ~once per active user per day (access token TTL 24h; Claude refreshes reactively on 401 + proactively up to 5 min before expiry) |
+| `POST /token`, `refresh_token` grant (reuse detected) | 1 (`session:` delete) | only under attack/bug, not steady-state |
+| Every `/mcp` or `/v1/*` request bearing an OAuth token | **0** | every request (fully stateless verification) |
+
+**New connection, one-time cost: 3 KV writes** (1 for the auth code issuance, 1 for its
+redemption/delete, 1 for the initial session pointer). **Steady state: 1 KV write per active user
+per calendar day** (one refresh-rotation, since the access token lasts 24h).
+
+**Free-plan ceiling** (1,000 writes/day, account-wide, shared with the existing `KEYS` namespace's
+Stripe/Lemon-Squeezy writes, which are comparatively rare): roughly **1,000 steady-state active
+OAuth users per day** before the refresh-rotation writes alone exhaust the quota, or a mix — e.g.
+300 brand-new connections/day (900 writes) leaves 100 writes/day of headroom for refreshes. This
+is a large improvement over the previous ~12-user ceiling, but it is still a **hard cap shared
+across the whole account** (any other feature that writes to any KV namespace on this account
+counts against the same 1,000/day).
+
+**Workers Paid plan ($5/month)** removes the daily cap: **1 million writes/month included, then
+$5.00 per additional million** ([developers.cloudflare.com/kv/platform/pricing](https://developers.cloudflare.com/kv/platform/pricing/)),
+i.e. roughly 32,000 writes/day before any overage charge, and no hard ceiling after that (billed,
+not blocked). At this design's ~1 write/user/day steady-state cost, that's on the order of 30,000+
+daily active OAuth users before Jason would see any KV bill line item. **This is a business
+decision for Jason**, not something to flip silently: stay on the free plan (accept the ~1,000
+active-user ceiling shared with the rest of the account) or upgrade to Workers Paid ($5/mo flat,
+plus the rare overage) before OAuth usage is expected to approach that ceiling.
 
 ### Consent page (no accounts, no passwords)
 
 Two choices, exactly per the COO's spec:
 
 - **"Continue with free access"** — the issued OAuth token maps to `{label: "anonymous-oauth",
-  tier: "free"}`, rate-limited **per token** (via `RL` binding keyed by the token's hash) rather
-  than per IP — an improvement over today's anonymous per-IP limiting for Claude users behind
-  shared egress IPs.
+  tier: "free"}`. **Rate-limited by IP (`env.RL`), the exact same bucket anonymous callers use** —
+  not per-token. (The first version of this design rate-limited free OAuth tokens per-token or not
+  at all, which let a script mint unlimited tokens via `/register` → `/authorize` → `/token` and
+  bypass the anonymous rate limit entirely; fixed per COO review.)
 - **"Use my HLA-Verify API key"** — the pasted key is validated with the *exact same* code path
-  `authorize()` in `index.js` already uses (`HLA_VERIFY_API_KEYS` secret map, then `env.KEYS` KV
-  record, revoked check included); the issued token inherits that key's `label`/`tier`. The key
-  itself is never echoed back to the browser and never logged; only stored (KV, internal only,
-  not user-visible) so a refresh-time revocation re-check is possible.
+  `authorize()` in `index.js` already uses (via the shared `lookupApiKey()` helper in
+  `edge/src/keys.js`: `HLA_VERIFY_API_KEYS` secret map, then `env.KEYS` KV record, revoked check
+  included); the issued token inherits that key's `label`/`tier` and is **rate-limited by the
+  underlying key's identity** (`limiterFor(tier)`, keyed by the raw API key) — so a key and every
+  OAuth token minted from it share one bucket, instead of each token getting its own tier
+  allowance. The key itself is never echoed back to the browser and never logged; it is
+  AES-GCM-encrypted into the token (never plaintext) solely so the revocation re-check above is
+  possible.
 
-Both paths show: "Research-and-evaluation tool. Not a medical device. Not for clinical use." plus
-links to `https://hlaverify.com/privacy` (blocked — see §8) and a terms link (same placeholder
-status).
+Hardening added per COO review:
 
-### Token storage (KV binding `OAUTH_KV`, to be created by Jason)
+- `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'` on every
+  `/authorize` response (GET and POST), so the consent page can't be framed/clickjacked.
+- The redirect destination host is shown prominently: "After you authorize you'll return to
+  `<host>`."
+- If that host is not `claude.ai`, `claude.com`, or a loopback address, a warning appears above
+  the API-key field: "Only paste your API key if you trust `<host>`."
+- `/register` and `POST /authorize` are rate-limited by IP (`env.RL`, distinct key prefixes so
+  they don't share a bucket with anonymous `/mcp` traffic under the same IP).
+- The terms link (previously `https://hlaverify.com/terms`, which does not exist) now links the
+  privacy policy and `https://hlaverify.com/research` (research-use conditions) instead; VP
+  Revenue may add a dedicated terms page later.
 
-Only **hashed** tokens are stored (SHA-256 hex of the token string), never the raw value:
-
-- `token:<sha256(access_token)>` → `{client_id, mode, label, tier, scope}`, TTL 3600s (1h).
-- `refresh:<sha256(refresh_token)>` → `{client_id, mode, label, tier, scope, apiKeyRef?}`, TTL
-  2592000s (30d). `apiKeyRef` (the raw pasted API key) is stored **only** in this internal KV
-  record, only for `mode: "apikey"` grants, solely so a refresh can re-validate the key hasn't
-  been revoked since — never returned in any HTTP response, never logged.
-- `authcode:<code>` → single-use, TTL 120s, deleted immediately on redemption.
-- `client:<client_id>` → DCR-registered client record (`redirect_uris`, no expiry — see §9 known
-  limitation).
+Both paths show: "Research-and-evaluation tool. Not a medical device. Not for clinical use."
 
 ### Token format / how `/mcp` tells an OAuth token from an API key
 
@@ -161,9 +245,18 @@ Only **hashed** tokens are stored (SHA-256 hex of the token string), never the r
 - OAuth access tokens are generated as **`hoat_<random>`**; OAuth refresh tokens as
   **`hort_<random>`**. Neither prefix can collide with `hlv_`-prefixed keys (different literal
   prefix, not merely improbable).
-- In `authorize()` (`edge/src/index.js`), a presented credential starting with `hoat_` is looked
-  up in `OAUTH_KV` under `token:<sha256(...)>`; anything else follows the existing
-  `HLA_VERIFY_API_KEYS` → `env.KEYS` lookup chain, byte-for-byte unchanged.
+- In `authorize()` (`edge/src/index.js`), a presented credential starting with `hoat_` is verified
+  statelessly (`verifyAccessToken()` in `oauth.js`: HMAC signature + expiry, no KV); anything else
+  follows the existing `HLA_VERIFY_API_KEYS` → `env.KEYS` lookup chain, byte-for-byte unchanged.
+
+### Secrets
+
+- `OAUTH_SIGNING_KEY` (new, Jason sets via `wrangler secret put`) — a long random string (e.g.
+  `openssl rand -base64 48`). Derives both the HMAC-SHA256 signing key and the AES-GCM encryption
+  key (distinct derivations, see `hmacKeyFrom`/`aesKeyFrom` in `oauth.js`), so it is never used
+  directly as either key. Rotating it invalidates every outstanding client_id, access token, and
+  pending consent at once (all fail signature verification) — a deliberate, low-cost way to revoke
+  everything OAuth-related if ever needed. Never logged, never echoed.
 
 ### Backward compatibility / the 401-vs-anonymous decision
 
@@ -179,7 +272,7 @@ anticipated — we didn't need to, because no fallback was necessary:
 - A **401 with `WWW-Authenticate: Bearer resource_metadata="https://api.hlaverify.com/.well-known/oauth-protected-resource/mcp"`**
   is returned in two cases, both spec-correct and neither breaking today's anonymous default:
   1. A credential *was* presented (`x-api-key` or `Authorization: Bearer ...`) but is invalid,
-     unrecognized, or revoked — previously a bare 401, now the same 401 plus the
+     unrecognized, expired, or revoked — previously a bare 401, now the same 401 plus the
      `WWW-Authenticate` header, satisfying [RFC 9728 §5.1](https://datatracker.ietf.org/doc/html/rfc9728#name-www-authenticate-response)
      and the MCP spec's "invalid or expired tokens MUST receive a 401" without changing status
      codes or bodies existing integrations already handle.
@@ -194,17 +287,23 @@ anticipated — we didn't need to, because no fallback was necessary:
 
 - PKCE **required**: `/authorize` rejects any `code_challenge_method` other than `S256`; `/token`
   rejects a `code_verifier` that doesn't hash (SHA-256, base64url) to the stored `code_challenge`.
-- `redirect_uri` exact match against the client's DCR-registered set, both at `/authorize` (before
-  showing consent) and at `/token` (before issuing tokens) — no open redirects; unregistered or
-  non-exact URIs are rejected without redirecting the browser anywhere.
+- `redirect_uri` exact match against the client's DCR-registered set (verified via the signed
+  `client_id`), both at `/authorize` (before showing consent) and at `/token` (before issuing
+  tokens) — no open redirects; unregistered or non-exact URIs are rejected without redirecting the
+  browser anywhere.
 - `state` is opaque to us and passed through unmodified in the final redirect.
-- CSRF on the consent `POST`: the GET `/authorize` request's parameters (client_id, redirect_uri,
-  code_challenge, scope, resource, state) are stored server-side under a random, single-use
-  `csrf` token embedded as a hidden form field; the POST handler trusts only the server-side
-  record keyed by that token, never client-resubmitted values, and deletes the record after use
-  (or on expiry, 10 minutes).
+- CSRF on the consent `POST`: see "Stateless by design" above — the pending-authorization token is
+  HMAC-signed and expiring (10 minutes), so a forged or replayed-after-expiry submission fails
+  signature/expiry verification; there is no session cookie for a cross-site request to exploit.
 - Authorization codes are short-lived (120s) and single-use (deleted from KV immediately on
   redemption; a replay gets `invalid_grant`).
+- Refresh tokens rotate on every use; presenting an already-rotated (reused) refresh token revokes
+  the entire session rather than being silently ignored.
+- API-key-backed access tokens are re-validated against the live key record on every request, so
+  revocation is immediate, not bounded by a token TTL.
+- `/register` and `POST /authorize` are rate-limited by IP; free-mode and apikey-mode OAuth access
+  tokens are rate-limited exactly like their non-OAuth equivalents (anonymous-by-IP,
+  key-by-identity respectively) so OAuth cannot be used to bypass existing rate limits.
 - CORS on `/v1/*` and `/mcp` is unchanged; the new OAuth endpoints are same-origin
   browser/server-to-server calls and don't need the wildcard CORS the data API uses (Claude
   fetches them server-side, not from a browser origin that needs preflight).
@@ -236,13 +335,23 @@ and a secret update, which I was told not to run.** This is a `blocked-on-jason`
 
 ## 9. Known limitations / things not implemented
 
-- DCR client records (`client:<client_id>`) never expire — no cleanup job. Low risk (KV is
-  cheap, no PII in the record beyond `redirect_uris`), but flagging so it isn't a surprise later.
-- Refresh-time revocation re-check only applies to `mode: "apikey"` grants (an OAuth token minted
-  from a pasted API key); a `mode: "free"` token has nothing to revoke against, so it simply
-  expires naturally at 30 days.
+- `client_id` tokens are valid for 1 year and cannot be individually revoked (there is no
+  per-client KV record to delete) — only rotating `OAUTH_SIGNING_KEY` invalidates them, and that
+  invalidates every other outstanding OAuth token/consent at the same time. Acceptable given
+  Claude re-registers a DCR client per fresh connection, but flagging so it isn't a surprise later.
+- Free-mode access/refresh tokens have nothing to revoke against (no underlying key), so they
+  simply expire naturally (access 24h, refresh 30d) — there is no way to kill a specific free-mode
+  session early short of rotating `OAUTH_SIGNING_KEY` (which kills all of them).
+- Refresh-token reuse detection revokes the **entire session** (both the reused old token and the
+  legitimate current one), which is the standard, recommended OAuth 2.1 response to a suspected
+  leak, but means a false-positive (e.g. a client retrying a refresh call after a dropped response
+  without realizing the first one succeeded) also forces the user to re-authorize.
 - Endpoint latency (<10s discovery/registration/token, <30s refresh) is architecturally satisfied
-  (single KV round-trip per call) but **UNVERIFIED against a live deployment** — this branch was
-  never deployed per the task's constraints.
+  (stateless verification for most paths; at most one KV read + one KV write for the slowest
+  path, refresh) but **UNVERIFIED against a live deployment** — this branch was never deployed per
+  the task's constraints.
 - `PUBLIC_ACCESS=0` strict mode is implemented but not enabled; enabling it is an infra/business
   decision, not an engineering one — left to Jason.
+- The free-plan KV write ceiling (section 6a) is a real, shared-account-wide cap; Jason should
+  decide free vs. Workers Paid ($5/mo) before OAuth usage is promoted or expected to grow quickly,
+  not after hitting it.
