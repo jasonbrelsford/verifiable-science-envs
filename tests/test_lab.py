@@ -117,7 +117,10 @@ def test_check_typing_row_shape_and_antigen():
     row = d["loci"]["B"][0]
     assert list(row.keys()) == ["reported", "status", "current_name", "allele_2field",
                                  "g_group", "flags", "antigen", "ligands"]
-    assert row["status"] == "ok" and row["antigen"] == "0702"
+    # B*07:02's raw rel_dna_ser.txt value is the 4-digit associated-antigen
+    # code '0702' (3.64.0+); check_typing reports the classic antigen '7'
+    # (B7) via antigen_of's rel_ser_ser.txt collapse, not the raw code.
+    assert row["status"] == "ok" and row["antigen"] == "7"
 
 
 def test_check_typing_null_antigen_sentinel():
