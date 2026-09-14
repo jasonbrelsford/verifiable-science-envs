@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name
 from sci_envs.families.matching.rules import FRAMEWORKS, score
+from sci_envs.service import lab
 
 TAG = os.environ.get("HLA_VERIFY_TAG", "v3.65.0-alpha")
 ATTRIBUTION = ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), "
@@ -40,6 +41,10 @@ def ref() -> ImgtReference:
     if _ref is None:
         _ref = ImgtReference.load(TAG)
     return _ref
+
+
+def pf():
+    return lab.get_protein_facts(ref())
 
 
 def _auth(request: Request) -> None:
@@ -171,6 +176,57 @@ def allele(name: str, _: None = Depends(_auth)):
             members = [m for m in members if split_allele(m)[2] == suffix]
         out["members_count"] = len(members)
         out["members_sample"] = members[:10]
+    ligs = lab.ligands(r, pf(), name)
+    if ligs is not None:
+        out["ligands"] = ligs
+    return out
+
+
+@app.post("/v1/typing/check")
+async def typing_check(request: Request, _: None = Depends(_auth)):
+    """QC-check one typing (all loci): resolution, renames, locus mismatches, null
+    alleles, too-many/single/homozygous, KIR-ligand/B-leader profile, DRB3/4/5."""
+    r = ref()
+    _stats["requests"] += 1
+    body = await request.json()
+    typing = body.get("typing") if isinstance(body, dict) else None
+    err = lab.validate_typing(typing, "typing")
+    if err:
+        raise HTTPException(422, err)
+    out = lab.check_typing(r, pf(), typing)
+    _stats["tokens_checked"] += sum(len(v) for v in typing.values())
+    return out
+
+
+@app.post("/v1/compat")
+async def compat(request: Request, _: None = Depends(_auth)):
+    """Donor/recipient immunogenetic compatibility: HLA-B leader (Petersdorf 2020)
+    and KIR ligand (C1/C2/Bw4) comparison. Decision support only; not a medical device."""
+    r = ref()
+    _stats["requests"] += 1
+    body = await request.json()
+    recipient = body.get("recipient") if isinstance(body, dict) else None
+    donor = body.get("donor") if isinstance(body, dict) else None
+    err = lab.validate_typing(recipient, "recipient") or lab.validate_typing(donor, "donor")
+    if err:
+        raise HTTPException(422, err)
+    out = lab.compat(r, pf(), recipient, donor)
+    _stats["tokens_checked"] += sum(len(v) for v in recipient.values()) + sum(len(v) for v in donor.values())
+    return out
+
+
+@app.post("/v1/glstring")
+async def glstring(request: Request, _: None = Depends(_auth)):
+    """Validate and normalize a GL String (^ | + ~ / grammar)."""
+    r = ref()
+    _stats["requests"] += 1
+    body = await request.json()
+    gl = body.get("gl") if isinstance(body, dict) else None
+    try:
+        out = lab.gl_string(r, gl)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    _stats["tokens_checked"] += lab.count_gl_tokens(gl.strip())
     return out
 
 

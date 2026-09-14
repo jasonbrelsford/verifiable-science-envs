@@ -176,7 +176,7 @@ Body: `{"recipient": typing, "donor": typing}`; each validated as in §3 (side n
     one recipient row and one donor row are left unmatched after removing the multiset
     intersection (remove the first equal occurrence, in list order). Then true iff both unmatched
     rows' `ligands.leader_21` are in {M,T} and equal; false iff both in {M,T} and different; else null.
-  - `rule`: exact string `"Petersdorf 2020 (NEJM): for a single HLA-B mismatch, leader-matched when the mismatched recipient and donor HLA-B alleles share the -21 M/T leader residue. Decision support only; not a medical device."`
+  - `rule`: exact string `"Petersdorf 2020 (Blood): for a single HLA-B mismatch, leader-matched when the mismatched recipient and donor HLA-B alleles share the -21 M/T leader residue. Decision support only; not a medical device."`
 - `kir_ligands`: class of a ligand: `Bw4`,`Bw4-80I`,`Bw4-80T` → `Bw4`; `C1` → `C1`; `C2` → `C2`.
   - `recipient`, `donor`: sorted distinct classes from each side's `kir_ligands_present`.
   - `missing_in_recipient`: sorted donor classes not in recipient (GvH-direction ligand incompatibility).
