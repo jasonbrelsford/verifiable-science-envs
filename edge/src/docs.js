@@ -53,7 +53,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/normalize -H 'content-type: applica
   -d '{"typings": ["A*0101", "A*01:34N", "DRB1*1406", "A*24:09N", "B*9999"]}'`)}
 
 <h3><span class="pill">GET</span><code>/v1/allele/{name}</code> — the facts for one name</h3>
-<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), or <code>deleted</code> (successor). 404 for anything not in the release.</p>
+<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), or <code>deleted</code> (successor). 404 for anything not in the release. Class I (A/B/C) names carry a trailing <code>ligands</code> object: expression, the -21 leader residue (<code>leader_21</code>: M/T, Petersdorf 2020), Bw4/Bw6 (<code>bw</code>), the C1/C2 epitope (<code>c_group</code>), and the aggregate <code>kir_ligand</code> class, each aggregated over the name's members with an <code>ambiguities</code> map when they disagree.</p>
 ${curl(`curl -s 'https://api.hlaverify.com/v1/allele/A*24:09N'`)}
 
 <h3><span class="pill">POST</span><code>/v1/match</code> — donor–recipient match verdict</h3>
@@ -66,11 +66,25 @@ ${curl(`{"release":"${m.release}","framework":"8/8","count":"7/8",
  "verdicts":{"A":"mismatch","B":"match","C":"match","DRB1":"match"},
  "hvg_mismatches":1,"gvh_mismatches":1,"flags":["null_allele"], "attribution":"…"}`)}
 
+<h3><span class="pill">POST</span><code>/v1/typing/check</code> — QC one typing (all loci)</h3>
+<p>Lab Toolkit. <code>{"typing": {"A": [...], "B": [...], "DRB1": [...], ...}}</code>, any nomenclature era, up to 4 reported alleles per locus. Resolves every reported string, flags <code>unresolvable</code> / <code>deprecated_name</code> / <code>locus_mismatch</code> / <code>null_allele</code> per allele and <code>too_many_alleles</code> / <code>single_allele</code> / <code>homozygous</code> per locus, and returns a <code>profile</code> (B-leader -21 M/T genotype, C KIR-ligand genotype, KIR ligands present, and whether the A/B/C typing is complete enough for a confident KIR-ligand call) plus a <code>drb345</code> expected-vs-reported block when a DRB1 key is present. Units metered = total reported strings.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/typing/check -H 'content-type: application/json' -d '{
+  "typing": {"A": ["A*02:01"], "B": ["B*07:02", "B*46:01"], "C": ["C*07:02", "C*01:02"], "DRB1": ["DRB1*15:01", "DRB1*04:01"]}}'`)}
+
+<h3><span class="pill">POST</span><code>/v1/compat</code> — donor/recipient immunogenetic compatibility</h3>
+<p>Lab Toolkit. <code>{"recipient": typing, "donor": typing}</code> (each shaped as in <code>/v1/typing/check</code>). Two published models, each run over the full typing QC on both sides: HLA-B leader match (-21 M/T; Petersdorf 2020, <em>Blood</em>) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4) class comparison, which requires complete A, B and C typing. <b>Decision support only; not a medical device.</b> Units metered = total reported strings on both sides.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/compat -H 'content-type: application/json' -d '{
+  "recipient": {"B": ["B*07:02", "B*44:02"]}, "donor": {"B": ["B*07:02", "B*44:03"]}}'`)}
+
+<h3><span class="pill">POST</span><code>/v1/glstring</code> — GL String validation and normalization</h3>
+<p>Lab Toolkit. <code>{"gl": "A*01:01/A*02:01+A*03:01~B*07:02"}</code> — the <code>^</code> locus-block / <code>|</code> genotype-list / <code>+</code> genotype / <code>~</code> haplotype / <code>/</code> allele-list grammar, up to 5,000 allele tokens. Resolves and renames every allele token and flags structural problems (<code>mixed_locus_allele_list</code>, <code>haplotype_repeats_locus</code>, <code>more_than_two_haplotypes</code>, <code>genotype_loci_differ</code>, <code>genotype_list_loci_differ</code>, <code>locus_repeated_across_blocks</code>, <code>empty_element</code>, <code>whitespace_in_name</code>), returning a normalized string with outdated names rewritten to current. Units metered = allele token count (including empty slots from a doubled separator).</p>
+${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: application/json' -d '{"gl": "A*0101+A*02:01"}'`)}
+
 <h3><span class="pill">GET</span><code>/healthz</code></h3>
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>about</code>. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
 ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
 <h3>Claude Desktop / claude.ai, with a key</h3>
@@ -214,6 +228,7 @@ export function openapi(m) {
             reported: { type: "string" }, current_name: { type: "string" }, allele_2field: { type: "string" },
             g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } }, attribution } } } } } } } },
       "/v1/allele/{name}": { get: { summary: "Facts for one allele, prefix, or deleted name",
+        description: "Class I (A/B/C) names carry a trailing 'ligands' object (leader_21, bw, c_group, kir_ligand; see /v1/typing/check).",
         parameters: [{ name: "name", in: "path", required: true, schema: { type: "string" }, example: "A*24:09N" }],
         responses: { 200: { description: "assigned | valid_prefix | deleted" }, 404: { description: "not in this release" } } } },
       "/v1/match": { post: { summary: "Donor-recipient match verdict (rules R1-R6)",
@@ -225,8 +240,23 @@ export function openapi(m) {
           verdicts: { type: "object", additionalProperties: { type: "string", enum: ["match", "mismatch", "potential"] } },
           hvg_mismatches: { type: "integer" }, gvh_mismatches: { type: "integer" },
           flags: { type: "array", items: { type: "string" } }, attribution } } } } } } } },
+      "/v1/typing/check": { post: { summary: "QC-check one HLA typing (all loci): resolution, renames, locus mismatches, null alleles, B-leader/KIR-ligand profile, DRB3/4/5",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["typing"],
+          properties: { typing: { $ref: "#/components/schemas/Typing" } } } } } },
+        responses: { 200: { description: "release, valid, loci, issues, counts, profile, drb345, attribution" },
+          422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/compat": { post: { summary: "Donor/recipient immunogenetic compatibility: HLA-B leader (Petersdorf 2020) and KIR ligand (C1/C2/Bw4). Decision support only; not a medical device.",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["recipient", "donor"],
+          properties: { recipient: { $ref: "#/components/schemas/Typing" }, donor: { $ref: "#/components/schemas/Typing" } } } } } },
+        responses: { 200: { description: "release, b_leader, kir_ligands, recipient_valid, donor_valid, issues, attribution" },
+          422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/glstring": { post: { summary: "Validate and normalize a GL String (^ | + ~ / grammar)",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["gl"],
+          properties: { gl: { type: "string", maxLength: 100000 } } } } } },
+        responses: { 200: { description: "release, valid, normalized_gl, changed, loci, alleles, issues, counts, attribution" },
+          422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
-        description: "Tools: verify_text, normalize_allele, allele_info, match_score, about. See the MCP for agents section above.",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, about. donor_compat is decision support only; not a medical device. See the MCP for agents section above.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object",
           required: ["jsonrpc", "method"],
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },

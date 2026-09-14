@@ -9,7 +9,7 @@ import { createEngine, FRAMEWORKS } from "./engine.js";
 import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys } from "./keys.js";
-import { doVerify, doNormalize, doAllele, doMatch } from "./handlers.js";
+import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 
@@ -220,6 +220,30 @@ export default {
         const r = await doMatch(eng, manifest, body.framework, body.recipient, body.donor);
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "match", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
+      }
+      if (path === "/v1/typing/check") {
+        if (req.method !== "POST") return err(405, "POST {\"typing\": {...}}");
+        const [body, e] = await readJson(req); if (e) return e;
+        const r = await doTypingCheck(eng, manifest, body.typing);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "typing/check", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
+      }
+      if (path === "/v1/compat") {
+        if (req.method !== "POST") return err(405, "POST {\"recipient\": {...}, \"donor\": {...}}");
+        const [body, e] = await readJson(req); if (e) return e;
+        const r = await doCompat(eng, manifest, body.recipient, body.donor);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "compat", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
+      }
+      if (path === "/v1/glstring") {
+        if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}");
+        const [body, e] = await readJson(req); if (e) return e;
+        const r = await doGlString(eng, manifest, body.gl);
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
         return json(r.body, 200, tierHeader(who));
       }
       return err(404, "Not Found");

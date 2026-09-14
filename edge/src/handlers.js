@@ -5,9 +5,10 @@
 // — the caller decides how to render that as HTTP or as an MCP tool result.
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
-import { FRAMEWORKS } from "./engine.js";
+import { FRAMEWORKS, countGlTokens, MAX_GL_CHARS, MAX_GL_ALLELES } from "./engine.js";
 
 export const MAX_TEXT = 200_000, MAX_TYPINGS = 5_000, MAX_LOCI = 24, MAX_PER_LOCUS = 4, MAX_NAME = 64;
+export { MAX_GL_CHARS, MAX_GL_ALLELES };
 
 export function validateTyping(obj, side) {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return `${side} must be an object mapping locus -> [reported alleles]`;
@@ -54,4 +55,31 @@ export async function doMatch(eng, manifest, framework, recipient, donor) {
   if (v) return bad(422, v);
   const body = await eng.match(fw, recipient, donor);
   return good(body, FRAMEWORKS[fw].length);
+}
+
+function sumUnits(typing) {
+  return Object.values(typing).reduce((a, v) => a + v.length, 0);
+}
+
+export async function doTypingCheck(eng, manifest, typing) {
+  const v = validateTyping(typing, "typing");
+  if (v) return bad(422, v);
+  const body = await eng.checkTyping(typing);
+  return good(body, sumUnits(typing));
+}
+
+export async function doCompat(eng, manifest, recipient, donor) {
+  const v = validateTyping(recipient, "recipient") || validateTyping(donor, "donor");
+  if (v) return bad(422, v);
+  const body = await eng.compat(recipient, donor);
+  return good(body, sumUnits(recipient) + sumUnits(donor));
+}
+
+export async function doGlString(eng, manifest, gl) {
+  if (typeof gl !== "string" || gl.trim() === "") return bad(422, "gl must be a non-empty string");
+  if (gl.length > MAX_GL_CHARS) return bad(422, `gl must be at most ${MAX_GL_CHARS} characters`);
+  const s = gl.trim();
+  if (countGlTokens(s) > MAX_GL_ALLELES) return bad(422, `gl must contain at most ${MAX_GL_ALLELES} alleles`);
+  const body = await eng.glString(gl);
+  return good(body, countGlTokens(s));
 }

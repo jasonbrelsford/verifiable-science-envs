@@ -20,6 +20,9 @@ Row schema (compact keys; absent = null/false):
   c    confirmed
   se   serology columns {unambiguous,possible,assumed,expert}
   mc/ms members_count / first 10 members for a valid prefix
+  lg   ligands(ref, pf, key) (sci_envs/service/lab.py §2) for s=="v" rows whose
+       key is a class I (A/B/C) name; absent otherwise. Row facts only (leader/
+       Bw/C-group/KIR-ligand labels), never a protein sequence.
 """
 from __future__ import annotations
 
@@ -35,6 +38,7 @@ from pathlib import Path
 from sci_envs.reference.imgt import ImgtReference, ImgtError, GROUP_RE, split_allele
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name
 from sci_envs.families.matching.rules import antigen_of
+from sci_envs.service import lab
 
 SHARD_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{2})")
 
@@ -60,7 +64,7 @@ def _classify_one(r: ImgtReference, t: str) -> str | None:
     return None
 
 
-def _row(r: ImgtReference, key: str) -> dict | None:
+def _row(r: ImgtReference, pf, key: str) -> dict | None:
     s = _classify_one(r, key)
     if s is None:
         return None
@@ -95,6 +99,14 @@ def _row(r: ImgtReference, key: str) -> dict | None:
             if split_allele(key)[2]:
                 members = [m for m in members if split_allele(m)[2] == split_allele(key)[2]]
             row["mc"], row["ms"] = len(members), members[:10]
+        try:
+            locus = split_allele(key)[0]
+        except ImgtError:
+            locus = None
+        if locus in ("A", "B", "C"):
+            lg = lab.ligands(r, pf, key)
+            if lg is not None:
+                row["lg"] = lg
     return {k: v for k, v in row.items() if v is not None and v is not False}
 
 
@@ -132,6 +144,7 @@ def export(tag: str, out: Path) -> dict:
     # memoize the two O(n) scans the normalizer leans on; pure functions of their argument
     r.alleles = functools.lru_cache(maxsize=None)(r.alleles)  # type: ignore[method-assign]
     r.expand = functools.lru_cache(maxsize=None)(r.expand)    # type: ignore[method-assign]
+    pf = lab.get_protein_facts(r)
     keys = keys_for(r)
     shards: dict[str, dict[str, dict]] = {}
     n_rows = 0
@@ -141,7 +154,7 @@ def export(tag: str, out: Path) -> dict:
         if sh is None:
             skipped.append(k)
             continue
-        row = _row(r, k)
+        row = _row(r, pf, k)
         if row is None:
             skipped.append(k)
             continue
