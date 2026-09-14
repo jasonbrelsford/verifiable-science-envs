@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from sci_envs.reference.imgt import ImgtReference
 from sci_envs.families.nomenclature.normalize import normalize
@@ -35,6 +36,15 @@ def _ref() -> ImgtReference:
 
 ALLELE_RE = re.compile(r"\b(?:HLA-)?((?:[A-Z]+[0-9]?|Cw)\*[0-9:A-Z]+)\b")
 
+
+# Every tool below is a pure, read-only lookup against the pinned IMGT/HLA release: no
+# writes, no external calls, no side effects. Claude Connectors Directory requires a
+# `title` and the applicable readOnlyHint/destructiveHint annotation on every tool
+# (see docs/CLAUDE-CONNECTOR.md section 5); openWorldHint is False because tools never
+# consult the open web, only our own pinned tables.
+def _ro(title: str) -> ToolAnnotations:
+    return ToolAnnotations(title=title, readOnlyHint=True, destructiveHint=False, openWorldHint=False)
+
 mcp = FastMCP(
     "hla-verify",
     instructions=(
@@ -47,7 +57,7 @@ mcp = FastMCP(
 )
 
 
-@mcp.tool()
+@mcp.tool(title="Verify HLA alleles in text", annotations=_ro("Verify HLA alleles in text"))
 def verify_text(text: str) -> dict:
     """Scan free text for HLA allele-shaped tokens and classify each one:
     valid / legacy (with modern form) / deleted (with successor) / fabricated.
@@ -63,7 +73,7 @@ def verify_text(text: str) -> dict:
                                     or t["allele_2field"] == "UNRESOLVABLE")}
 
 
-@mcp.tool()
+@mcp.tool(title="Normalize an HLA allele name", annotations=_ro("Normalize an HLA allele name"))
 def normalize_allele(name: str) -> dict:
     """Normalize one reported HLA allele name (any era) to current 2-field form,
     with G group, P group, serologic equivalent, and flags."""
@@ -72,7 +82,7 @@ def normalize_allele(name: str) -> dict:
     return n
 
 
-@mcp.tool()
+@mcp.tool(title="Score a donor-recipient HLA match", annotations=_ro("Score a donor-recipient HLA match"))
 def match_score(recipient: dict, donor: dict, framework: str = "8/8") -> dict:
     """Score a donor-recipient HLA match with the published rules (R1-R6).
     recipient/donor: {"A": ["A*01:01","A*02:01"], "B": [...], ...} (two reported
@@ -87,7 +97,7 @@ def match_score(recipient: dict, donor: dict, framework: str = "8/8") -> dict:
             "gvh_mismatches": s["gvh_mismatches"], "flags": s["flags"]}
 
 
-@mcp.tool()
+@mcp.tool(title="QC-check an HLA typing", annotations=_ro("QC-check an HLA typing"))
 def check_typing(typing: dict) -> dict:
     """QC-check one HLA typing (all loci) against the pinned release: resolves every
     reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags
@@ -101,7 +111,7 @@ def check_typing(typing: dict) -> dict:
     return lab.check_typing(r, lab.get_protein_facts(r), typing)
 
 
-@mcp.tool()
+@mcp.tool(title="Check donor-recipient compatibility", annotations=_ro("Check donor-recipient compatibility"))
 def donor_compat(recipient: dict, donor: dict) -> dict:
     """Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T,
     Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4)
@@ -115,7 +125,7 @@ def donor_compat(recipient: dict, donor: dict) -> dict:
     return lab.compat(r, lab.get_protein_facts(r), recipient, donor)
 
 
-@mcp.tool()
+@mcp.tool(title="Validate a GL String", annotations=_ro("Validate a GL String"))
 def validate_gl_string(gl: str) -> dict:
     """Validate and normalize a GL String (Genotype List, ^ | + ~ / grammar): resolves
     every allele token, flags outdated/unresolvable names and structural problems
@@ -129,7 +139,7 @@ def validate_gl_string(gl: str) -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(title="About HLA-Verify", annotations=_ro("About HLA-Verify"))
 def about() -> dict:
     """What this server is, benchmark evidence for why to use it, and terms."""
     return {

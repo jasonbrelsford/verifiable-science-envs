@@ -12,6 +12,10 @@ import { parseKeys } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
+import {
+  protectedResourceMetadata, authorizationServerMetadata, handleRegister,
+  handleAuthorizeGet, handleAuthorizePost, handleToken, resolveOAuthAccessToken, wwwAuthenticate,
+} from "./oauth.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -44,7 +48,7 @@ function json(body, status = 200, extra = {}) {
       "x-hla-verify-release": manifest.release, ...CORS, ...extra },
   });
 }
-const err = (status, detail) => json({ detail }, status);
+const err = (status, detail, extra = {}) => json({ detail }, status, extra);
 const tierHeader = (who) => ({ "x-hla-verify-tier": who.tier });
 
 // Tier -> rate-limit binding. "free" (anonymous) is metered by IP on RL;
@@ -55,6 +59,16 @@ function limiterFor(env, tier) {
   return null;
 }
 
+// A 401 that also carries WWW-Authenticate: Bearer resource_metadata=... (RFC 9728 /
+// docs/CLAUDE-CONNECTOR.md section 6). Only emitted when a credential WAS presented and
+// was invalid/revoked/expired, or when PUBLIC_ACCESS="0" (an opt-in strict mode, unused in
+// production today) — never on today's default anonymous path, so existing anonymous
+// callers see no behavior change.
+function err401(req, detail) {
+  const origin = new URL(req.url).origin;
+  return err(401, detail, { "www-authenticate": wwwAuthenticate(origin) });
+}
+
 async function authorize(req, env) {
   const keys = parseKeys(env.HLA_VERIFY_API_KEYS);
   let presented = req.headers.get("x-api-key") || "";
@@ -62,6 +76,15 @@ async function authorize(req, env) {
   if (!presented && bearer.toLowerCase().startsWith("bearer ")) presented = bearer.slice(7).trim();
 
   if (presented) {
+    // OAuth access tokens (issued by /token, see oauth.js) are distinguished from legacy
+    // API keys by a literal prefix ("hoat_") that legacy keys never have (they're either
+    // arbitrary secret-configured strings or "hlv_"-prefixed self-serve keys) — see
+    // docs/CLAUDE-CONNECTOR.md section 6.
+    if (presented.startsWith("hoat_")) {
+      const resolved = await resolveOAuthAccessToken(presented, env);
+      if (!resolved) return err401(req, "invalid or expired OAuth access token");
+      return resolved;
+    }
     if (keys.has(presented)) {
       const { label, tier } = keys.get(presented);
       return { label, tier, keyed: true };
@@ -73,7 +96,7 @@ async function authorize(req, env) {
         rec = raw ? JSON.parse(raw) : null;
       } catch (_) { /* malformed record: treat as absent */ }
       if (rec) {
-        if (rec.status === "revoked") return err(401, "API key revoked");
+        if (rec.status === "revoked") return err401(req, "API key revoked");
         const tier = rec.tier || "starter";
         const rl = limiterFor(env, tier);
         if (rl) {
@@ -85,10 +108,10 @@ async function authorize(req, env) {
         return { label: rec.label || "self-serve", tier, keyed: true };
       }
     }
-    return err(401, "missing or invalid X-API-Key");
+    return err401(req, "missing or invalid X-API-Key");
   }
 
-  if (env.PUBLIC_ACCESS === "0") return err(401, "missing or invalid X-API-Key");
+  if (env.PUBLIC_ACCESS === "0") return err401(req, "missing or invalid X-API-Key");
   if (env.RL) {
     const ip = req.headers.get("cf-connecting-ip") || "unknown";
     try {
@@ -157,6 +180,28 @@ export default {
     if (path === "/webhooks/stripe") {
       if (req.method !== "POST") return err(405, "POST (signed webhook)");
       return handleStripeWebhook(req, env);
+    }
+
+    // OAuth 2.1 for /mcp (RFC 9728 / 8414 / 7591 + PKCE). Full design and rationale in
+    // docs/CLAUDE-CONNECTOR.md section 6. None of this changes /mcp or /v1/*'s existing
+    // anonymous/API-key behavior — it's an additional, optional authentication path.
+    const origin = url.origin;
+    if (path === "/.well-known/oauth-protected-resource" || path === "/.well-known/oauth-protected-resource/mcp")
+      return json(protectedResourceMetadata(origin));
+    if (path === "/.well-known/oauth-authorization-server")
+      return json(authorizationServerMetadata(origin));
+    if (path === "/register") {
+      if (req.method !== "POST") return err(405, "POST (RFC 7591 dynamic client registration)");
+      return handleRegister(req, env);
+    }
+    if (path === "/authorize") {
+      if (req.method === "GET") return handleAuthorizeGet(req, env);
+      if (req.method === "POST") return handleAuthorizePost(req, env);
+      return err(405, "GET (consent page) or POST (consent submission)");
+    }
+    if (path === "/token") {
+      if (req.method !== "POST") return err(405, "POST (RFC 6749 token endpoint)");
+      return handleToken(req, env);
     }
 
     // Remote MCP endpoint: stateless Streamable HTTP transport, one JSON

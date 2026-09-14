@@ -23,7 +23,15 @@
   // replacing 8360bbe6d4904699ab019702427fc19d. Until then, env.KEYS is undefined and the API falls
   // back to secret-only keys (HLA_VERIFY_API_KEYS) plus anonymous free tier.
   "kv_namespaces": [
-    { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" }
+    { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" },
+    // OAuth 2.1 token/client/code storage for the Claude Connectors Directory listing
+    // (docs/CLAUDE-CONNECTOR.md). Jason must create this once with
+    // `wrangler kv namespace create OAUTH_KV` and paste the returned id below,
+    // replacing the PLACEHOLDER value. Until then env.OAUTH_KV is undefined and every
+    // OAuth endpoint (metadata, /register, /authorize, /token) returns a 500
+    // "OAuth storage not configured" — /mcp and /v1/* anonymous + legacy-API-key auth
+    // are completely unaffected either way.
+    { "binding": "OAUTH_KV", "id": "PLACEHOLDER_CREATE_WITH_WRANGLER_KV_NAMESPACE_CREATE_OAUTH_KV" }
   ],
   "analytics_engine_datasets": [
     { "binding": "USAGE", "dataset": "hlaverify_usage" }

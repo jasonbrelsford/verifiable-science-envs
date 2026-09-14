@@ -11,6 +11,33 @@
 
 export const TIERS = ["free", "starter", "pro", "enterprise"];
 
+// Shared API-key lookup used by both index.js's authorize() (REST/MCP requests) and
+// oauth.js's consent handler ("Use my HLA-Verify API key"): resolves a presented key
+// against HLA_VERIFY_API_KEYS (secret) first, then env.KEYS (KV, self-serve/Stripe
+// keys), exactly the precedence authorize() has always used. Does NOT touch rate
+// limiters (callers that need per-request limiting do that themselves) and never
+// logs the key. Returns:
+//   { label, tier }       — valid, usable key
+//   { revoked: true }     — a KV-backed key that exists but was revoked
+//   null                  — not found in either source
+export async function lookupApiKey(presented, env) {
+  if (!presented) return null;
+  const keys = parseKeys(env.HLA_VERIFY_API_KEYS);
+  if (keys.has(presented)) return keys.get(presented);
+  if (env.KEYS) {
+    let rec = null;
+    try {
+      const raw = await env.KEYS.get(presented);
+      rec = raw ? JSON.parse(raw) : null;
+    } catch (_) { /* malformed record: treat as absent */ }
+    if (rec) {
+      if (rec.status === "revoked") return { revoked: true };
+      return { label: rec.label || "self-serve", tier: rec.tier || "starter" };
+    }
+  }
+  return null;
+}
+
 export function parseKeys(s) {
   const out = new Map();
   for (const part of (s || "").split(",")) {

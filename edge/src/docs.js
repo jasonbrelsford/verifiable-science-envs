@@ -94,6 +94,15 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp",
 ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
 <p class="mut">Prefer a local process instead? <code>python -m sci_envs.mcp_server</code> is the same tool surface over stdio — see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
 
+<h2>Add to Claude (Connectors Directory)</h2>
+<p>Add <code>https://api.hlaverify.com/mcp</code> as a custom connector in Claude (<strong>Settings &gt; Connectors &gt; Add custom connector</strong>), or find it in the Connectors Directory once listed. Every tool is read-only (<code>readOnlyHint: true</code>) and calls only HLA-Verify's own pinned reference tables — nothing is written, nothing leaves this service. Two ways to connect:</p>
+<ul>
+<li><strong>No sign-in</strong> — the server works anonymously exactly as it does over plain HTTP, at the free tier's rate limit.</li>
+<li><strong>Connect with OAuth</strong> — Claude runs a standard OAuth 2.1 + PKCE flow against this server; the consent screen offers "Continue with free access" (a token rate-limited per-token instead of per-IP) or "Use my HLA-Verify API key" (pastes an existing key; the token inherits that key's tier). There are no user accounts or passwords — nothing to sign up for.</li>
+</ul>
+<p>OAuth endpoints, for anyone verifying the metadata by hand: <code>GET /.well-known/oauth-protected-resource</code>, <code>GET /.well-known/oauth-authorization-server</code>, <code>POST /register</code> (RFC 7591 dynamic client registration), <code>GET/POST /authorize</code>, <code>POST /token</code>. Full design notes: <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/CLAUDE-CONNECTOR.md">docs/CLAUDE-CONNECTOR.md</a>.</p>
+<p class="mut">Research-and-evaluation tool. Not a medical device. Not for clinical use.</p>
+
 <h2>Integrating into a pipeline</h2>
 <table>
 <tr><th>Where</th><th>Call</th><th>Gate on</th></tr>

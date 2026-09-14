@@ -21,10 +21,21 @@ export const INSTRUCTIONS =
   "yourself. LLMs (including you) fabricate allele names and miscount matches — " +
   "verify HLA names before presenting them.";
 
+// Every tool here is a pure, read-only lookup against a pinned reference release: no writes,
+// no external calls, no side effects. Claude Connectors Directory requires a `title` and the
+// applicable readOnlyHint/destructiveHint annotation on every tool (see docs/CLAUDE-CONNECTOR.md
+// section 5). `openWorldHint: false` because tools never consult the open web, only our own
+// pinned tables.
+const READ_ONLY_ANNOTATIONS = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+function withAnnotations(def) {
+  return { ...def, title: def.title, annotations: { title: def.title, ...READ_ONLY_ANNOTATIONS } };
+}
+
 function toolDefs() {
   return [
     {
       name: "verify_text",
+      title: "Verify HLA alleles in text",
       description:
         "Scan free text for HLA allele-shaped tokens and classify each one: " +
         "valid / legacy (with modern form) / deleted (with successor) / fabricated. " +
@@ -38,6 +49,7 @@ function toolDefs() {
     },
     {
       name: "normalize_allele",
+      title: "Normalize an HLA allele name",
       description:
         "Normalize one reported HLA allele name (any era) to current 2-field form, " +
         "with G group, P group, serologic equivalent, and flags.",
@@ -50,6 +62,7 @@ function toolDefs() {
     },
     {
       name: "allele_info",
+      title: "Look up an HLA allele",
       description:
         "Look up one exact name in the pinned release and return what it is: " +
         "assigned (G/P group, first release, confirmed status, WMDA serology, null flag), " +
@@ -64,6 +77,7 @@ function toolDefs() {
     },
     {
       name: "match_score",
+      title: "Score a donor-recipient HLA match",
       description:
         "Score a donor-recipient HLA match with the published rules (R1-R6). " +
         'recipient/donor: {"A": ["A*01:01","A*02:01"], "B": [...], ...} (two reported ' +
@@ -83,6 +97,7 @@ function toolDefs() {
     },
     {
       name: "check_typing",
+      title: "QC-check an HLA typing",
       description:
         "QC-check one HLA typing (all loci) against the pinned release: resolves every " +
         "reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags " +
@@ -100,6 +115,7 @@ function toolDefs() {
     },
     {
       name: "donor_compat",
+      title: "Check donor-recipient compatibility",
       description:
         "Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T, " +
         "Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4) " +
@@ -118,6 +134,7 @@ function toolDefs() {
     },
     {
       name: "validate_gl_string",
+      title: "Validate a GL String",
       description:
         "Validate and normalize a GL String (Genotype List, ^ | + ~ / grammar): resolves " +
         "every allele token, flags outdated/unresolvable names and structural problems " +
@@ -133,10 +150,11 @@ function toolDefs() {
     },
     {
       name: "about",
+      title: "About HLA-Verify",
       description: "What this server is, benchmark evidence for why to use it, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
-  ];
+  ].map(withAnnotations);
 }
 
 function aboutBody(manifest) {
