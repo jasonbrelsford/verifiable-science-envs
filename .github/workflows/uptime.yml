@@ -1,0 +1,67 @@
+# Uptime check for the hosted API. Curls the public /healthz endpoint on a
+# schedule; on failure it opens (or comments on) a tracking issue, and closes
+# that issue automatically once the endpoint recovers. Read-only against the
+# API itself — never touches Cloudflare, Stripe, or any secret.
+name: uptime
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+permissions:
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check /healthz
+        id: check
+        run: |
+          if code=$(curl -fsS -o /tmp/healthz.json -w "%{http_code}" --max-time 15 \
+              https://api.hlaverify.com/healthz); then
+            echo "status=up" >> "$GITHUB_OUTPUT"
+            echo "healthz responded $code: $(cat /tmp/healthz.json)"
+          else
+            echo "status=down" >> "$GITHUB_OUTPUT"
+            echo "healthz check failed (curl exit $?)"
+          fi
+      - name: Ensure the tracking label exists
+        if: steps.check.outputs.status == 'down'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create uptime --repo "$GITHUB_REPOSITORY" \
+            --color d93f0b --description "Auto-filed by the uptime workflow" --force
+      - name: Find existing tracking issue
+        id: find
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --label uptime --json number --jq '.[0].number // empty')
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+      - name: Open or update tracking issue on failure
+        if: steps.check.outputs.status == 'down'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          if [ -n "${{ steps.find.outputs.number }}" ]; then
+            gh issue comment "${{ steps.find.outputs.number }}" --repo "$GITHUB_REPOSITORY" \
+              --body "Still failing at $ts — https://api.hlaverify.com/healthz did not return 200. See run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "api.hlaverify.com/healthz check failing" \
+              --label uptime \
+              --body "First detected at $ts — https://api.hlaverify.com/healthz did not return 200 within 15s. Auto-filed by the uptime workflow; it will comment on further failures and close this once the endpoint recovers. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+      - name: Close tracking issue on recovery
+        if: steps.check.outputs.status == 'up' && steps.find.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          gh issue comment "${{ steps.find.outputs.number }}" --repo "$GITHUB_REPOSITORY" \
+            --body "Recovered at $ts — https://api.hlaverify.com/healthz is returning 200 again. Closing."
+          gh issue close "${{ steps.find.outputs.number }}" --repo "$GITHUB_REPOSITORY"
