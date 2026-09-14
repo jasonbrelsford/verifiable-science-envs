@@ -28,15 +28,19 @@ and what is blocked. Written 2026-09-11.*
 
 ## Waiting on Jason
 
-## Latest note to Jason (2026-09-11)
+## Latest note to Jason (2026-09-14)
 
-Nothing urgent. Three small, safe things shipped today: a quarterly release-bump runbook,
-ten more sales-pipeline target rows (still just draft rows, no emails), and a free local
-benchmark run queued on TOWER (qwen2.5:3b on HLA-Bench-C, in progress as of this note). One
-new, low-priority item is on the numbered list below (#9): the clean claude-sonnet-4-6
-re-run at 1600 tokens is ready to go but needs a manual click on `bench.yml` in the Actions
-tab (or your standing approval) since it spends your Anthropic API key — no rush, whenever
-you'd like that number to stop being a lower-bound estimate in the preprint and STATUS.md.
+Nothing urgent. Three small, safe things shipped today: a GitHub Actions workflow that
+checks `api.hlaverify.com/healthz` every 15 minutes and files/closes a tracking issue if it
+ever goes down; a design-only memo comparing two ways to let AI agents pay per call later
+(`docs/AGENT_BILLING_NOTES.md` — nothing built, just a menu for you to pick from whenever
+that becomes real); and a written-down day-5/day-12 follow-up schedule for the sales
+pipeline so the routine knows when to draft a follow-up once emails start going out (none
+have yet — all 20 rows are still unsent drafts, so this had nothing to act on today). One
+new, low item is on the numbered list below (#10): today's run found the Gmail connector is
+installed but not switched on for this scheduled session, so it still can't draft the actual
+outreach emails — a one-time toggle whenever you want that to start moving. Everything else
+below is unchanged from before.
 
 *Numbered, prioritized, copy-paste-ready. Ordered: credential exposure first, then
 revenue-blocking, then legal/compliance, then everything else.*
@@ -105,6 +109,13 @@ revenue-blocking, then legal/compliance, then everything else.*
    only ever dispatches local Ollama models and cannot carry this one. Once it lands, the
    `*` lower-bound caveat on the claude-sonnet-4-6 row in `STATUS.md` and the preprint draft
    can be removed.
+10. **Enable the Gmail connector in-chat for the scheduled VP-standup session.** Low
+    priority, but it is the only thing standing between the go-to-market track and actually
+    drafting outreach emails. The connector shows as installed and authenticated
+    (`installState: connected`) but `enabledInChat: false` for this scheduled session, so
+    go-to-market action #1 (draft the top-10 day-0 emails) falls through every run. Whenever
+    you want outreach drafting to start, enable the Gmail connector for this session/agent
+    in your claude.ai connector settings; no code or repo change needed.
 
 ---
 
@@ -124,29 +135,30 @@ Product page and shared nav shipped; `/pricing` redirects correctly.
 1. Implement a `/v1/usage` or dashboard endpoint reading from the `USAGE` Analytics Engine
    dataset already wired in `wrangler.jsonc`, scoped so a keyed customer sees only their own
    counts (start with a single aggregate JSON endpoint, not a UI).
-2. Add an uptime check: a GitHub Actions scheduled workflow that curls
-   `https://api.hlaverify.com/healthz` every 15 minutes and opens/updates a tracking issue
-   (or commits a status line to `STATUS.md`) on failure.
-3. Draft (design only, no billing code) how agent pay-per-call would work later via Stripe
-   metered billing or an x402-style micropayment, in `docs/AGENT_BILLING_NOTES.md`; do not
-   implement until Stripe live is proven.
-4. Follow-on from the release-bump runbook: script the per-name verdict diff between two
+2. Follow-on from the release-bump runbook: script the per-name verdict diff between two
    release tags (run the Python oracle against old and new tag, diff every changed verdict)
    so `docs/RELEASE_BUMP.md` step 6's customer notice can cite a real diff instead of saying
    none was computed.
+3. Follow-on from the new uptime workflow: once it has run for a few days, confirm the
+   `uptime` issue label and the open/close cycle actually behave as designed against a real
+   failure (or a deliberate `workflow_dispatch` test) rather than trusting the YAML alone.
+4. If go-to-market or research outreach (PIPELINE.md row 9/19) surfaces real interest in
+   agent pay-per-call, revisit `docs/AGENT_BILLING_NOTES.md` and pick Option A or B rather
+   than leaving both open.
 
-**Blocked on human:** Stripe live secrets (#3) and sandbox key rotation (#2); platform work
-above does not depend on either.
+**Blocked on human:** Stripe live secrets (#3 in Waiting on Jason) and sandbox key rotation
+(#2 in Waiting on Jason); platform work above does not depend on either.
 
 **Done log (last 5):**
+- 2026-09-14 — docs: agent pay-per-call billing design notes (`docs/AGENT_BILLING_NOTES.md`),
+  Stripe metered billing vs. x402-style micropayment compared against the current tier/key
+  code; no billing code written.
+- 2026-09-14 — ci: uptime check workflow (`.github/workflows/uptime.yml`), curls
+  `/healthz` every 15 minutes, opens/comments/closes a tracking issue on failure/recovery.
 - 2026-09-11 — docs: quarterly IPD-IMGT/HLA release-bump runbook (`docs/RELEASE_BUMP.md`),
   procedure only, no code changes.
 - 2026-09-11 — site: product page at hlaverify.com/product, shared nav, /pricing redirect.
 - 2026-09-11 — edge: sandbox Stripe payment links and price-to-tier map.
-- 2026-09-11 — edge: Stripe-only self-serve keys, signed checkout webhook issues/revokes
-  keys, /pricing and /checkout/success pages.
-- 2026-09-11 — edge: remote MCP endpoint at /mcp, tiered keys with KV store, MCP path
-  golden-tested against the same fixtures.
 
 ---
 
@@ -156,24 +168,27 @@ above does not depend on either.
 the first pilot, a case study.
 **Owner agent role:** sales/outreach agent, Sonnet for drafting, Haiku for table upkeep.
 
-**Current state (2026-09-11):** 60-target list (`docs/sales/TARGETS.md`), three-tier
+**Current state (2026-09-14):** 60-target list (`docs/sales/TARGETS.md`), three-tier
 outreach sequences (`docs/sales/OUTREACH.md`), pilot SOW template
 (`docs/sales/PILOT_SOW.md`), integration brief, and launch posts
-(`docs/launch/posts.md`) all written but unsent/unposted. `docs/sales/PIPELINE.md` now
-has 20 targets (rows 1-20), all at stage `draft`. Note: drafting rows into Gmail requires
-a session with a Gmail connector attached — a run without one (as this run was) cannot
-complete action #1 below and should fall through to the next available action instead;
-this is a tooling gap, not something Jason needs to do anything about.
+(`docs/launch/posts.md`) all written but unsent/unposted. `docs/sales/PIPELINE.md` still
+has 20 targets (rows 1-20), all at stage `draft`; none have moved to `sent` yet. Note:
+drafting rows into Gmail requires a session with a Gmail connector enabled in-chat — the
+connector is installed and authenticated at the org level but `enabledInChat: false` on
+this run (as on 2026-09-11), so it again could not complete action #1 below and fell
+through to the next available action; this is a tooling gap, not something Jason needs to
+do anything about (enabling the Gmail connector for the scheduled session, if he wants
+action #1 to actually run, is the only lever here).
 
 **Next agent actions:**
 1. For each of the top 10 rows in `docs/sales/PIPELINE.md`, find a named buyer contact from
    public sources (LinkedIn search, org staff pages) and draft the tier-appropriate day-0
    email from `OUTREACH.md` as a Gmail draft; update the row's stage to `drafted-for-review`
-   and date. Requires a Gmail connector.
-2. Add a day-5 and day-12 follow-up drafting step that only fires (as a next action) once a
-   row has been at `sent` for 5 / 12 days respectively — encode this as a note in
-   `PIPELINE.md` for the daily routine to check dates against, since there is no scheduler
-   inside this repo.
+   and date. Requires a Gmail connector enabled in-chat.
+2. Once any row reaches stage `sent`, apply the day-5/day-12 follow-up schedule now encoded
+   in `docs/sales/PIPELINE.md`'s "Follow-up schedule" section (checks `Date` against today,
+   drafts via `OUTREACH.md`, notes the draft in `Next step` to avoid duplicates). Nothing to
+   act on yet — no row is at `sent`.
 3. Once a pilot from `docs/sales/PILOT_SOW.md` is signed (human-only, see below), draft a
    case-study outline in `docs/sales/CASE_STUDY_TEMPLATE.md` so it is ready to fill in.
 4. Re-verify every number in `docs/launch/posts.md` against current `STATUS.md` and fix any
@@ -181,11 +196,15 @@ this is a tooling gap, not something Jason needs to do anything about.
 5. Extend `docs/sales/PIPELINE.md` with targets 21-30 (remaining tier-A/B/C rows from
    `TARGETS.md` not yet in the pipeline), stage `draft`, once rows 1-20 move past `draft`.
 
-**Blocked on human:** sending any drafted email (#7 above); posting to HN/Reddit/LinkedIn/X
-under Jason's own accounts (his accounts, his voice — agents draft, he posts); signing a
-pilot SOW (financial commitment).
+**Blocked on human:** sending any drafted email (#7 in Waiting on Jason); posting to
+HN/Reddit/LinkedIn/X under Jason's own accounts (his accounts, his voice — agents draft, he
+posts); signing a pilot SOW (financial commitment); enabling the Gmail connector in-chat for
+this scheduled session so action #1 can run at all.
 
 **Done log (last 5):**
+- 2026-09-14 — encoded a day-5/day-12 follow-up schedule in `docs/sales/PIPELINE.md`
+  (no in-repo scheduler, so the daily routine checks `Date` against today by hand); no rows
+  were at `sent` yet so nothing fired.
 - 2026-09-11 — extended `docs/sales/PIPELINE.md` with targets 11-20 (rows 11-20 from
   `TARGETS.md`, orgs not already in the top 10), stage `draft`, no emails yet.
 - 2026-09-11 — created `docs/sales/PIPELINE.md`, top 10 targets from `TARGETS.md`, stage
@@ -194,7 +213,6 @@ pilot SOW (financial commitment).
   integration brief.
 - 2026-09-09 — launch posts: six families, 14B and Gemma rows, three-model matching
   results; X thread scale line.
-- 2026-09-09 — card and launch-post grammar/number updates for the matching table.
 
 ---
 
