@@ -20,6 +20,7 @@ from mcp.server.fastmcp import FastMCP
 from sci_envs.reference.imgt import ImgtReference
 from sci_envs.families.nomenclature.normalize import normalize
 from sci_envs.families.matching.rules import FRAMEWORKS, flat_answer, score
+from sci_envs.service import lab
 
 TAG = "v3.65.0-alpha"
 _REF: ImgtReference | None = None
@@ -84,6 +85,48 @@ def match_score(recipient: dict, donor: dict, framework: str = "8/8") -> dict:
     s = score(_ref(), framework, recipient, donor)
     return {"release": TAG, **flat_answer(s), "hvg_mismatches": s["hvg_mismatches"],
             "gvh_mismatches": s["gvh_mismatches"], "flags": s["flags"]}
+
+
+@mcp.tool()
+def check_typing(typing: dict) -> dict:
+    """QC-check one HLA typing (all loci) against the pinned release: resolves every
+    reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags
+    too-many/single/homozygous per locus, computes the B-leader (-21 M/T) and
+    KIR-ligand (C1/C2/Bw4) profile, and DRB3/4/5 expected-vs-reported. typing:
+    {"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era)."""
+    err = lab.validate_typing(typing, "typing")
+    if err:
+        return {"error": err}
+    r = _ref()
+    return lab.check_typing(r, lab.get_protein_facts(r), typing)
+
+
+@mcp.tool()
+def donor_compat(recipient: dict, donor: dict) -> dict:
+    """Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T,
+    Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4)
+    comparison, computed over each side's full typing QC. recipient/donor:
+    {"A": [...], "B": [...], "C": [...], "DRB1": [...], ...}.
+    Decision support only; not a medical device."""
+    err = lab.validate_typing(recipient, "recipient") or lab.validate_typing(donor, "donor")
+    if err:
+        return {"error": err}
+    r = _ref()
+    return lab.compat(r, lab.get_protein_facts(r), recipient, donor)
+
+
+@mcp.tool()
+def validate_gl_string(gl: str) -> dict:
+    """Validate and normalize a GL String (Genotype List, ^ | + ~ / grammar): resolves
+    every allele token, flags outdated/unresolvable names and structural problems
+    (mixed loci within a slash-list, a repeated locus within a haplotype or across
+    ^ blocks, more than two haplotypes, differing loci across a genotype or genotype
+    list, empty elements), and returns the normalized string."""
+    r = _ref()
+    try:
+        return lab.gl_string(r, gl)
+    except ValueError as e:
+        return {"error": str(e)}
 
 
 @mcp.tool()
