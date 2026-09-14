@@ -373,6 +373,7 @@ def test_http_glstring_ok():
 
 
 def test_mcp_donor_compat_description_mentions_decision_support():
+    pytest.importorskip("mcp")  # optional extra ([mcp]); CI installs only [dev,service]
     from sci_envs import mcp_server
     tools = mcp_server.mcp._tool_manager.list_tools()
     donor_compat = next(t for t in tools if t.name == "donor_compat")
