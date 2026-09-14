@@ -144,6 +144,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <tr><td><b>Starter</b></td><td>600 req/min per key</td><td>${buy(starterLink, "Buy Starter")}</td></tr>
 <tr><td><b>Pro</b></td><td>6,000 req/min per key</td><td>${buy(proLink, "Buy Pro")}</td></tr>
 <tr><td><b>Enterprise</b></td><td>uncapped, custom SLA</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
+<tr><td><b>Academic research</b></td><td>Pro-tier rate limit, free</td><td><a class="btn" href="https://hlaverify.com/education">hlaverify.com/education</a></td></tr>
 </table>
 <p class="mut" style="margin-top:2em">After payment you'll land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Full endpoint reference: <a href="/docs">/docs</a>.</p>
 </div></body></html>`;
