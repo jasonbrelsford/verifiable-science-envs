@@ -28,5 +28,5 @@ jobs:
       - run: pip install -e ".[service]"
       - name: Export edge tables from the pinned release
         run: python -m sci_envs.service.edge_export
-      - name: Golden test — Worker output must equal the Python oracle
-        run: cd edge && node --test test/golden.test.mjs
+      - name: Worker tests — golden equivalence with the Python oracle, MCP protocol, keys, billing
+        run: cd edge && node --test

@@ -1,5 +1,8 @@
 // Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0). Stateless: no
-// sessions, no SSE — every POST gets exactly one JSON response. Tool names and
+// sessions, no SSE — every POST gets exactly one JSON response. Dual-era: a
+// request carrying modern per-request _meta (or server/discover) is served per
+// the 2026-07-28 revision; an initialize handshake selects legacy semantics for
+// 2025-11-25 and earlier clients. Tool names and
 // descriptions mirror sci_envs/mcp_server.py (the stdio server) so an agent
 // that knows one knows the other; the outputs are the same shapes the REST API
 // returns (doVerify/doNormalize/doAllele/doMatch in handlers.js), so results
@@ -10,7 +13,18 @@ import { FRAMEWORKS } from "./engine.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
   MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS } from "./handlers.js";
 
-export const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
+// Modern revisions: version, client info and capabilities travel in every request's _meta.
+export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
+// Legacy revisions: negotiated once by the initialize handshake. Newest first.
+export const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
+export const SUPPORTED_VERSIONS = [...MODERN_PROTOCOL_VERSIONS, ...PROTOCOL_VERSIONS];
+// The tool catalog only changes on deploy and is identical for every key.
+const LIST_TTL_MS = 3600000;
+
+const META_VERSION = "io.modelcontextprotocol/protocolVersion";
+const META_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
+const HEADER_MISMATCH = -32020;
+const UNSUPPORTED_PROTOCOL_VERSION = -32022;
 export const SERVER_INFO = { name: "hla-verify", version: "1.0.0" };
 export const INSTRUCTIONS =
   "Deterministic HLA verification against a pinned IPD-IMGT/HLA release. No LLM " +
@@ -136,8 +150,11 @@ function toolDefs() {
       description: "What this server is, benchmark evidence for why to use it, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
-  ];
+  ].map((t) => ({ ...t, annotations: TOOL_ANNOTATIONS }));
 }
+
+// Every tool is a pure lookup into the pinned release: nothing written, same answer twice.
+const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
 
 function aboutBody(manifest) {
   return {
@@ -206,8 +223,9 @@ async function callTool(name, args, eng, manifest) {
 function rpcResult(id, result) {
   return jsonResponse({ jsonrpc: "2.0", id: id ?? null, result });
 }
-function rpcError(id, code, message) {
-  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, error: { code, message } }, code === -32700 || code === -32600 ? 400 : 200);
+function rpcError(id, code, message, { data, status } = {}) {
+  const error = data === undefined ? { code, message } : { code, message, data };
+  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, error }, status ?? (code === -32700 || code === -32600 ? 400 : 200));
 }
 function jsonResponse(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -239,6 +257,10 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
 
   const { method, params, id } = msg;
 
+  const metaVersion = params && params._meta && params._meta[META_VERSION];
+  if (metaVersion !== undefined || method === "server/discover")
+    return handleModern(request, msg, metaVersion, engine, manifest, onCall);
+
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
 
   if (method === "initialize") {
@@ -253,14 +275,70 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
 
   if (method === "tools/call") {
     const name = params && params.name;
-    const args = params && params.arguments;
     if (typeof name !== "string" || !name) return rpcError(id, -32602, "Invalid params: params.name (string) is required");
-    const result = await callTool(name, args, engine, manifest);
-    onCall(name, result.isError ? 422 : 200, result.units ?? 0);
-    const out = { content: result.content, isError: result.isError };
-    if (!result.isError) out.structuredContent = result.structuredContent;
-    return rpcResult(id, out);
+    return rpcResult(id, await runTool(name, params.arguments, engine, manifest, onCall));
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`);
+}
+
+async function runTool(name, args, engine, manifest, onCall) {
+  const result = await callTool(name, args, engine, manifest);
+  onCall(name, result.isError ? 422 : 200, result.units ?? 0);
+  const out = { content: result.content, isError: result.isError };
+  if (!result.isError) out.structuredContent = result.structuredContent;
+  return out;
+}
+
+// Mcp-Name may carry a non-header-safe name as =?base64?<UTF-8 base64>?=.
+function decodeHeaderValue(v) {
+  if (v === null || !v.startsWith("=?base64?") || !v.endsWith("?=")) return v;
+  try {
+    const bytes = Uint8Array.from(atob(v.slice(9, -2)), (c) => c.charCodeAt(0));
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
+// 2026-07-28: no handshake, no ping. Every request names its protocol version in
+// _meta, which must agree with the MCP-Protocol-Version / Mcp-Method / Mcp-Name
+// headers so gateways routing on headers and this handler see the same request.
+async function handleModern(request, msg, metaVersion, engine, manifest, onCall) {
+  const { method, params, id } = msg;
+  const h = request.headers;
+  const mismatch = (message) => rpcError(id, HEADER_MISMATCH, `Header mismatch: ${message}`, { status: 400 });
+
+  // server/discover is the era probe, so answer it even from a client that sent no _meta.
+  const version = metaVersion ?? MODERN_PROTOCOL_VERSIONS[0];
+  if (metaVersion !== undefined) {
+    const hv = h.get("mcp-protocol-version");
+    if (hv === null) return mismatch("MCP-Protocol-Version header is required");
+    if (hv !== metaVersion) return mismatch(`MCP-Protocol-Version header value '${hv}' does not match body value '${metaVersion}'`);
+    const hm = h.get("mcp-method");
+    if (hm === null) return mismatch("Mcp-Method header is required");
+    if (hm !== method) return mismatch(`Mcp-Method header value '${hm}' does not match body value '${method}'`);
+  }
+  if (!MODERN_PROTOCOL_VERSIONS.includes(version))
+    return rpcError(id, UNSUPPORTED_PROTOCOL_VERSION, "Unsupported protocol version",
+      { data: { supported: SUPPORTED_VERSIONS, requested: String(version) }, status: 400 });
+
+  const complete = (result) => rpcResult(id, { resultType: "complete", ...result, _meta: { [META_SERVER_INFO]: SERVER_INFO } });
+
+  if (method === "server/discover")
+    return complete({ supportedVersions: SUPPORTED_VERSIONS, capabilities: { tools: {} }, instructions: INSTRUCTIONS,
+      ttlMs: LIST_TTL_MS, cacheScope: "public" });
+
+  if (method === "tools/list") return complete({ tools: toolDefs(), ttlMs: LIST_TTL_MS, cacheScope: "public" });
+
+  if (method === "tools/call") {
+    const name = params.name;
+    if (typeof name !== "string" || !name) return rpcError(id, -32602, "Invalid params: params.name (string) is required");
+    const hn = decodeHeaderValue(h.get("mcp-name"));
+    if (hn === null) return mismatch("Mcp-Name header is required for tools/call");
+    if (hn !== name) return mismatch(`Mcp-Name header value '${hn}' does not match body value '${name}'`);
+    return complete(await runTool(name, params.arguments, engine, manifest, onCall));
+  }
+
+  return rpcError(id, -32601, `Method not found: ${method}`, { status: 404 });
 }
