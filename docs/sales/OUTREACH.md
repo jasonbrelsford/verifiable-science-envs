@@ -227,7 +227,8 @@ Jason
 Hi [Name],
 
 Last note. If a call is not the right shape, here is the smallest integration: HLA-Verify
-ships an MCP server with three tools, `verify_text`, `normalize_allele`, `match_score`.
+ships an MCP server whose tools include `verify_text`, `normalize_allele`, `match_score`,
+`check_typing`, `donor_compat` and `validate_gl_string`.
 
 pip install -e ".[mcp]"
 {"command": "python", "args": ["-m", "sci_envs.mcp_server"]}

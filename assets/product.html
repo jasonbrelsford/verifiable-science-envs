@@ -131,7 +131,7 @@ footer a{color:var(--green)}
 </div>
 
 <h2>For AI agents</h2>
-<p class="sub">A remote MCP server at <code>https://api.hlaverify.com/mcp</code> exposes the same deterministic lookups as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>about</code>. Streamable HTTP, JSON-RPC 2.0, stateless — nothing to install. Results are byte-identical to the matching <code>/v1/…</code> REST response.</p>
+<p class="sub">A remote MCP server at <code>https://api.hlaverify.com/mcp</code> exposes the same deterministic lookups as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>. Streamable HTTP, JSON-RPC 2.0, stateless — nothing to install. Results are byte-identical to the matching <code>/v1/…</code> REST response.</p>
 <div class="sample">{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}</div>
 <p class="sub" style="margin-top:6px">Anonymous calls share the free tier's 60 req/min; add a key for a higher tier: <code>"headers": {"Authorization": "Bearer YOUR_KEY"}</code>. Works in Claude Desktop, claude.ai connectors, Cursor, and any other MCP-capable client. Full machine-readable overview for agents: <a href="/llms.txt">/llms.txt</a>.</p>
 

@@ -93,7 +93,7 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp",
   "headers": {"Authorization": "Bearer YOUR_KEY"}}}}`)}
 <h3>Cursor (<code>.cursor/mcp.json</code>)</h3>
 ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
-<p class="mut">Prefer a local process instead? <code>python -m sci_envs.mcp_server</code> is the same tool surface over stdio — see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
+<p class="mut">Prefer a local process instead? <code>python -m sci_envs.mcp_server</code> serves the same tools over stdio except <code>allele_info</code> — see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
 
 <h2>Integrating into a pipeline</h2>
 <table>
@@ -103,7 +103,7 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 <tr><td>Search / match reports</td><td><code>/v1/match</code> per pair</td><td>Compare with the lab's count; any <code>potential</code> or <code>null_allele*</code> flag routes to human review</td></tr>
 <tr><td>Registry / data-warehouse QC</td><td><code>/v1/normalize</code> in batches of ≤5,000</td><td>Diff <code>reported</code> vs <code>current_name</code> per release</td></tr>
 </table>
-<p>Python (no HTTP): <code>pip install "verifiable-science-envs @ git+https://github.com/jasonbrelsford/verifiable-science-envs"</code>, then <code>from sci_envs.families.nomenclature.normalize import normalize</code> and <code>from sci_envs.families.matching.rules import score</code> — the same engine that computed these tables. Agents: MCP server <code>python -m sci_envs.mcp_server</code> with tools <code>verify_text</code>, <code>normalize_allele</code>, <code>match_score</code>; see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
+<p>Python (no HTTP): <code>pip install "verifiable-science-envs @ git+https://github.com/jasonbrelsford/verifiable-science-envs"</code>, then <code>from sci_envs.families.nomenclature.normalize import normalize</code> and <code>from sci_envs.families.matching.rules import score</code> — the same engine that computed these tables. Agents: MCP server <code>python -m sci_envs.mcp_server</code> with tools <code>verify_text</code>, <code>normalize_allele</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>; see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
 
 <h2>Release pinning</h2>
 <p>This deployment is pinned to <b>${esc(m.release)}</b>; the tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; keyed customers receive a diff of changed verdicts before the pin moves, and an older release can be kept for a customer on request.</p>
