@@ -373,10 +373,14 @@ def test_http_glstring_ok():
 
 
 def test_mcp_donor_compat_description_mentions_decision_support():
-    pytest.importorskip("mcp")  # optional extra ([mcp]); CI installs only [dev,service]
+    pytest.importorskip("mcp")  # optional extra ([mcp]); CI installs [dev,service,mcp]
     from sci_envs import mcp_server
     tools = mcp_server.mcp._tool_manager.list_tools()
     donor_compat = next(t for t in tools if t.name == "donor_compat")
     assert "decision support only; not a medical device" in donor_compat.description.lower()
     for name in ("check_typing", "donor_compat", "validate_gl_string"):
         assert any(t.name == name for t in tools)
+    # Same hints as TOOL_ANNOTATIONS in edge/src/mcp.js.
+    for t in tools:
+        a = t.annotations
+        assert (a.read_only_hint, a.idempotent_hint, a.open_world_hint) == (True, True, False), t.name

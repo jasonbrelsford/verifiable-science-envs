@@ -7,6 +7,8 @@ every verdict is computed from the pinned IPD-IMGT/HLA release.
 Run:  pip install -e ".[mcp]" && python -m sci_envs.mcp_server
 Or in an MCP client config:
   {"command": "python", "args": ["-m", "sci_envs.mcp_server"]}
+Speaks MCP 2026-07-28 (server/discover) and the legacy initialize handshake
+from the same process (mcp>=2), like the remote server at api.hlaverify.com.
 
 First call fetches ~33 MB of reference data (md5-verified, cached in
 ~/.cache/sci_envs). Licence: engine Apache-2.0; this server file follows the
@@ -15,7 +17,8 @@ repository licence. Research-and-evaluation tool; not a medical device.
 from __future__ import annotations
 
 import re
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
 
 from sci_envs.reference.imgt import ImgtReference
 from sci_envs.families.nomenclature.normalize import normalize
@@ -35,8 +38,9 @@ def _ref() -> ImgtReference:
 
 ALLELE_RE = re.compile(r"\b(?:HLA-)?((?:[A-Z]+[0-9]?|Cw)\*[0-9:A-Z]+)\b")
 
-mcp = FastMCP(
+mcp = MCPServer(
     "hla-verify",
+    version="1.0.0",
     instructions=(
         "Deterministic HLA verification against pinned IPD-IMGT/HLA "
         f"{TAG}. Call verify_text on any output that mentions HLA alleles "
@@ -46,8 +50,12 @@ mcp = FastMCP(
     ),
 )
 
+# Every tool is a pure lookup into the pinned release: nothing written, same answer
+# twice. Mirrors TOOL_ANNOTATIONS in edge/src/mcp.js.
+READ_ONLY = ToolAnnotations(read_only_hint=True, idempotent_hint=True, open_world_hint=False)
 
-@mcp.tool()
+
+@mcp.tool(annotations=READ_ONLY)
 def verify_text(text: str) -> dict:
     """Scan free text for HLA allele-shaped tokens and classify each one:
     valid / legacy (with modern form) / deleted (with successor) / fabricated.
@@ -63,7 +71,7 @@ def verify_text(text: str) -> dict:
                                     or t["allele_2field"] == "UNRESOLVABLE")}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def normalize_allele(name: str) -> dict:
     """Normalize one reported HLA allele name (any era) to current 2-field form,
     with G group, P group, serologic equivalent, and flags."""
@@ -72,7 +80,7 @@ def normalize_allele(name: str) -> dict:
     return n
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def match_score(recipient: dict, donor: dict, framework: str = "8/8") -> dict:
     """Score a donor-recipient HLA match with the published rules (R1-R6).
     recipient/donor: {"A": ["A*01:01","A*02:01"], "B": [...], ...} (two reported
@@ -87,7 +95,7 @@ def match_score(recipient: dict, donor: dict, framework: str = "8/8") -> dict:
             "gvh_mismatches": s["gvh_mismatches"], "flags": s["flags"]}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def check_typing(typing: dict) -> dict:
     """QC-check one HLA typing (all loci) against the pinned release: resolves every
     reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags
@@ -101,7 +109,7 @@ def check_typing(typing: dict) -> dict:
     return lab.check_typing(r, lab.get_protein_facts(r), typing)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def donor_compat(recipient: dict, donor: dict) -> dict:
     """Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T,
     Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4)
@@ -115,7 +123,7 @@ def donor_compat(recipient: dict, donor: dict) -> dict:
     return lab.compat(r, lab.get_protein_facts(r), recipient, donor)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def validate_gl_string(gl: str) -> dict:
     """Validate and normalize a GL String (Genotype List, ^ | + ~ / grammar): resolves
     every allele token, flags outdated/unresolvable names and structural problems
@@ -129,7 +137,7 @@ def validate_gl_string(gl: str) -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def about() -> dict:
     """What this server is, benchmark evidence for why to use it, and terms."""
     return {
