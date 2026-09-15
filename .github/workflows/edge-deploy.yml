@@ -37,3 +37,16 @@ jobs:
         run: |
           curl -sf https://api.hlaverify.com/healthz
           curl -sf https://api.hlaverify.com/v1/verify -H 'content-type: application/json' -d '{"text":"A*0101 DQB1*05:03:26:99"}' | grep -q '"hallucinated":1'
+      - name: smoke mcp
+        env:
+          MCP: https://api.hlaverify.com/mcp
+          META: '"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}'
+        run: |
+          # 2026-07-28 era: no handshake; MCP-Protocol-Version / Mcp-Method / Mcp-Name headers must mirror the body.
+          curl -sSf "$MCP" -H 'content-type: application/json' -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{'"$META"'}}' | grep -q '"supportedVersions":\[[^]]*"2026-07-28"'
+          curl -sSf "$MCP" -H 'content-type: application/json' -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' -H 'Mcp-Name: verify_text' \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"verify_text","arguments":{"text":"A*0101 DQB1*05:03:26:99"},'"$META"'}}' | grep -q '"hallucinated":1'
+          # Legacy era: initialize handshake.
+          curl -sSf "$MCP" -H 'content-type: application/json' \
+            -d '{"jsonrpc":"2.0","id":3,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"edge-deploy-smoke","version":"1"}}}' | grep -q '"protocolVersion":"2025-06-18"'
