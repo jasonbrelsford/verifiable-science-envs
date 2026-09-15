@@ -34,7 +34,7 @@ function getEngine(env) {
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type, x-api-key, authorization",
+  "access-control-allow-headers": "content-type, x-api-key, authorization, mcp-protocol-version, mcp-method, mcp-name",
   "access-control-max-age": "86400",
 };
 function json(body, status = 200, extra = {}) {
