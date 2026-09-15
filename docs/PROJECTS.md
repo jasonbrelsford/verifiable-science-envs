@@ -28,19 +28,23 @@ and what is blocked. Written 2026-09-11.*
 
 ## Waiting on Jason
 
-## Latest note to Jason (2026-09-14)
+## Latest note to Jason (2026-09-15)
 
-Nothing urgent. Three small, safe things shipped today: a GitHub Actions workflow that
-checks `api.hlaverify.com/healthz` every 15 minutes and files/closes a tracking issue if it
-ever goes down; a design-only memo comparing two ways to let AI agents pay per call later
-(`docs/AGENT_BILLING_NOTES.md` — nothing built, just a menu for you to pick from whenever
-that becomes real); and a written-down day-5/day-12 follow-up schedule for the sales
-pipeline so the routine knows when to draft a follow-up once emails start going out (none
-have yet — all 20 rows are still unsent drafts, so this had nothing to act on today). One
-new, low item is on the numbered list below (#10): today's run found the Gmail connector is
-installed but not switched on for this scheduled session, so it still can't draft the actual
-outreach emails — a one-time toggle whenever you want that to start moving. Everything else
-below is unchanged from before.
+Nothing urgent. Three small, safe things shipped today: a script (`scripts/release_diff.py`)
+that diffs the full allele table between two IPD-IMGT/HLA releases, so the next quarterly
+release bump can cite a real added/deleted/renamed count instead of saying no diff was
+computed; a queued free TOWER run for `llama3.2:3b` on the donor-matching benchmark, which
+closes the last open-model coverage gap between the two benchmark suites; and a fact-check
+of every number in the drafted launch posts against current results — nothing had drifted,
+so no changes were needed there. One new low item is on the numbered list below (#12): while
+looking at a planned usage-dashboard endpoint, today's run found the Cloudflare metering
+data the Worker already writes can't be read back without a new Cloudflare API token (a
+secret), which an agent isn't allowed to create — a one-time token creation whenever you
+want per-customer usage counts to exist. Also newly explicit on the list (#8, not new, just
+previously missing from this numbered view): the launch posts (Hacker News, Reddit,
+LinkedIn, X) have been drafted and fact-checked since early September and are ready to post
+whenever you have time — that's on you, not blocked on anything else. Everything else below
+is unchanged from before.
 
 *Numbered, prioritized, copy-paste-ready. Ordered: credential exposure first, then
 revenue-blocking, then legal/compliance, then everything else.*
@@ -98,24 +102,37 @@ revenue-blocking, then legal/compliance, then everything else.*
    drafts (see `docs/sales/PIPELINE.md`) — they never send. Check your Gmail Drafts folder
    periodically and send (or edit and send) the ones you approve; that is the entire
    human-in-the-loop step for go-to-market.
-8. **Headwaters Genetics and Spin Renta starting info.** These have stub charters below
+8. **Post the prepared launch content.** `docs/launch/posts.md` has six ready-to-post pieces
+   (Hacker News, r/bioinformatics, LinkedIn, X thread, r/MachineLearning, r/LocalLLaMA),
+   drafted 2026-09-08 and fact-checked as still accurate as of today. Agents draft and
+   fact-check; posting under your own accounts, in your own voice, is yours to do whenever
+   you have time — no deadline, nothing else is blocked on it.
+9. **Headwaters Genetics and Spin Renta starting info.** These have stub charters below
    (projects e and f) because this session has no repo or account access for them. When you
    have a few minutes, answer the "ask Jason" questions in each stub so an agent can start
    real work there.
-9. **Trigger (or standing-approve) the clean claude-sonnet-4-6 re-run.** Low priority. Go to
-   the repo's Actions tab -> `bench` workflow -> Run workflow, with `models = anthropic/
-   claude-sonnet-4-6` and `split = test` (or `all`); this spends your Anthropic API key, so
-   no agent triggers it on its own. Confirmed today that the free `.tower-queue.json` path
-   only ever dispatches local Ollama models and cannot carry this one. Once it lands, the
-   `*` lower-bound caveat on the claude-sonnet-4-6 row in `STATUS.md` and the preprint draft
-   can be removed.
-10. **Enable the Gmail connector in-chat for the scheduled VP-standup session.** Low
+10. **Trigger (or standing-approve) the clean claude-sonnet-4-6 re-run.** Low priority. Go to
+    the repo's Actions tab -> `bench` workflow -> Run workflow, with `models = anthropic/
+    claude-sonnet-4-6` and `split = test` (or `all`); this spends your Anthropic API key, so
+    no agent triggers it on its own. Confirmed the free `.tower-queue.json` path only ever
+    dispatches local Ollama models and cannot carry this one. Once it lands, the `*`
+    lower-bound caveat on the claude-sonnet-4-6 row in `STATUS.md` and the preprint draft
+    can be removed.
+11. **Enable the Gmail connector in-chat for the scheduled VP-standup session.** Low
     priority, but it is the only thing standing between the go-to-market track and actually
     drafting outreach emails. The connector shows as installed and authenticated
     (`installState: connected`) but `enabledInChat: false` for this scheduled session, so
     go-to-market action #1 (draft the top-10 day-0 emails) falls through every run. Whenever
     you want outreach drafting to start, enable the Gmail connector for this session/agent
     in your claude.ai connector settings; no code or repo change needed.
+12. **Create a Cloudflare Analytics Engine read token for a future `/v1/usage` endpoint.**
+    Low priority. The Worker already writes per-request metering to the `USAGE` Analytics
+    Engine dataset (`edge/src/index.js` / `stripe.js`), but that binding is write-only —
+    there is no way to query it back from inside the Worker. Reading it needs Cloudflare's
+    separate Analytics Engine SQL API, which needs its own API token created in the
+    Cloudflare dashboard and stored via `wrangler secret put` — an agent cannot create
+    secrets under this routine's rules, so a usage-visibility endpoint (platform action)
+    stays parked until you do this once.
 
 ---
 
@@ -132,24 +149,30 @@ tier -> cancel -> 401 revoked). Live Stripe not yet activated (see Waiting on Ja
 Product page and shared nav shipped; `/pricing` redirects correctly.
 
 **Next agent actions:**
-1. Implement a `/v1/usage` or dashboard endpoint reading from the `USAGE` Analytics Engine
-   dataset already wired in `wrangler.jsonc`, scoped so a keyed customer sees only their own
-   counts (start with a single aggregate JSON endpoint, not a UI).
-2. Follow-on from the release-bump runbook: script the per-name verdict diff between two
-   release tags (run the Python oracle against old and new tag, diff every changed verdict)
-   so `docs/RELEASE_BUMP.md` step 6's customer notice can cite a real diff instead of saying
-   none was computed.
-3. Follow-on from the new uptime workflow: once it has run for a few days, confirm the
-   `uptime` issue label and the open/close cycle actually behave as designed against a real
-   failure (or a deliberate `workflow_dispatch` test) rather than trusting the YAML alone.
-4. If go-to-market or research outreach (PIPELINE.md row 9/19) surfaces real interest in
+1. Follow-on from the new uptime workflow: it has now run cleanly for a full day (5
+   scheduled runs since 2026-09-14, all `success` per Actions); confirm the `uptime` issue
+   label and the open/close cycle actually behave as designed against a real failure (or a
+   deliberate `workflow_dispatch` test) rather than trusting the YAML alone.
+2. If go-to-market or research outreach (PIPELINE.md row 9/19) surfaces real interest in
    agent pay-per-call, revisit `docs/AGENT_BILLING_NOTES.md` and pick Option A or B rather
    than leaving both open.
 
 **Blocked on human:** Stripe live secrets (#3 in Waiting on Jason) and sandbox key rotation
-(#2 in Waiting on Jason); platform work above does not depend on either.
+(#2 in Waiting on Jason); a `/v1/usage` dashboard endpoint (new finding, 2026-09-15) — the
+`USAGE` binding in `wrangler.jsonc` is Analytics Engine's Worker binding, which is
+**write-only** (`writeDataPoint`, see `edge/src/index.js` / `stripe.js`); reading it back
+needs Cloudflare's separate Analytics Engine SQL API, which needs its own API token stored
+as a new `wrangler secret` — an agent cannot create that secret under this routine's rules
+(#12 in Waiting on Jason), so this stays blocked until Jason creates the token.
 
 **Done log (last 5):**
+- 2026-09-15 — scripts: `scripts/release_diff.py`, full allele-table diff (added / deleted
+  / renamed, by locus) between two release tags, wired into `RELEASE_BUMP.md` step 6 so the
+  quarterly customer notice can cite a real diff; smoke-tested against the pinned tag itself
+  (zero diff) and the prior quarter's tag (672 added / 25 deleted / 1 rename).
+- 2026-09-15 — investigated the `/v1/usage` next-action: the `USAGE` Analytics Engine
+  binding turned out to be write-only from the Worker, so reading it back needs a new
+  Cloudflare API token (a secret) — moved to blocked-on-human instead of built.
 - 2026-09-14 — docs: agent pay-per-call billing design notes (`docs/AGENT_BILLING_NOTES.md`),
   Stripe metered billing vs. x402-style micropayment compared against the current tier/key
   code; no billing code written.
@@ -157,8 +180,6 @@ Product page and shared nav shipped; `/pricing` redirects correctly.
   `/healthz` every 15 minutes, opens/comments/closes a tracking issue on failure/recovery.
 - 2026-09-11 — docs: quarterly IPD-IMGT/HLA release-bump runbook (`docs/RELEASE_BUMP.md`),
   procedure only, no code changes.
-- 2026-09-11 — site: product page at hlaverify.com/product, shared nav, /pricing redirect.
-- 2026-09-11 — edge: sandbox Stripe payment links and price-to-tier map.
 
 ---
 
@@ -191,17 +212,20 @@ action #1 to actually run, is the only lever here).
    act on yet — no row is at `sent`.
 3. Once a pilot from `docs/sales/PILOT_SOW.md` is signed (human-only, see below), draft a
    case-study outline in `docs/sales/CASE_STUDY_TEMPLATE.md` so it is ready to fill in.
-4. Re-verify every number in `docs/launch/posts.md` against current `STATUS.md` and fix any
-   that drifted (posting itself is human-only, see below).
-5. Extend `docs/sales/PIPELINE.md` with targets 21-30 (remaining tier-A/B/C rows from
+4. Extend `docs/sales/PIPELINE.md` with targets 21-30 (remaining tier-A/B/C rows from
    `TARGETS.md` not yet in the pipeline), stage `draft`, once rows 1-20 move past `draft`.
 
-**Blocked on human:** sending any drafted email (#7 in Waiting on Jason); posting to
-HN/Reddit/LinkedIn/X under Jason's own accounts (his accounts, his voice — agents draft, he
-posts); signing a pilot SOW (financial commitment); enabling the Gmail connector in-chat for
-this scheduled session so action #1 can run at all.
+**Blocked on human:** sending any drafted email (#7 in Waiting on Jason); posting the
+prepared launch content to HN/Reddit/LinkedIn/X under Jason's own accounts (#8 in Waiting
+on Jason — his accounts, his voice, agents only draft); signing a pilot SOW (financial
+commitment); enabling the Gmail connector in-chat for this scheduled session so action #1
+can run at all.
 
 **Done log (last 5):**
+- 2026-09-15 — re-verified every number in `docs/launch/posts.md` against current
+  `STATUS.md` / `bench/` / `docs/pyard-concordance.md`: 46,652 alleles, 99.3% py-ard
+  concordance, 32.7% post-cutoff share, and every per-model accuracy figure for both
+  families still match exactly — no drift, nothing changed.
 - 2026-09-14 — encoded a day-5/day-12 follow-up schedule in `docs/sales/PIPELINE.md`
   (no in-repo scheduler, so the daily routine checks `Date` against today by hand); no rows
   were at `sent` yet so nothing fired.
@@ -211,8 +235,6 @@ this scheduled session so action #1 can run at all.
   `draft` (this session).
 - 2026-09-10 — sales pack: 60-target list, three-tier outreach sequences, pilot SOW,
   integration brief.
-- 2026-09-09 — launch posts: six families, 14B and Gemma rows, three-model matching
-  results; X thread scale line.
 
 ---
 
@@ -236,19 +258,15 @@ and prior-art memos are done; Hugging Face dataset card and demo Space are live.
    should trigger on its own. Next step is a `bench.yml` dispatch with `models=anthropic/
    claude-sonnet-4-6 split=test` (token budget is already 1600 in the harness per STATUS.md)
    — needs Jason's standing approval or a manual click; see "Waiting on Jason" below.
-2. Pick the next model for the tower queue to close the remaining family-C coverage gap:
-   `llama3.2:3b` is tested on Family A but still missing from Family C (`qwen2.5:3b` was
-   queued and closes the other half of the gap this run) — write the `.tower-queue.json`
-   entry once the qwen2.5:3b run (tower run #42, dispatched 2026-09-11) completes.
-3. Convert `docs/paper/hla-bench-draft.md` to PDF per the checklist's pandoc command; verify
+2. Convert `docs/paper/hla-bench-draft.md` to PDF per the checklist's pandoc command; verify
    the pandoc/xelatex toolchain exists locally first, and if not, note the gap rather than
    guessing at output.
-4. Write the competing-interests statement and CC-BY licence note into the draft's metadata
+3. Write the competing-interests statement and CC-BY licence note into the draft's metadata
    section verbatim from `docs/PREPRINT_CHECKLIST.md` item 5, so the draft is submission-
    ready the moment Jason has an ORCID and bioRxiv account.
-5. Add one figure (per-subtype accuracy bar chart or wrong-but-overconfident rate by model)
+4. Add one figure (per-subtype accuracy bar chart or wrong-but-overconfident rate by model)
    to the draft, generated from committed `bench/` data, addressing the "no figures" gap.
-6. Begin family B's graded core per `docs/TASK_SPEC_FAMILY_B.md` section 5 layer 1
+5. Begin family B's graded core per `docs/TASK_SPEC_FAMILY_B.md` section 5 layer 1
    (synthetic-Mendelian-truth generator, no registry data needed) — not blocked on any
    licence.
 
@@ -257,15 +275,15 @@ paid `bench.yml` run needs a manual `workflow_dispatch` click or Jason's standin
 (#1 above — newly confirmed this cannot be routed through the free `.tower-queue.json` path).
 
 **Done log (last 5):**
+- 2026-09-15 — queued `ollama/llama3.2:3b` on HLA-Bench-C via `.tower-queue.json` (tower
+  run 18) — the last model tested on Family A still missing from Family C; once it lands,
+  Family C will have full model parity with Family A except the paid claude-sonnet-4-6 row.
 - 2026-09-11 — queued `ollama/qwen2.5:3b` on HLA-Bench-C via `.tower-queue.json` (tower run
   #42) — closes half of the family-C vs family-A model-coverage gap.
 - 2026-09-11 — docs: trademark knockout memo and preprint submission checklist.
 - 2026-09-10 — docs: prior-art memo for HLA-Verify and HLA-Bench.
 - 2026-09-09 — results: phi4-mini on HLA-Bench-C, 0/205, 139 schema failures; matching now
   covers all five open families.
-- 2026-09-09 — results: mistral:7b on HLA-Bench-C, 13.7%, best open model so far.
-- 2026-09-09 — harness: fallback ladder for degenerate Ollama replies; cache rejects
-  token-spam and records which rung answered.
 
 ---
 
