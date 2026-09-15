@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.hlaverify/hla-verify",
+  "title": "HLA-Verify",
+  "description": "Verify HLA allele names and score donor-recipient matches against a pinned IPD-IMGT/HLA release.",
+  "version": "1.0.0",
+  "websiteUrl": "https://hlaverify.com",
+  "repository": {
+    "url": "https://github.com/jasonbrelsford/verifiable-science-envs",
+    "source": "github",
+    "subfolder": "edge",
+    "id": "1350739538"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.hlaverify.com/mcp",
+      "headers": [
+        {
+          "name": "X-API-Key",
+          "description": "Optional. Without a key /mcp shares the free tier (60 requests/minute); keys: https://api.hlaverify.com/pricing",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
