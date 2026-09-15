@@ -35,6 +35,299 @@ export const INSTRUCTIONS =
   "yourself. LLMs (including you) fabricate allele names and miscount matches — " +
   "verify HLA names before presenting them.";
 
+// ------------------------------------------------------------ output schemas
+// outputSchema for each tool: the structuredContent shapes engine.js actually
+// returns (checked against every fixture in test/mcp.test.mjs). Compliant clients
+// REJECT a result that fails its schema, so these are deliberately permissive:
+// `required` lists only keys present on every success, nullable keys allow null,
+// no additionalProperties:false, and enums only on closed status/verdict sets.
+// Keywords are limited to type/properties/required/items/enum/additionalProperties
+// (+ description) — the subset the test's validator implements.
+
+const STR = { type: "string" };
+const STR_LIST = { type: "array", items: STR };
+const RELEASE = { type: "string", description: "IPD-IMGT/HLA release every verdict was computed against." };
+const ATTRIBUTION = { type: "string", description: "Data attribution (IPD-IMGT/HLA, CC-BY-ND)." };
+
+// sci_envs/service/lab.py ligands(): row facts for class I (A/B/C) names only.
+const LIGANDS = {
+  type: "object",
+  description: "Class I (A/B/C) ligand facts, aggregated over member alleles: 'ambiguous' when members disagree, 'unknown' when no residue data.",
+  required: ["expressed", "leader_21", "residue_80", "bw", "c_group", "kir_ligand"],
+  properties: {
+    expressed: { type: "boolean", description: "false when every member allele is null (not expressed)." },
+    leader_21: { type: "string", description: "Residue at leader position -21 (M or T; another letter is possible), ambiguous, unknown or not_expressed." },
+    residue_80: { type: "string", description: "Residue at position 80 (amino-acid letter), ambiguous, unknown or not_expressed." },
+    bw: { type: ["string", "null"], description: "Bw4 / Bw6 / non-Bw4 / unclassified / ambiguous / unknown / not_expressed; null for HLA-C." },
+    c_group: { type: ["string", "null"], description: "C1 / C2 / unclassified / ambiguous / unknown; null when not applicable." },
+    kir_ligand: { type: "string", description: "C1 / C2 / Bw4 / Bw4-80I / Bw4-80T / none / ambiguous / unknown." },
+    ambiguities: { type: "object", description: "For each ambiguous field, the distinct member values.", additionalProperties: STR_LIST },
+  },
+};
+
+const TYPING_ISSUE = {
+  type: "object",
+  required: ["severity", "locus", "code", "detail"],
+  properties: {
+    severity: { type: "string", enum: ["error", "warning", "info"], description: "Any error makes the typing invalid." },
+    locus: { type: "string", description: "The locus key as reported." },
+    code: { type: "string", description: "unresolvable, deprecated_name, locus_mismatch, null_allele, too_many_alleles, single_allele, homozygous, drb345_unexpected or drb345_not_reported." },
+    detail: STR,
+  },
+};
+const TYPING_ISSUES = { type: "array", items: TYPING_ISSUE };
+
+const NORMALIZE_OUT = {
+  type: "object",
+  required: ["reported", "current_name", "allele_2field", "g_group", "flags"],
+  properties: {
+    reported: { type: "string", description: "The input, verbatim." },
+    current_name: { type: "string", description: "Current full name in the pinned release, or UNRESOLVABLE." },
+    allele_2field: { type: "string", description: "Current 2-field form, or UNRESOLVABLE. Never present an UNRESOLVABLE name as an allele." },
+    g_group: { type: "string", description: "G group; NONE (no group), AMBIGUOUS (members differ) or UNRESOLVABLE." },
+    flags: { type: "array", items: STR, description: "e.g. deprecated_name, nonexistent_allele, null_allele." },
+  },
+};
+
+const VERIFY_OUT = {
+  type: "object",
+  required: ["release", "tokens", "counts", "clean"],
+  properties: {
+    release: RELEASE,
+    clean: {
+      type: "boolean",
+      description: "The guardrail: true only when no token is hallucinated, fabricated_group or deleted. Gate on this before presenting the text.",
+    },
+    counts: {
+      type: "object",
+      description: "Number of distinct tokens per status.",
+      required: ["valid", "deleted", "group", "fabricated_group", "hallucinated"],
+      properties: {
+        valid: { type: "integer" }, deleted: { type: "integer" }, group: { type: "integer" },
+        fabricated_group: { type: "integer" }, hallucinated: { type: "integer" },
+      },
+    },
+    tokens: {
+      type: "array",
+      description: "Each distinct allele-shaped token found, sorted by token.",
+      items: {
+        type: "object",
+        required: ["token", "status", "note"],
+        properties: {
+          token: { type: "string", description: "The token without any HLA- prefix." },
+          status: {
+            type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated"],
+            description: "valid: assigned (or a valid prefix); group: a real G/P group; deleted: no longer current (see successor); " +
+              "fabricated_group: G/P-shaped but no such group; hallucinated: never existed in any release.",
+          },
+          note: { type: "string", description: "Human-readable meaning of status." },
+          successor: { type: "string", description: "deleted: the name it was renamed to, when known." },
+          current_2field: { type: "string", description: "valid/deleted tokens that resolve: current 2-field form." },
+          g_group: { type: "string", description: "G group; NONE or AMBIGUOUS when there is no single group." },
+          flags: STR_LIST,
+        },
+      },
+    },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const ALLELE_OUT = {
+  type: "object",
+  description: "Found: release, name, status and the status-specific fields. Never assigned: only `detail`.",
+  properties: {
+    detail: { type: "string", description: "Present only when the name is not assigned in this release (and then no other field is)." },
+    release: RELEASE,
+    name: STR,
+    status: {
+      type: "string", enum: ["assigned", "valid_prefix", "deleted"],
+      description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; deleted: withdrawn or renamed (see successor).",
+    },
+    successor: { type: ["string", "null"], description: "deleted: the current name, or null if none." },
+    g_group: { type: ["string", "null"], description: "assigned: G group, or null." },
+    p_group: { type: ["string", "null"], description: "assigned: P group, or null." },
+    first_release: { type: ["string", "null"], description: "assigned: first release the exact name appeared in." },
+    confirmed: { type: "boolean", description: "assigned: confirmed (vs unconfirmed) allele." },
+    serology: {
+      type: "object", description: "assigned: WMDA serologic equivalents by column (non-empty columns only).",
+      properties: { unambiguous: STR_LIST, possible: STR_LIST, assumed: STR_LIST, expert: STR_LIST },
+      additionalProperties: STR_LIST,
+    },
+    null_allele: { type: "boolean", description: "assigned: true for an N (null, not expressed) allele." },
+    ligands: LIGANDS,
+    members_count: { type: "integer", description: "valid_prefix: number of assigned alleles under the prefix." },
+    members_sample: { type: "array", items: STR, description: "valid_prefix: up to 10 member alleles." },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const MATCH_OUT = {
+  type: "object",
+  required: ["release", "framework", "count", "verdicts", "hvg_mismatches", "gvh_mismatches", "flags"],
+  properties: {
+    release: RELEASE,
+    framework: { type: "string", enum: Object.keys(FRAMEWORKS) },
+    count: {
+      type: "string",
+      description: "'matched/total' over the resolvable loci only, or UNRESOLVABLE when none resolves. " +
+        "Check verdicts for 'potential' loci before quoting it as a confident count.",
+    },
+    verdicts: {
+      type: "object", description: "Framework locus -> verdict.",
+      additionalProperties: {
+        type: "string", enum: ["match", "mismatch", "potential"],
+        description: "potential: typing missing or not resolvable at the framework's level; excluded from count.",
+      },
+    },
+    hvg_mismatches: { type: "integer", description: "Host-versus-graft mismatches over non-potential loci." },
+    gvh_mismatches: { type: "integer", description: "Graft-versus-host mismatches over non-potential loci." },
+    flags: { type: "array", items: STR, description: "e.g. resolution_insufficient, null_allele, null_allele_mismatch." },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const TYPING_OUT = {
+  type: "object",
+  required: ["release", "valid", "loci", "issues", "counts", "profile", "drb345"],
+  properties: {
+    release: RELEASE,
+    valid: { type: "boolean", description: "true when there are no error-severity issues. Gate on this before using the typing." },
+    loci: {
+      type: "object", description: "Reported locus key -> one row per reported allele, in input order.",
+      additionalProperties: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["reported", "status", "current_name", "allele_2field", "g_group", "flags", "antigen"],
+          properties: {
+            reported: STR,
+            status: { type: "string", enum: ["ok", "renamed", "unresolvable"] },
+            current_name: { type: "string", description: "Current name, or UNRESOLVABLE." },
+            allele_2field: { type: "string", description: "Current 2-field form, or UNRESOLVABLE." },
+            g_group: { type: "string", description: "G group; NONE, AMBIGUOUS or UNRESOLVABLE." },
+            flags: STR_LIST,
+            antigen: { type: "string", description: "WMDA serologic antigen, or 'null' (not expressed) / 'uncertain'." },
+            ligands: LIGANDS,
+          },
+        },
+      },
+    },
+    issues: TYPING_ISSUES,
+    counts: {
+      type: "object", required: ["error", "warning", "info"],
+      properties: { error: { type: "integer" }, warning: { type: "integer" }, info: { type: "integer" } },
+    },
+    profile: {
+      type: "object",
+      required: ["b_leader_genotype", "c_kir_ligand_genotype", "kir_ligands_present", "kir_ligand_status"],
+      properties: {
+        b_leader_genotype: { type: ["string", "null"], description: "HLA-B -21 leader genotype such as M/T ('?' unknown); null when B is not typed." },
+        c_kir_ligand_genotype: { type: ["string", "null"], description: "HLA-C KIR ligand genotype such as C1/C2 ('none', '?'); null when C is not typed." },
+        kir_ligands_present: { type: "array", items: STR, description: "Sorted subset of C1, C2, Bw4, Bw4-80I, Bw4-80T." },
+        kir_ligand_status: { type: "string", enum: ["complete", "incomplete"], description: "complete only with two classified alleles at each of A, B and C." },
+      },
+    },
+    drb345: {
+      type: ["object", "null"], description: "DRB3/4/5 expected from DRB1 vs reported; null when DRB1 is not typed.",
+      required: ["expected", "reported", "determinate"],
+      properties: { expected: STR_LIST, reported: STR_LIST, determinate: { type: "boolean" } },
+    },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const COMPAT_OUT = {
+  type: "object",
+  required: ["release", "b_leader", "kir_ligands", "recipient_valid", "donor_valid", "issues"],
+  properties: {
+    release: RELEASE,
+    b_leader: {
+      type: "object", required: ["recipient", "donor", "b_mismatches", "leader_match", "rule"],
+      properties: {
+        recipient: { type: ["string", "null"], description: "Recipient HLA-B leader genotype, e.g. M/T; null when B is not typed." },
+        donor: { type: ["string", "null"], description: "Donor HLA-B leader genotype; null when B is not typed." },
+        b_mismatches: { type: ["integer", "null"], description: "HLA-B mismatch count; null when B is missing, over-typed or unresolvable on either side." },
+        leader_match: {
+          type: ["boolean", "null"],
+          description: "Set only for exactly one HLA-B mismatch with a known M/T leader on both mismatched alleles; otherwise null (not assessable).",
+        },
+        rule: STR,
+      },
+    },
+    kir_ligands: {
+      type: "object", required: ["recipient", "donor", "missing_in_recipient", "missing_in_donor", "status", "rule"],
+      properties: {
+        recipient: { type: "array", items: STR, description: "KIR ligand classes present (C1, C2, Bw4)." },
+        donor: STR_LIST, missing_in_recipient: STR_LIST, missing_in_donor: STR_LIST,
+        status: { type: "string", enum: ["complete", "incomplete"], description: "Treat missing_in_* as provisional unless complete." },
+        rule: STR,
+      },
+    },
+    recipient_valid: { type: "boolean", description: "Recipient typing QC had no errors." },
+    donor_valid: { type: "boolean", description: "Donor typing QC had no errors." },
+    issues: {
+      type: "object", required: ["recipient", "donor"],
+      properties: { recipient: TYPING_ISSUES, donor: TYPING_ISSUES },
+    },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const GL_OUT = {
+  type: "object",
+  required: ["release", "valid", "normalized_gl", "changed", "loci", "alleles", "issues", "counts"],
+  properties: {
+    release: RELEASE,
+    valid: { type: "boolean", description: "true when there are no error-severity issues." },
+    normalized_gl: { type: "string", description: "The GL String with outdated names replaced by current ones." },
+    changed: { type: "boolean", description: "normalized_gl differs from the trimmed input." },
+    loci: STR_LIST,
+    alleles: {
+      type: "array", description: "Each distinct allele token, in first-seen order.",
+      items: {
+        type: "object", required: ["token", "status", "current_name", "locus"],
+        properties: {
+          token: STR,
+          status: { type: "string", enum: ["valid", "renamed", "group", "unresolvable"] },
+          current_name: { type: ["string", "null"], description: "null when unresolvable." },
+          locus: { type: ["string", "null"] },
+        },
+      },
+    },
+    issues: {
+      type: "array",
+      items: {
+        type: "object", required: ["severity", "code", "detail"],
+        properties: {
+          severity: { type: "string", enum: ["error", "warning"] },
+          code: {
+            type: "string",
+            description: "unresolvable_allele, renamed_allele, whitespace_in_name, empty_element, mixed_locus_allele_list, haplotype_repeats_locus, " +
+              "genotype_loci_differ, more_than_two_haplotypes, genotype_list_loci_differ or locus_repeated_across_blocks.",
+          },
+          detail: STR,
+        },
+      },
+    },
+    counts: {
+      type: "object", required: ["error", "warning"],
+      properties: { error: { type: "integer" }, warning: { type: "integer" } },
+    },
+    attribution: ATTRIBUTION,
+  },
+};
+
+const ABOUT_OUT = {
+  type: "object",
+  required: ["name", "release"],
+  properties: { name: STR, release: RELEASE, why: STR, code: STR, api: STR, demo: STR, agents: STR, commercial: STR, disclaimer: STR },
+};
+
+const OUTPUT_SCHEMAS = {
+  verify_text: VERIFY_OUT, normalize_allele: NORMALIZE_OUT, allele_info: ALLELE_OUT, match_score: MATCH_OUT,
+  check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, about: ABOUT_OUT,
+};
+
 function toolDefs() {
   return [
     {
@@ -150,7 +443,7 @@ function toolDefs() {
       description: "What this server is, benchmark evidence for why to use it, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
-  ].map((t) => ({ ...t, annotations: TOOL_ANNOTATIONS }));
+  ].map((t) => ({ ...t, outputSchema: OUTPUT_SCHEMAS[t.name], annotations: TOOL_ANNOTATIONS }));
 }
 
 // Every tool is a pure lookup into the pinned release: nothing written, same answer twice.
