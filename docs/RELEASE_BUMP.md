@@ -144,7 +144,17 @@ https://api.hlaverify.com/v1/normalize before your next report cycle.
 — HLA-Verify (Brelsford Software LLC)
 ```
 
-Fill in `<old>`, `<new>`, `<date>`, `<N>` from the actual bump, and either attach a real
-diff (compute one by running the Python oracle against both tags and diffing per-name
-verdicts — not yet scripted; a follow-on action) or state plainly that a full diff was
-not computed this cycle, rather than fabricating numbers.
+Fill in `<old>`, `<new>`, `<date>`, `<N>` from the actual bump, and attach a real diff:
+
+```bash
+python scripts/release_diff.py v<old> v<new> --out /tmp/verdict-diff.md --json /tmp/verdict-diff.json
+```
+
+This loads both pinned releases (same cached/md5-verified fetch as everything else) and
+diffs the full allele table: names newly assigned (verdict `hallucinated`/`valid`-prefix
+-> `valid`), names removed (verdict `valid` -> `deleted`, with successor when the release
+records a rename), by locus. No per-account query log is kept, so this table-level diff
+*is* "a general before/after diff of the full allele table" per the paragraph above — use
+its `added_count`/`deleted_count`/`added_by_locus` for `<N>` and the notice body, and link
+or attach the rendered markdown. Only fall back to "a full diff was not computed this
+cycle" if the script itself fails on the new tag (e.g. a file-layout change — see step 0).
