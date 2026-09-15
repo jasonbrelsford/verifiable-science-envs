@@ -318,6 +318,136 @@ test(`mcp validate_gl_string matches REST /v1/glstring for all ${fx.glstring.len
   }
 });
 
+// ----------------------------------------------------------- output schemas
+// Compliant clients validate structuredContent against each tool's outputSchema
+// and reject the call on a mismatch, so every real result must pass. No npm deps
+// here: a small validator for exactly the keywords the schemas use. It refuses any
+// other keyword, so a schema cannot lean on something this test silently ignores.
+
+const SCHEMA_KEYWORDS = new Set(["type", "properties", "required", "items", "enum", "additionalProperties", "description"]);
+const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+function jsonType(v) {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  if (typeof v === "number") return Number.isInteger(v) ? "integer" : "number";
+  return typeof v;
+}
+
+function assertSupportedSchema(schema, at = "#") {
+  assert.equal(jsonType(schema), "object", `${at}: schema must be an object`);
+  for (const k of Object.keys(schema)) assert.ok(SCHEMA_KEYWORDS.has(k), `${at}: unsupported keyword '${k}'`);
+  if (schema.properties) for (const [k, s] of Object.entries(schema.properties)) assertSupportedSchema(s, `${at}/properties/${k}`);
+  if (schema.items) assertSupportedSchema(schema.items, `${at}/items`);
+  if (jsonType(schema.additionalProperties) === "object") assertSupportedSchema(schema.additionalProperties, `${at}/additionalProperties`);
+  // Permissive by design: a strict output schema breaks every validating client.
+  assert.notEqual(schema.additionalProperties, false, `${at}: additionalProperties:false rejects future fields`);
+  for (const r of schema.required ?? []) assert.ok(schema.properties && hasOwn(schema.properties, r), `${at}: required '${r}' not in properties`);
+}
+
+function schemaErrors(schema, value, at = "$", errs = []) {
+  if (schema.type !== undefined) {
+    const types = [].concat(schema.type);
+    const t = jsonType(value);
+    if (!types.includes(t) && !(t === "integer" && types.includes("number"))) {
+      errs.push(`${at}: expected ${types.join("|")}, got ${t}`);
+      return errs;
+    }
+  }
+  if (schema.enum && !schema.enum.includes(value)) errs.push(`${at}: ${JSON.stringify(value)} not in enum`);
+  if (Array.isArray(value)) {
+    if (schema.items) value.forEach((x, i) => schemaErrors(schema.items, x, `${at}[${i}]`, errs));
+  } else if (jsonType(value) === "object") {
+    for (const r of schema.required ?? []) if (!hasOwn(value, r)) errs.push(`${at}: missing required '${r}'`);
+    for (const [k, v] of Object.entries(value)) {
+      if (schema.properties && hasOwn(schema.properties, k)) schemaErrors(schema.properties[k], v, `${at}.${k}`, errs);
+      else if (schema.additionalProperties === false) errs.push(`${at}: unexpected '${k}'`);
+      else if (jsonType(schema.additionalProperties) === "object") schemaErrors(schema.additionalProperties, v, `${at}.${k}`, errs);
+    }
+  }
+  return errs;
+}
+
+const outputSchemas = Object.fromEntries((await rpc("tools/list", {})).json.result.tools.map((t) => [t.name, t.outputSchema]));
+
+// Every tool call the fixtures exercise, as [tool, arguments].
+function fixtureCalls() {
+  const calls = [];
+  for (const c of fx.verify) calls.push(["verify_text", { text: c.input }]);
+  for (const c of fx.normalize) for (const name of c.input) calls.push(["normalize_allele", { name }]);
+  for (const c of fx.allele) calls.push(["allele_info", { name: c.input }]);
+  for (const c of fx.match) calls.push(["match_score", c.input]);
+  for (const c of fx.typing_check) calls.push(["check_typing", { typing: c.input }]);
+  for (const c of fx.compat) calls.push(["donor_compat", c.input]);
+  for (const c of fx.glstring) calls.push(["validate_gl_string", { gl: c.input }]);
+  calls.push(["about", {}]);
+  return calls;
+}
+
+// Branches the fixtures never reach: a single HLA-B mismatch with leader_match
+// true / false, and complete KIR-ligand typing on both sides.
+const FULL_TYPING = { A: ["A*01:01", "A*02:01"], B: ["B*07:02", "B*08:01"], C: ["C*07:01", "C*07:02"], DRB1: ["DRB1*15:01", "DRB1*03:01"] };
+const BRANCH_CALLS = [
+  ["donor_compat", { recipient: FULL_TYPING, donor: { ...FULL_TYPING, B: ["B*07:02", "B*42:01"] } }],
+  ["donor_compat", { recipient: FULL_TYPING, donor: { ...FULL_TYPING, B: ["B*07:02", "B*44:02"] } }],
+  ["check_typing", { typing: FULL_TYPING }],
+  ["check_typing", { typing: { DQB1: ["DQB1*02:01"] } }],
+  ["match_score", { recipient: FULL_TYPING, donor: FULL_TYPING, framework: "12/12" }],
+  ["allele_info", { name: "C*04:09N" }],
+];
+
+test("tools/list: every tool has an object outputSchema using only validator-supported keywords", async () => {
+  assert.equal(Object.keys(outputSchemas).length, 8);
+  for (const [name, schema] of Object.entries(outputSchemas)) {
+    assert.ok(schema, `${name} has no outputSchema`);
+    assert.equal(schema.type, "object", `${name}: outputSchema root must be type object`);
+    assertSupportedSchema(schema, name);
+  }
+  const modern = await modernRpc("tools/list");
+  assert.deepEqual(Object.fromEntries(modern.json.result.tools.map((t) => [t.name, t.outputSchema])), outputSchemas);
+});
+
+test("outputSchema accepts structuredContent for every fixture call and branch case", async () => {
+  const calls = [...fixtureCalls(), ...BRANCH_CALLS];
+  const seen = { leaderTrue: false, leaderFalse: false, kirComplete: false, potential: false, errors: 0 };
+  const failures = [];
+  for (const [name, args] of calls) {
+    const { json } = await callTool(name, args);
+    if (json.result.isError) { seen.errors++; continue; } // error results carry no structuredContent
+    const sc = json.result.structuredContent;
+    const errs = schemaErrors(outputSchemas[name], sc);
+    if (errs.length) failures.push(`${name} ${JSON.stringify(args).slice(0, 120)}: ${errs.slice(0, 3).join("; ")}`);
+    if (name === "donor_compat") {
+      if (sc.b_leader.leader_match === true) seen.leaderTrue = true;
+      if (sc.b_leader.leader_match === false) seen.leaderFalse = true;
+      if (sc.kir_ligands.status === "complete") seen.kirComplete = true;
+    }
+    if (name === "match_score" && Object.values(sc.verdicts).includes("potential")) seen.potential = true;
+  }
+  assert.deepEqual(failures.slice(0, 10), [], `${failures.length} of ${calls.length} results failed their outputSchema`);
+  assert.ok(calls.length > 4000, `expected every fixture call, got ${calls.length}`);
+  assert.deepEqual(seen, { leaderTrue: true, leaderFalse: true, kirComplete: true, potential: true, errors: 2 });
+});
+
+test("outputSchema validation rejects wrong shapes (the check has teeth)", async () => {
+  const verify = (await callTool("verify_text", { text: "A*01:01 A*99:99" })).json.result.structuredContent;
+  assert.deepEqual(schemaErrors(outputSchemas.verify_text, verify), []);
+  const broken = [
+    [{ ...verify, clean: "yes" }, /clean: expected boolean/],
+    [{ ...verify, tokens: [{ ...verify.tokens[0], status: "made_up" }] }, /not in enum/],
+    [(({ counts, ...rest }) => rest)(verify), /missing required 'counts'/],
+  ];
+  for (const [value, re] of broken) assert.match(schemaErrors(outputSchemas.verify_text, value).join("\n"), re);
+
+  const match = (await callTool("match_score", { recipient: FULL_TYPING, donor: FULL_TYPING })).json.result.structuredContent;
+  assert.deepEqual(schemaErrors(outputSchemas.match_score, match), []);
+  assert.match(schemaErrors(outputSchemas.match_score, { ...match, verdicts: { A: "maybe" } }).join("\n"), /verdicts\.A: .* not in enum/);
+  assert.match(schemaErrors(outputSchemas.match_score, { ...match, hvg_mismatches: 1.5 }).join("\n"), /expected integer, got number/);
+
+  const typing = (await callTool("check_typing", { typing: FULL_TYPING })).json.result.structuredContent;
+  assert.match(schemaErrors(outputSchemas.check_typing, { ...typing, drb345: [] }).join("\n"), /drb345: expected object\|null, got array/);
+});
+
 // ------------------------------------------------------------ key grammar
 
 test("parseKeys: key=label:tier grammar", () => {
