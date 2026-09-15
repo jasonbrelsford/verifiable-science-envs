@@ -1,1 +1,1 @@
-{"models": "ollama/qwen2.5:3b", "split": "all", "family": "c", "commit": "true", "note": "run 17 - qwen2.5:3b on HLA-Bench-C; closes a family-C coverage gap vs family A (qwen2.5:3b and llama3.2:3b are tested on A but missing from C)"}
+{"models": "ollama/llama3.2:3b", "split": "all", "family": "c", "commit": "true", "note": "run 18 - llama3.2:3b on HLA-Bench-C; qwen2.5:3b (run 17) landed 2026-09-11, this closes the remaining family-C vs family-A model-coverage gap"}
