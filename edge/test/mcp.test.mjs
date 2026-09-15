@@ -59,15 +59,125 @@ test("initialize: default and each accepted protocol version", async () => {
   assert.equal(json.result.serverInfo.name, "hla-verify");
   assert.match(json.result.instructions, /verify/i);
 
-  for (const v of ["2025-03-26", "2024-11-05"]) {
+  for (const v of ["2025-11-25", "2025-03-26", "2024-11-05"]) {
     const r = await rpc("initialize", { protocolVersion: v });
     assert.equal(r.json.result.protocolVersion, v);
   }
-  // Unknown/omitted version falls back to the newest we support, not an error.
+  // Unknown/omitted version falls back to the newest legacy version, not an error.
   const unknown = await rpc("initialize", { protocolVersion: "1999-01-01" });
-  assert.equal(unknown.json.result.protocolVersion, "2025-06-18");
+  assert.equal(unknown.json.result.protocolVersion, "2025-11-25");
   const omitted = await rpc("initialize", {});
-  assert.equal(omitted.json.result.protocolVersion, "2025-06-18");
+  assert.equal(omitted.json.result.protocolVersion, "2025-11-25");
+});
+
+// ------------------------------------------------- 2026-07-28 (modern) protocol
+
+const MODERN = "2026-07-28";
+const CLIENT_META = {
+  "io.modelcontextprotocol/protocolVersion": MODERN,
+  "io.modelcontextprotocol/clientInfo": { name: "test-client", version: "1.0.0" },
+  "io.modelcontextprotocol/clientCapabilities": {},
+};
+
+// Sends a modern request with correct headers unless `headers` overrides them
+// (a null value drops that header).
+async function modernRpc(method, params = {}, { headers = {}, meta = CLIENT_META } = {}) {
+  const body = { jsonrpc: "2.0", id: 7, method, params: { ...params, _meta: meta } };
+  const h = { "content-type": "application/json", "mcp-protocol-version": MODERN, "mcp-method": method };
+  if (method === "tools/call") h["mcp-name"] = params.name;
+  for (const [k, v] of Object.entries(headers)) {
+    if (v === null) delete h[k];
+    else h[k] = v;
+  }
+  const req = new Request("https://assets.local/mcp", { method: "POST", headers: h, body: JSON.stringify(body) });
+  const resp = await handleMcp(req, engine, who, manifest);
+  const text = await resp.text();
+  return { status: resp.status, json: text ? JSON.parse(text) : null };
+}
+
+test("server/discover: versions, capabilities, identity, cache hints", async () => {
+  const { status, json } = await modernRpc("server/discover");
+  assert.equal(status, 200);
+  const r = json.result;
+  assert.equal(r.resultType, "complete");
+  assert.equal(r.supportedVersions[0], MODERN);
+  assert.ok(r.supportedVersions.includes("2025-06-18"));
+  assert.deepEqual(r.capabilities, { tools: {} });
+  assert.equal(r._meta["io.modelcontextprotocol/serverInfo"].name, "hla-verify");
+  assert.match(r.instructions, /verify/i);
+  assert.equal(typeof r.ttlMs, "number");
+  assert.equal(r.cacheScope, "public");
+});
+
+test("server/discover with no _meta still answers (era probe)", async () => {
+  const req = new Request("https://assets.local/mcp", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "server/discover" }),
+  });
+  const json = JSON.parse(await (await handleMcp(req, engine, who, manifest)).text());
+  assert.equal(json.result.supportedVersions[0], MODERN);
+});
+
+test("modern tools/list: resultType, ttlMs, cacheScope, read-only annotations, deterministic order", async () => {
+  const { status, json } = await modernRpc("tools/list");
+  assert.equal(status, 200);
+  assert.equal(json.result.resultType, "complete");
+  assert.equal(json.result.cacheScope, "public");
+  assert.ok(json.result.ttlMs > 0);
+  const again = await modernRpc("tools/list");
+  assert.deepEqual(again.json.result.tools.map((t) => t.name), json.result.tools.map((t) => t.name));
+  for (const t of json.result.tools) assert.equal(t.annotations.readOnlyHint, true);
+});
+
+test("modern tools/call returns the same structuredContent as legacy", async () => {
+  const input = { text: "A*0101 DQB1*05:03:26:99" };
+  const modern = await modernRpc("tools/call", { name: "verify_text", arguments: input });
+  const legacy = await callTool("verify_text", input);
+  assert.equal(modern.status, 200);
+  assert.equal(modern.json.result.resultType, "complete");
+  assert.equal(modern.json.result.isError, false);
+  assert.deepEqual(modern.json.result.structuredContent, legacy.json.result.structuredContent);
+});
+
+test("modern tools/call accepts a base64-sentinel Mcp-Name", async () => {
+  const { status, json } = await modernRpc("tools/call", { name: "about", arguments: {} },
+    { headers: { "mcp-name": `=?base64?${btoa("about")}?=` } });
+  assert.equal(status, 200);
+  assert.equal(json.result.structuredContent.name, "HLA-Verify");
+});
+
+test("modern header validation -> 400 HeaderMismatch (-32020)", async () => {
+  const cases = [
+    ["tools/list", {}, { "mcp-protocol-version": null }],
+    ["tools/list", {}, { "mcp-protocol-version": "2025-06-18" }],
+    ["tools/list", {}, { "mcp-method": null }],
+    ["tools/list", {}, { "mcp-method": "tools/call" }],
+    ["tools/call", { name: "about", arguments: {} }, { "mcp-name": null }],
+    ["tools/call", { name: "about", arguments: {} }, { "mcp-name": "verify_text" }],
+  ];
+  for (const [method, params, headers] of cases) {
+    const { status, json } = await modernRpc(method, params, { headers });
+    assert.equal(status, 400, `${method} ${JSON.stringify(headers)}`);
+    assert.equal(json.error.code, -32020, `${method} ${JSON.stringify(headers)}`);
+  }
+});
+
+test("modern request with an unsupported version -> 400 UnsupportedProtocolVersion (-32022)", async () => {
+  const meta = { ...CLIENT_META, "io.modelcontextprotocol/protocolVersion": "1900-01-01" };
+  const { status, json } = await modernRpc("tools/list", {}, { meta, headers: { "mcp-protocol-version": "1900-01-01" } });
+  assert.equal(status, 400);
+  assert.equal(json.error.code, -32022);
+  assert.equal(json.error.data.requested, "1900-01-01");
+  assert.ok(json.error.data.supported.includes(MODERN));
+});
+
+test("modern ping and unknown methods -> 404 Method not found (-32601)", async () => {
+  for (const method of ["ping", "initialize", "resources/list"]) {
+    const { status, json } = await modernRpc(method);
+    assert.equal(status, 404, method);
+    assert.equal(json.error.code, -32601, method);
+  }
 });
 
 test("notifications/initialized: 202, empty body", async () => {
