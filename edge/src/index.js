@@ -11,6 +11,7 @@ import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.
 import { parseKeys } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
+import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
@@ -124,6 +125,10 @@ export default {
     if (!STARTED) STARTED = Date.now();
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
+    // Pre-connection MCP discovery (Server Card + AI Catalog); owns its own
+    // CORS/ETag handling, including preflight, so it routes before OPTIONS.
+    const discovery = await handleDiscovery(req, path);
+    if (discovery) return discovery;
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
 
     // Never serve the precomputed tables directly: the API is the product; the
