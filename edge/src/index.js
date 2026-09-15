@@ -13,6 +13,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
 import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
+import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -57,37 +58,11 @@ function limiterFor(env, tier) {
 }
 
 async function authorize(req, env) {
-  const keys = parseKeys(env.HLA_VERIFY_API_KEYS);
   let presented = req.headers.get("x-api-key") || "";
   const bearer = req.headers.get("authorization") || "";
   if (!presented && bearer.toLowerCase().startsWith("bearer ")) presented = bearer.slice(7).trim();
 
-  if (presented) {
-    if (keys.has(presented)) {
-      const { label, tier } = keys.get(presented);
-      return { label, tier, keyed: true };
-    }
-    if (env.KEYS) {
-      let rec = null;
-      try {
-        const raw = await env.KEYS.get(presented);
-        rec = raw ? JSON.parse(raw) : null;
-      } catch (_) { /* malformed record: treat as absent */ }
-      if (rec) {
-        if (rec.status === "revoked") return err(401, "API key revoked");
-        const tier = rec.tier || "starter";
-        const rl = limiterFor(env, tier);
-        if (rl) {
-          try {
-            const { success } = await rl.limit({ key: presented });
-            if (!success) return err(429, `rate limited for the ${tier} tier — upgrade at ${PRICING_NOTE}`);
-          } catch (_) { /* limiter unavailable: fail open */ }
-        }
-        return { label: rec.label || "self-serve", tier, keyed: true };
-      }
-    }
-    return err(401, "missing or invalid X-API-Key");
-  }
+  if (presented) return authorizeKey(presented, env);
 
   if (env.PUBLIC_ACCESS === "0") return err(401, "missing or invalid X-API-Key");
   if (env.RL) {
@@ -98,6 +73,36 @@ async function authorize(req, env) {
     } catch (_) { /* limiter unavailable: fail open */ }
   }
   return { label: "anonymous", tier: "free", keyed: false };
+}
+
+// A presented API key -> caller identity or a 401/429 Response. Shared by
+// authorize() and by OAuth access tokens on /mcp (oauth.js), which carry a key.
+async function authorizeKey(presented, env) {
+  const keys = parseKeys(env.HLA_VERIFY_API_KEYS);
+  if (keys.has(presented)) {
+    const { label, tier } = keys.get(presented);
+    return { label, tier, keyed: true };
+  }
+  if (env.KEYS) {
+    let rec = null;
+    try {
+      const raw = await env.KEYS.get(presented);
+      rec = raw ? JSON.parse(raw) : null;
+    } catch (_) { /* malformed record: treat as absent */ }
+    if (rec) {
+      if (rec.status === "revoked") return err(401, "API key revoked");
+      const tier = rec.tier || "starter";
+      const rl = limiterFor(env, tier);
+      if (rl) {
+        try {
+          const { success } = await rl.limit({ key: presented });
+          if (!success) return err(429, `rate limited for the ${tier} tier — upgrade at ${PRICING_NOTE}`);
+        } catch (_) { /* limiter unavailable: fail open */ }
+      }
+      return { label: rec.label || "self-serve", tier, keyed: true };
+    }
+  }
+  return err(401, "missing or invalid X-API-Key");
 }
 
 function meter(env, ctx, who, endpoint, status, units, ms) {
@@ -164,13 +169,21 @@ export default {
       return handleStripeWebhook(req, env);
     }
 
+    // OAuth sign-in for /mcp (oauth.js). Off unless OAUTH_ENABLED=1 plus its
+    // secret and KV binding; otherwise these paths fall through to the 404 below.
+    if (path.startsWith("/.well-known/oauth-") || path.startsWith("/oauth/")) {
+      const oauth = oauthConfig(env);
+      if (oauth) return handleOAuth(req, env, oauth, url, path, { json, err });
+    }
+
     // Remote MCP endpoint: stateless Streamable HTTP transport, one JSON
     // response per POST. Same keys, same rate limits, same engine as /v1/*.
     if (path === "/mcp") {
       if (req.method === "GET")
         return json({ detail: "GET not supported on /mcp", hint: "POST a JSON-RPC 2.0 message (MCP Streamable HTTP transport)." }, 405);
       if (req.method !== "POST") return err(405, "POST JSON-RPC 2.0 to /mcp");
-      const who = await authorize(req, env);
+      const oauth = oauthConfig(env);
+      const who = oauth ? await authorizeMcp(req, env, oauth, url, { authorize, authorizeKey, err }) : await authorize(req, env);
       if (who instanceof Response) return who;
       const t0 = Date.now();
       const eng = getEngine(env);
