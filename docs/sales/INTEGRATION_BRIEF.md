@@ -123,7 +123,8 @@ from sci_envs.families.matching.rules import score
 Or run the service locally: `pip install -e ".[service]" && uvicorn sci_envs.service.app:app`.
 Reference data are fetched once at runtime (about 33 MB) and md5-verified. Data never
 leaves your machines. For AI agents there is an MCP server
-(`python -m sci_envs.mcp_server`, tools `verify_text`, `normalize_allele`, `match_score`)
+(`python -m sci_envs.mcp_server`, tools `verify_text`, `normalize_allele`, `match_score`,
+`check_typing`, `donor_compat`, `validate_gl_string`, `about`)
 and an in-browser demo at https://hlaverify.com/demo that runs entirely client-side.
 
 Licence: the service code is PolyForm Noncommercial 1.0.0; research and evaluation are
