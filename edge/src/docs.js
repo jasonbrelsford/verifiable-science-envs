@@ -85,6 +85,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: applicat
 
 <h2>MCP for agents</h2>
 <p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
+<p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
 ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}`)}
 <h3>Claude Desktop / claude.ai, with a key</h3>
