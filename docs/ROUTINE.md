@@ -40,8 +40,9 @@ the board and the repo in a state the next run (human or agent) can pick up from
    Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
    git push origin main
    ```
-   A push to `main` is what triggers `edge-deploy.yml` and `cloudflare.yml` — this is the
-   intended deploy path. Never push if the local test run in step 3 failed.
+   A push to `main` is what triggers `edge-deploy.yml` — this is the intended deploy
+   path. (`cloudflare.yml` is manual now, and only configures DNS and email; the site at
+   hlaverify.com deploys from jasonbrelsford/hlaverify-website.) Never push if the local test run in step 3 failed.
 5. **Update `docs/PROJECTS.md`** for every action taken, in the same commit as the action
    or a fast-follow doc commit:
    - Move the completed line out of "next agent actions" and into that project's "done log"
