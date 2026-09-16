@@ -83,3 +83,70 @@ export async function doGlString(eng, manifest, gl) {
   const body = await eng.glString(gl);
   return good(body, countGlTokens(s));
 }
+
+// ----------------------------------------------------------- beta signup
+// The free public beta's notification list. Not an account and not a key: one
+// record per address in the KEYS namespace behind the BETA_PREFIX, holding only
+// what the signer typed plus cf-ipcountry — never the IP, never a header dump.
+//
+// authorize() (index.js) treats ANY KV value that parses as truthy JSON as a
+// starter key, so these records must be unreachable from a key lookup. They are
+// reachable only under a prefix containing "/", which no issued key contains
+// (stripe.js generateApiKey is "hlv_" + base64url), and authorizeKey() refuses a
+// presented key starting with BETA_PREFIX outright. Both halves are tested in
+// test/beta.test.mjs — do not drop either one.
+export const BETA_PREFIX = "beta/";
+export const MAX_EMAIL = 254, MAX_ORG = 120, MAX_USE_CASE = 500, MAX_SOURCE = 120;
+
+// Deliberately loose: one @, no whitespace or address-list punctuation, a dotted
+// domain. Turning away a deliverable address costs a signup; accepting an odd
+// one costs nothing — nothing is authenticated by it.
+const EMAIL_RE = /^[^\s@,;:<>"'\\]+@[^\s@,;:<>"'\\]+\.[^\s@,;:<>"'\\]{2,}$/;
+
+// Optional free-text field: absent/null is fine, anything else must be a string
+// within its cap. Returns [value, null] or [null, detail].
+function optional(v, name, max) {
+  if (v === undefined || v === null) return [null, null];
+  if (typeof v !== "string") return [null, `${name} must be a string`];
+  const s = v.trim();
+  if (s.length > max) return [null, `${name} must be at most ${max} characters`];
+  return [s || null, null];
+}
+
+const betaMessage = (release, already) =>
+  `${already ? "You are already on the beta list" : "You are on the beta list"} — free public beta. ` +
+  `Verdicts are production-quality and pinned to IPD-IMGT/HLA ${release}. Paid keys with higher rate ` +
+  `limits arrive within days; we will email you, or email hello@hlaverify.com for a beta key now.`;
+
+// body: {email, org?, use_case?, source?}; country: cf-ipcountry or null.
+export async function doBetaSignup(env, manifest, body, country) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return bad(422, "body must be a JSON object");
+  if (typeof body.email !== "string") return bad(422, "email must be a string");
+  const email = body.email.trim();
+  if (email.length > MAX_EMAIL) return bad(422, `email must be at most ${MAX_EMAIL} characters`);
+  if (!EMAIL_RE.test(email)) return bad(422, "email must look like an address, e.g. name@lab.example");
+
+  const [org, orgErr] = optional(body.org, "org", MAX_ORG);
+  if (orgErr) return bad(422, orgErr);
+  const [useCase, useCaseErr] = optional(body.use_case, "use_case", MAX_USE_CASE);
+  if (useCaseErr) return bad(422, useCaseErr);
+  const [source, sourceErr] = optional(body.source, "source", MAX_SOURCE);
+  if (sourceErr) return bad(422, sourceErr);
+
+  if (!env || !env.KEYS) return bad(503, "the beta list is not available on this deployment — email hello@hlaverify.com");
+
+  const kvKey = BETA_PREFIX + email.toLowerCase();
+  let already = false;
+  try {
+    already = (await env.KEYS.get(kvKey)) !== null;
+  } catch (_) { /* read failure: fall through and write, put() is the real test */ }
+  if (!already) {
+    await env.KEYS.put(kvKey, JSON.stringify({
+      email, org, use_case: useCase, source,
+      ts: new Date().toISOString(),
+      country: country || null,
+    }));
+  }
+  return good({ ok: true, status: already ? "already_recorded" : "recorded",
+    message: betaMessage(manifest.release, already), release: manifest.release }, 1);
+}

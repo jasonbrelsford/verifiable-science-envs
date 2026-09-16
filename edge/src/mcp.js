@@ -10,8 +10,8 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { FRAMEWORKS } from "./engine.js";
-import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
-  MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS } from "./handlers.js";
+import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString, doBetaSignup,
+  MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE } from "./handlers.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -33,7 +33,9 @@ export const INSTRUCTIONS =
   "normalize_allele or allele_info before asserting an allele name is valid or " +
   "current; call match_score instead of computing a donor-recipient match count " +
   "yourself. LLMs (including you) fabricate allele names and miscount matches — " +
-  "verify HLA names before presenting them.";
+  "verify HLA names before presenting them. The service is in free public beta: " +
+  "call beta_signup to put your user on the list for paid keys, or point them at " +
+  "hello@hlaverify.com for a beta key now.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -320,12 +322,25 @@ const GL_OUT = {
 const ABOUT_OUT = {
   type: "object",
   required: ["name", "release"],
-  properties: { name: STR, release: RELEASE, why: STR, code: STR, api: STR, demo: STR, agents: STR, commercial: STR, disclaimer: STR },
+  properties: { name: STR, release: RELEASE, why: STR, code: STR, api: STR, demo: STR, agents: STR,
+    commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
+};
+
+const BETA_OUT = {
+  type: "object",
+  required: ["ok", "status", "message", "release"],
+  properties: {
+    ok: { type: "boolean", description: "Always true; a rejected signup comes back as an error result." },
+    status: { type: "string", enum: ["recorded", "already_recorded"],
+      description: "already_recorded: the address was already on the list. Both are success — do not retry." },
+    message: { type: "string", description: "What to tell the user, including how to get a beta key today." },
+    release: RELEASE,
+  },
 };
 
 const OUTPUT_SCHEMAS = {
   verify_text: VERIFY_OUT, normalize_allele: NORMALIZE_OUT, allele_info: ALLELE_OUT, match_score: MATCH_OUT,
-  check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, about: ABOUT_OUT,
+  check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT, about: ABOUT_OUT,
 };
 
 function toolDefs() {
@@ -439,15 +454,38 @@ function toolDefs() {
       },
     },
     {
+      name: "beta_signup",
+      description:
+        "Put a user on the free public beta's notification list for paid API keys. " +
+        "Ask before calling: it records the address they give you. Re-signing the same " +
+        "address is safe (status already_recorded). Someone who needs a higher rate limit " +
+        "today should email hello@hlaverify.com for a beta key instead of waiting.",
+      inputSchema: {
+        type: "object",
+        required: ["email"],
+        properties: {
+          email: { type: "string", maxLength: MAX_EMAIL, description: "The user's email address." },
+          org: { type: "string", maxLength: MAX_ORG, description: "Lab, company or institution (optional)." },
+          use_case: { type: "string", maxLength: MAX_USE_CASE, description: "What they would use the API for (optional)." },
+          source: { type: "string", maxLength: MAX_SOURCE, description: "Where the signup came from, e.g. mcp (optional)." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
       name: "about",
-      description: "What this server is, benchmark evidence for why to use it, and terms.",
+      description: "What this server is, benchmark evidence for why to use it, the beta state, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
-  ].map((t) => ({ ...t, outputSchema: OUTPUT_SCHEMAS[t.name], annotations: TOOL_ANNOTATIONS }));
+  ].map((t) => ({ ...t, outputSchema: OUTPUT_SCHEMAS[t.name],
+    annotations: t.name === "beta_signup" ? WRITE_ANNOTATIONS : TOOL_ANNOTATIONS }));
 }
 
-// Every tool is a pure lookup into the pinned release: nothing written, same answer twice.
+// Every lookup tool is a pure read of the pinned release: nothing written, same answer twice.
 const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
+// beta_signup is the one tool that writes (one address to the beta list). Still
+// idempotent — the second call on the same address records nothing new.
+const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorldHint: false };
 
 function aboutBody(manifest) {
   return {
@@ -458,6 +496,10 @@ function aboutBody(manifest) {
     api: "https://api.hlaverify.com/docs",
     demo: "https://hlaverify.com/demo",
     agents: "https://hlaverify.com/llms.txt",
+    beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
+      "Anonymous access is 60 requests/minute per IP with no key; paid self-serve keys with higher rate limits arrive within days.",
+    beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
+    beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
     disclaimer: "Research-and-evaluation tool; not a medical device.",
   };
@@ -470,7 +512,10 @@ function errResult(detail) {
   return { isError: true, content: [{ type: "text", text: detail }], units: 0 };
 }
 
-async function callTool(name, args, eng, manifest) {
+// `beta` is the only write path's context: {env, country} from handleMcp, so the
+// beta_signup tool reaches the same KV namespace and the same cf-ipcountry value
+// as POST /v1/beta-signup. Null when this module is driven standalone (tests).
+async function callTool(name, args, eng, manifest, beta) {
   if (args === undefined || args === null) args = {};
   if (typeof args !== "object" || Array.isArray(args)) return errResult("arguments must be an object");
 
@@ -506,6 +551,10 @@ async function callTool(name, args, eng, manifest) {
       const r = await doGlString(eng, manifest, args.gl);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
+    case "beta_signup": {
+      const r = await doBetaSignup(beta && beta.env, manifest, args, beta && beta.country);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
     case "about":
       return okResult(aboutBody(manifest), 0);
     default:
@@ -524,12 +573,16 @@ function jsonResponse(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 }
 
-// handleMcp(request, engine, who, manifest, onCall?) -> Response
+// handleMcp(request, engine, who, manifest, onCall?, env?) -> Response
 // onCall(toolName, httpishStatus, units) is an optional metering hook invoked
 // once per tools/call so the caller (index.js) can record usage the same way
 // it meters REST calls; it is a no-op by default so this module works standalone
 // (as it does in the golden tests, which call it directly with a synthetic Request).
-export async function handleMcp(request, engine, who, manifest, onCall = () => {}) {
+// env is the Worker environment, needed only by beta_signup (the KEYS binding);
+// omitted, that one tool reports the beta list as unavailable and every other
+// tool behaves identically.
+export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null) {
+  const beta = { env, country: request.headers.get("cf-ipcountry") };
   let raw;
   try {
     raw = await request.text();
@@ -552,7 +605,7 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
 
   const metaVersion = params && params._meta && params._meta[META_VERSION];
   if (metaVersion !== undefined || method === "server/discover")
-    return handleModern(request, msg, metaVersion, engine, manifest, onCall);
+    return handleModern(request, msg, metaVersion, engine, manifest, onCall, beta);
 
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
 
@@ -569,14 +622,14 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
   if (method === "tools/call") {
     const name = params && params.name;
     if (typeof name !== "string" || !name) return rpcError(id, -32602, "Invalid params: params.name (string) is required");
-    return rpcResult(id, await runTool(name, params.arguments, engine, manifest, onCall));
+    return rpcResult(id, await runTool(name, params.arguments, engine, manifest, onCall, beta));
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
-async function runTool(name, args, engine, manifest, onCall) {
-  const result = await callTool(name, args, engine, manifest);
+async function runTool(name, args, engine, manifest, onCall, beta) {
+  const result = await callTool(name, args, engine, manifest, beta);
   onCall(name, result.isError ? 422 : 200, result.units ?? 0);
   const out = { content: result.content, isError: result.isError };
   if (!result.isError) out.structuredContent = result.structuredContent;
@@ -597,7 +650,7 @@ function decodeHeaderValue(v) {
 // 2026-07-28: no handshake, no ping. Every request names its protocol version in
 // _meta, which must agree with the MCP-Protocol-Version / Mcp-Method / Mcp-Name
 // headers so gateways routing on headers and this handler see the same request.
-async function handleModern(request, msg, metaVersion, engine, manifest, onCall) {
+async function handleModern(request, msg, metaVersion, engine, manifest, onCall, beta) {
   const { method, params, id } = msg;
   const h = request.headers;
   const mismatch = (message) => rpcError(id, HEADER_MISMATCH, `Header mismatch: ${message}`, { status: 400 });
@@ -630,7 +683,7 @@ async function handleModern(request, msg, metaVersion, engine, manifest, onCall)
     const hn = decodeHeaderValue(h.get("mcp-name"));
     if (hn === null) return mismatch("Mcp-Name header is required for tools/call");
     if (hn !== name) return mismatch(`Mcp-Name header value '${hn}' does not match body value '${name}'`);
-    return complete(await runTool(name, params.arguments, engine, manifest, onCall));
+    return complete(await runTool(name, params.arguments, engine, manifest, onCall, beta));
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`, { status: 404 });

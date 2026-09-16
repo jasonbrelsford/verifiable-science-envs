@@ -18,10 +18,12 @@ pre{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px
 .pill{display:inline-block;background:#DCEFDC;color:var(--green);border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:600;margin-right:6px}
 table{border-collapse:collapse;width:100%;font-size:.93rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
+.beta{background:#DCEFDC;border-radius:10px;padding:12px 16px;margin:1.2em 0}
 </style></head><body><div class="wrap">
 <nav><a href="https://hlaverify.com">hlaverify.com</a><a href="https://hlaverify.com/demo">in-browser demo</a><a href="/openapi.json">openapi.json</a><a href="https://github.com/jasonbrelsford/verifiable-science-envs">source &amp; benchmark</a></nav>
 <h1>HLA-Verify API</h1>
 <p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
+<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open at 60 requests/minute per IP with no key. Paid keys with higher rate limits arrive within days: <a href="https://hlaverify.com/beta">join the list</a> to be notified (or <code>POST /v1/beta-signup</code>), or email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key now.</p>
 
 <h2>Authentication and limits</h2>
 <p>Without a key the API is open for evaluation at <b>60 requests per minute per IP</b>. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped per-minute limit, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Every response carries <code>x-hla-verify-tier</code>. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
@@ -32,6 +34,8 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <tr><td><code>pro</code></td><td>6,000 req/min per key</td><td>API key</td></tr>
 <tr><td><code>enterprise</code></td><td>uncapped</td><td>API key</td></tr>
 </table>
+<h3>Keys during the beta</h3>
+<p>Self-serve checkout is not open yet. Beta keys are issued by hand at a paid tier's limit, free for the duration of the beta — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> with roughly what you're calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to be told when checkout opens. The rest of this section describes how self-serve will work when it does.</p>
 <h3>Self-serve keys</h3>
 <p>Starter and Pro keys are issued automatically through Stripe: buy on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 
@@ -80,11 +84,16 @@ ${curl(`curl -s https://api.hlaverify.com/v1/compat -H 'content-type: applicatio
 <p>Lab Toolkit. <code>{"gl": "A*01:01/A*02:01+A*03:01~B*07:02"}</code> — the <code>^</code> locus-block / <code>|</code> genotype-list / <code>+</code> genotype / <code>~</code> haplotype / <code>/</code> allele-list grammar, up to 5,000 allele tokens. Resolves and renames every allele token and flags structural problems (<code>mixed_locus_allele_list</code>, <code>haplotype_repeats_locus</code>, <code>more_than_two_haplotypes</code>, <code>genotype_loci_differ</code>, <code>genotype_list_loci_differ</code>, <code>locus_repeated_across_blocks</code>, <code>empty_element</code>, <code>whitespace_in_name</code>), returning a normalized string with outdated names rewritten to current. Units metered = allele token count (including empty slots from a doubled separator).</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: application/json' -d '{"gl": "A*0101+A*02:01"}'`)}
 
+<h3><span class="pill">POST</span><code>/v1/beta-signup</code> — join the beta list for paid keys</h3>
+<p><code>{"email": "you@lab.example", "org": "…", "use_case": "…", "source": "…"}</code> — only <code>email</code> is required; <code>org</code> (≤120 chars), <code>use_case</code> (≤500) and <code>source</code> (≤120, a free-text hint such as <code>site</code>, <code>mcp</code> or <code>docs</code>) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; signing the same address twice is not an error and does not create a second record. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one or a field over its cap. We store the address, the optional fields, a timestamp and the <code>CF-IPCountry</code> of the request — no IP address, nothing else, and the record is not an API key. Need a higher limit today? Email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: application/json' \\
+  -d '{"email": "you@lab.example", "org": "Example HLA Lab", "use_case": "LIMS ingest QC", "source": "docs"}'`)}
+
 <h3><span class="pill">GET</span><code>/healthz</code></h3>
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
 <p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <p>Discovery before connecting: an MCP Server Card (SEP-2127) at <a href="/mcp/server-card"><code>GET /mcp/server-card</code></a> (also <code>/.well-known/mcp/server-card.json</code>) gives name, version, endpoint, headers and protocol versions without a handshake, and <a href="/.well-known/ai-catalog.json"><code>/.well-known/ai-catalog.json</code></a> lists it for domain-level crawlers. Tools are not in the card — call <code>tools/list</code>. The repository's <code>server.json</code> describes the same server (<code>com.hlaverify/hla-verify</code>) for the official MCP Registry.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
@@ -117,16 +126,25 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 </div></body></html>`;
 }
 
-// /pricing — plain HTML, same styling as DOCS_HTML. Buttons link to Stripe
-// Payment Links passed in as starterLink/proLink (env vars STRIPE_STARTER_LINK,
-// STRIPE_PRO_LINK); either renders as "coming soon" text when unset so the page
-// never links to nothing.
+// /pricing — plain HTML, same styling as DOCS_HTML.
+//
+// FREE PUBLIC BETA (2026-09): the Starter/Pro cells show a "Join the beta list"
+// call to action instead of the Stripe checkout buttons, because the Payment
+// Links are still Stripe TEST links and cannot take real money. The tiers and
+// their limits stay visible — the prices are real, only the checkout is not.
+//
+// TO RESTORE THE BUTTONS when Stripe goes live: put the LIVE Payment Links in
+// STRIPE_STARTER_LINK / STRIPE_PRO_LINK (edge/wrangler.jsonc), then swap the two
+// `betaCta` cells in the table below back to `buy(starterLink, "Buy Starter")`
+// and `buy(proLink, "Buy Pro")`. Nothing else here or in stripe.js changed; the
+// `buy` helper and both link vars are kept wired for exactly that swap.
 export function PRICING_HTML(m, { starterLink, proLink } = {}) {
   const buy = (link, label) =>
     link ? `<a class="btn" href="${esc(link)}">${esc(label)}</a>` : `<span class="btn mut" aria-disabled="true">coming soon</span>`;
+  const betaCta = `<a class="btn" href="https://hlaverify.com/beta">Join the beta list</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify — pricing</title>
-<meta name="description" content="HLA-Verify API pricing: free evaluation tier, self-serve Starter and Pro keys, Enterprise by request.">
+<meta name="description" content="HLA-Verify API pricing during the free public beta: open at 60 req/min, paid Starter and Pro keys within days, Enterprise by request.">
 <style>
 :root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
@@ -136,19 +154,21 @@ table{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:1.2em}td,t
 a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 .btn{display:inline-block;background:var(--green);color:#fff;border-radius:8px;padding:8px 16px;text-decoration:none;font-weight:600}
 .btn.mut{background:#EEECE4;color:var(--mut)}
+.beta{background:#DCEFDC;border-radius:10px;padding:12px 16px;margin-top:1.2em}
 </style></head><body><div class="wrap">
 <nav><a href="/docs">API reference</a><a href="https://hlaverify.com">hlaverify.com</a></nav>
 <h1>Pricing</h1>
+<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher rate limits arrive within days — <a href="https://hlaverify.com/beta">join the list</a> to be notified, or email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key now.</p>
 <p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Prices and billing period are set at checkout; cancel anytime from the Stripe customer portal link in your receipt.</p>
 <table>
 <tr><th>Tier</th><th>Limit</th><th></th></tr>
 <tr><td><b>Free</b></td><td>60 req/min per IP, no key required</td><td class="mut">just start calling the API</td></tr>
-<tr><td><b>Starter</b></td><td>600 req/min per key</td><td>${buy(starterLink, "Buy Starter")}</td></tr>
-<tr><td><b>Pro</b></td><td>6,000 req/min per key</td><td>${buy(proLink, "Buy Pro")}</td></tr>
+<tr><td><b>Starter</b></td><td>600 req/min per key</td><td>${betaCta}</td></tr>
+<tr><td><b>Pro</b></td><td>6,000 req/min per key</td><td>${betaCta}</td></tr>
 <tr><td><b>Enterprise</b></td><td>uncapped, custom SLA</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
 <tr><td><b>Research</b></td><td>free with approval — hlaverify.com/research</td><td><a class="btn" href="https://hlaverify.com/research">hlaverify.com/research</a></td></tr>
 </table>
-<p class="mut" style="margin-top:2em">After payment you'll land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Full endpoint reference: <a href="/docs">/docs</a>.</p>
+<p class="mut" style="margin-top:2em">Self-serve checkout opens when the beta ends: you'll land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Until then, beta keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>
 </div></body></html>`;
 }
 
@@ -198,7 +218,9 @@ export function openapi(m) {
   return {
     openapi: "3.1.0",
     info: { title: "HLA-Verify", version: "1.0.0",
-      description: `Deterministic verification of HLA nomenclature and donor-recipient match claims against IPD-IMGT/HLA ${m.release}. No LLM; nothing stored.`,
+      description: `Deterministic verification of HLA nomenclature and donor-recipient match claims against IPD-IMGT/HLA ${m.release}. No LLM; nothing stored. ` +
+        "Free public beta: verdicts are production-quality and anonymous access stays open at 60 req/min per IP; paid keys with higher rate limits arrive within days " +
+        "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).",
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
     components: {
@@ -258,8 +280,20 @@ export function openapi(m) {
           properties: { gl: { type: "string", maxLength: 100000 } } } } } },
         responses: { 200: { description: "release, valid, normalized_gl, changed, loci, alleles, issues, counts, attribution" },
           422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/beta-signup": { post: { summary: "Join the free public beta's list for paid API keys",
+        description: "Records one address per beta list entry; re-submitting the same address returns already_recorded rather than failing. Stores the address, the optional fields, a timestamp and CF-IPCountry — no IP address. The record is not an API key and cannot be used as one.",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["email"],
+          properties: { email: { type: "string", maxLength: 254, example: "you@lab.example" },
+            org: { type: "string", maxLength: 120 }, use_case: { type: "string", maxLength: 500 },
+            source: { type: "string", maxLength: 120, description: "Free-text hint: site, mcp, docs." } } } } } },
+        responses: { 200: { description: "recorded or already_recorded", content: { "application/json": { schema: { type: "object",
+          required: ["ok", "status", "message", "release"],
+          properties: { ok: { type: "boolean" }, status: { type: "string", enum: ["recorded", "already_recorded"] },
+            message: { type: "string" }, release: { type: "string" } } } } } },
+          422: { description: "invalid email or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          429: { description: "rate limited (60 req/min per IP)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
-        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, about. donor_compat is decision support only; not a medical device. See the MCP for agents section above.",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, about. donor_compat is decision support only; not a medical device. beta_signup is the only tool that writes. See the MCP for agents section above.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object",
           required: ["jsonrpc", "method"],
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },
