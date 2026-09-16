@@ -49,7 +49,7 @@ jobs:
       FAM: ${{ inputs.family || 'a' }}
       SYSTEM_PYTHON: 'C:\Python314\python.exe'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { clean: false }        # keep runs/*/responses between runs so re-runs are free
       - name: Runner identity + persistent execution policy (idempotent)
         continue-on-error: true
@@ -151,7 +151,7 @@ jobs:
         run: |
           $page = "bench/HLA-Bench-$($env:FAM.ToUpper()).md"
           python -m sci_envs.harness.run report --suite "runs/hla-bench-$env:FAM" --out $page
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tower-results
           path: |
