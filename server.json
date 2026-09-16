@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.hlaverify/hla-verify",
   "title": "HLA-Verify",
-  "description": "Verify HLA allele names and score donor-recipient matches against a pinned IPD-IMGT/HLA release.",
-  "version": "1.0.0",
+  "description": "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
+  "version": "1.0.1",
   "websiteUrl": "https://hlaverify.com",
   "repository": {
     "url": "https://github.com/jasonbrelsford/verifiable-science-envs",
