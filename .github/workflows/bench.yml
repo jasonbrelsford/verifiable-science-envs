@@ -21,12 +21,12 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with: { path: ~/.cache/sci_envs/imgt, key: imgt-v3.65.0-alpha }
-      - uses: actions/cache@v4          # raw model responses: a re-run never re-pays for tasks already answered
+      - uses: actions/cache@v6          # raw model responses: a re-run never re-pays for tasks already answered
         with:
           path: runs/hla-bench-a/responses
           key: responses-v0.2-${{ inputs.split }}-${{ github.run_id }}
@@ -37,7 +37,7 @@ jobs:
           if [ "${{ inputs.models }}" = "auto" ]; then hla-bench auto --split ${{ inputs.split }}; \
           else hla-bench run ${{ inputs.models }} --split ${{ inputs.split }}; fi
       - run: hla-bench report
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: hla-bench-results, path: "runs/hla-bench-a/results/" }
       - run: |
           git config user.name "hla-bench bot" && git config user.email "bot@users.noreply.github.com"
