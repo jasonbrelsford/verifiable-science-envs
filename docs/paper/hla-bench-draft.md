@@ -250,7 +250,7 @@ scripts/pyard_concordance.py.
   runtime, the same rules that grade the benchmark.
 - Limitations: English-only prompts; v0 scope excludes DPB1 TCE permissiveness,
   DQA1/DPA1, and frequency-weighted population realism (data hierarchy in
-  docs/DATA_STRATEGY.md); single-turn tasks (agentic multi-step variants are
+  available on request); single-turn tasks (agentic multi-step variants are
   future work); the frontier-model row currently reflects a token-budget floor.
 - Contamination resistance is structural, not assumed: post-cutoff facts did not
   yield the expected advantage-from-memorization pattern (post-cutoff slice

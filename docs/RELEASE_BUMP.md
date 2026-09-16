@@ -52,7 +52,7 @@ a partially-cached old release during the transition):**
 **Docs/results that describe a specific past release — do NOT bump, these are historical
 records of what was measured under the old release and stay pinned:**
 - `bench/HLA-Bench-A.md`, `bench/HLA-Bench-C.md`, `docs/pyard-concordance.md`,
-  `docs/PRIOR_ART.md`, `docs/paper/hla-bench-draft.md` — leave as-is; a new release gets a
+  `docs/paper/hla-bench-draft.md` — leave as-is; a new release gets a
   new results run and a new dated entry, not an edit to old numbers.
 - `harbor/**` — the Harbor task/solution fixtures are frozen to the release they were
   authored against; check `harbor/README.md` before touching anything there — it may be
@@ -95,7 +95,7 @@ guessed), re-run, and only then continue.
 
 The hosted API and the benchmark suites are decoupled: bumping the API's pinned tag does
 not by itself regenerate `bench/HLA-Bench-A.md` / `-C.md`. A new benchmark run against
-the new release is its own next-agent-action (see project (c) in `docs/PROJECTS.md`) —
+the new release is its own next-agent-action (tracked privately) —
 queue it via `.tower-queue.json` for local Ollama models (free) or a manual `bench.yml`
 dispatch for API-keyed models (costs money, human-triggered only). Do not conflate the
 two: a quarterly release bump alone only needs steps 1-3 above.
@@ -118,9 +118,9 @@ path; do not run `wrangler deploy` locally.
 ## 6. Customer notice (drafted, never sent)
 
 Keyed customers are told in the product docs that they "get a diff of changed verdicts
-before each quarterly pin move" (see `docs/sales/TARGETS.md`'s product-facts note). After
+before each quarterly pin move" (see the product-facts note in the private hub). After
 step 3 produces a clean diff, draft — but do not send — a short notice using this
-template. Sending is human-only (see `docs/PROJECTS.md` "Waiting on Jason" for the
+template. Sending is human-only (see the private hub's waiting-on list for the
 Gmail-drafts workflow); an agent's job here stops at leaving the drafted text in a file
 or a Gmail draft, never at clicking send.
 

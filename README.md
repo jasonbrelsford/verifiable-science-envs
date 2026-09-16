@@ -11,7 +11,7 @@ Every answer is computed from the pinned IPD-IMGT/HLA release's own files. No hu
 | **HLA-Bench-A** | 550 | Nomenclature: truncation, expression suffixes, G/P groups, serology, rename history, null-allele and near-miss traps | [`bench/HLA-Bench-A.md`](bench/HLA-Bench-A.md) |
 | **HLA-Bench-C** | 205 | Donor–recipient matching: 6/6–12/12 frameworks, antigen vs allele level, hidden nulls, GvH/HvG direction, unresolvable typing | [`bench/HLA-Bench-C.md`](bench/HLA-Bench-C.md) |
 
-Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma) scores **0% on 2-field ambiguity expansion** — the core clinical trap; on matching, the naive string baseline falls from 28% (family A) to **0%**, and open models reach 0–14% because they count matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in [`STATUS.md`](STATUS.md).
+Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma) scores **0% on 2-field ambiguity expansion** — the core clinical trap; on matching, the naive string baseline falls from 28% (family A) to **0%**, and open models reach 0–14% because they count matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in the bench pages below.
 
 ## HLA-Verify — the graders as an API
 
@@ -94,7 +94,7 @@ docs/                       # task + grader specs (families A, B, C)
 
 ## Data strategy & partners
 
-Every graded answer is computed from public, versioned data — the pinned IPD-IMGT/HLA release, synthetic Mendelian truth, and open population resources — so anyone can regenerate the suites and audit every score. Restricted registry data stays with its licensed holders: our environments run on *their* machines. Full picture and the partner invitation in [`docs/DATA_STRATEGY.md`](docs/DATA_STRATEGY.md). **We are seeking registry, lab, and model-developer partners** — hello@hlaverify.com.
+Every graded answer is computed from public, versioned data — the pinned IPD-IMGT/HLA release, synthetic Mendelian truth, and open population resources — so anyone can regenerate the suites and audit every score. Restricted registry data stays with its licensed holders: our environments run on *their* machines. **We are seeking registry, lab, and model-developer partners** — hello@hlaverify.com.
 
 ## Licence
 
