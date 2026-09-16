@@ -170,7 +170,7 @@ on locus B, both already flagged above); treat those 2 codes as
   (+48) as described in §1 — new associated-antigen breakouts and expanded
   associated-antigen lists per the 2026 report.
 - `rel_dna_ser.txt` header: `author` line changed from
-  `WHO, Steven G. E. Marsh (steven.marsh@ucl.ac.uk)` to
+  `WHO, Steven G. E. Marsh (the IPD-IMGT/HLA curator contact listed on the ANHIG/IMGTHLA repository)` to
   `IPD Team (ipdsubs@anthonynolan.org)` starting at 3.64.0-alpha (all files'
   header `date`/`version` lines change every release as expected).
 - New `wmda/README.md` file (didn't exist, or wasn't versioned per-tag, before
