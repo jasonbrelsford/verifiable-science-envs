@@ -5,6 +5,11 @@ Author: Jason Brelsford (Brelsford Software LLC). Numbers below are from the
 committed results in `bench/`; every figure will be regenerated with provenance
 before submission.*
 
+**Licence:** this manuscript will be submitted under CC-BY 4.0. Reference data
+(IPD-IMGT/HLA) is CC-BY-ND and is cited and computed upon, never redistributed;
+no IPD-IMGT/HLA-derived data files will be uploaded as supplementary material —
+see §6 and `docs/PREPRINT_CHECKLIST.md`.
+
 ## Abstract (draft)
 
 Large language models are entering clinical genomics workflows, but no benchmark
@@ -264,6 +269,13 @@ verification service: github.com/jasonbrelsford/verifiable-science-envs
 IPD-IMGT/HLA (CC-BY-ND; Barker DJ et al., NAR 2025) and never redistributed. Dev
 splits public; sealed splits regenerate per release from (tag, seed). In-browser
 demo: hlaverify.com/demo.
+
+## 7. Competing interests
+
+J.B. is the founder of Brelsford Software LLC, which operates the HLA-Verify API
+(hlaverify.com) described in this manuscript as a commercial service under the
+PolyForm Noncommercial 1.0.0 licence for the verification component; the
+benchmark, generators, and graders themselves are released under Apache-2.0.
 
 ## TODO before submission
 
