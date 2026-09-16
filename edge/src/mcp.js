@@ -25,10 +25,17 @@ const META_VERSION = "io.modelcontextprotocol/protocolVersion";
 const META_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
 const HEADER_MISMATCH = -32020;
 const UNSUPPORTED_PROTOCOL_VERSION = -32022;
-export const SERVER_INFO = { name: "hla-verify", version: "1.0.0" };
+export const SERVER_INFO = { name: "hla-verify", version: "1.0.1" };
 export const INSTRUCTIONS =
-  "Deterministic HLA verification against a pinned IPD-IMGT/HLA release. No LLM " +
-  "inside: every verdict is a table lookup. Call verify_text on any AI-generated " +
+  "Nomenclature and reference-release validation for HLA: allele names, typing-report " +
+  "consistency and match arithmetic, checked against a pinned IPD-IMGT/HLA release. No LLM " +
+  "inside: every verdict is a table lookup. This is not a diagnostic aid and not clinical " +
+  "decision support; it does not interpret a case or recommend a donor. What to send: allele " +
+  "names, typing strings, GL strings and report text about HLA typing. What never to send: " +
+  "patient identifiers of any kind, including names, medical record numbers, dates of birth, " +
+  "accession or case identifiers, and other patient details. The service does not need them " +
+  "and does not store request bodies; removing them before sending is the caller's " +
+  "responsibility. Call verify_text on any AI-generated " +
   "or transcribed content that mentions HLA alleles before presenting it; call " +
   "normalize_allele or allele_info before asserting an allele name is valid or " +
   "current; call match_score instead of computing a donor-recipient match count " +
@@ -322,8 +329,8 @@ const GL_OUT = {
 const ABOUT_OUT = {
   type: "object",
   required: ["name", "release"],
-  properties: { name: STR, release: RELEASE, why: STR, code: STR, api: STR, demo: STR, agents: STR,
-    commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
+  properties: { name: STR, release: RELEASE, scope: STR, inputs: STR, why: STR, code: STR, api: STR, demo: STR,
+    agents: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
 };
 
 const BETA_OUT = {
@@ -343,18 +350,34 @@ const OUTPUT_SCHEMAS = {
   check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT, about: ABOUT_OUT,
 };
 
+// Every typing input is the same shape and carries the same rule about what may
+// be in it, so it is written once here rather than five times below.
+const TYPING_IN = {
+  type: "object",
+  description: "locus -> up to 4 reported allele names. Allele strings only: never patient names, " +
+    "medical record numbers, dates of birth, or accession or case identifiers.",
+  additionalProperties: { type: "array", items: { type: "string" } },
+};
+
 function toolDefs() {
   return [
     {
       name: "verify_text",
       description:
-        "Scan free text for HLA allele-shaped tokens and classify each one: " +
-        "valid / legacy (with modern form) / deleted (with successor) / fabricated. " +
-        "Use on any AI-generated or transcribed content mentioning HLA.",
+        "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
+        "classify each one: valid / legacy (with modern form) / deleted (with successor) / " +
+        "fabricated. Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
+        "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
+        "HLA. Send the HLA content only, with patient identifiers removed first.",
       inputSchema: {
         type: "object",
         required: ["text"],
-        properties: { text: { type: "string", maxLength: MAX_TEXT, description: "Free text to scan." } },
+        properties: { text: { type: "string", maxLength: MAX_TEXT, description:
+          "HLA typing report text, or model output about HLA typing, to scan for allele names. " +
+          "Send the HLA content only: strip patient names, medical record numbers, dates of birth, " +
+          "accession and case identifiers, and any other patient details before sending. The caller " +
+          "is responsible for de-identifying the text; this service neither needs nor wants " +
+          "identifiers and does not store request bodies." } },
         additionalProperties: false,
       },
     },
@@ -366,7 +389,9 @@ function toolDefs() {
       inputSchema: {
         type: "object",
         required: ["name"],
-        properties: { name: { type: "string", maxLength: MAX_NAME, description: "Reported allele name, any nomenclature era." } },
+        properties: { name: { type: "string", maxLength: MAX_NAME, description:
+          "One reported HLA allele name, any nomenclature era. An allele string only, never a patient name, " +
+          "medical record number or other identifier." } },
         additionalProperties: false,
       },
     },
@@ -380,24 +405,28 @@ function toolDefs() {
       inputSchema: {
         type: "object",
         required: ["name"],
-        properties: { name: { type: "string", maxLength: MAX_NAME, description: "Exact allele, prefix, or deleted name." } },
+        properties: { name: { type: "string", maxLength: MAX_NAME, description:
+          "Exact HLA allele name, a lower-resolution prefix, or a deleted name. An allele string only, " +
+          "never a patient name, medical record number or other identifier." } },
         additionalProperties: false,
       },
     },
     {
       name: "match_score",
       description:
-        "Score a donor-recipient HLA match with the published rules (R1-R6). " +
+        "Count a donor-recipient HLA match by the published counting rules (R1-R6): allele " +
+        "arithmetic over chromosomes, not a donor recommendation. " +
         'recipient/donor: {"A": ["A*01:01","A*02:01"], "B": [...], ...} (two reported ' +
-        "alleles per locus, any nomenclature era). framework: 6/6, 8/8, 10/10, 12/12, " +
+        "alleles per locus, any nomenclature era; allele strings only, no patient identifiers). " +
+        "framework: 6/6, 8/8, 10/10, 12/12, " +
         "or antigen. Returns count, per-locus verdicts, GvH/HvG mismatch counts, and " +
         "flags; unresolvable typing yields 'potential', never a confident count.",
       inputSchema: {
         type: "object",
         required: ["recipient", "donor"],
         properties: {
-          recipient: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
-          donor: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+          recipient: TYPING_IN,
+          donor: TYPING_IN,
           framework: { type: "string", enum: Object.keys(FRAMEWORKS), default: "8/8" },
         },
         additionalProperties: false,
@@ -409,13 +438,15 @@ function toolDefs() {
         "QC-check one HLA typing (all loci) against the pinned release: resolves every " +
         "reported allele, flags unresolvable/outdated/locus-mismatched/null alleles, flags " +
         "too-many/single/homozygous per locus, computes the B-leader (-21 M/T) and " +
-        'KIR-ligand (C1/C2/Bw4) profile, and DRB3/4/5 expected-vs-reported. typing: ' +
-        '{"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era).',
+        'KIR-ligand (C1/C2/Bw4) profile, and DRB3/4/5 expected-vs-reported. Nomenclature and ' +
+        "internal-consistency checking of the report, not clinical interpretation. typing: " +
+        '{"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era; ' +
+        "allele strings only, no patient identifiers).",
       inputSchema: {
         type: "object",
         required: ["typing"],
         properties: {
-          typing: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+          typing: TYPING_IN,
         },
         additionalProperties: false,
       },
@@ -423,17 +454,19 @@ function toolDefs() {
     {
       name: "donor_compat",
       description:
-        "Donor/recipient immunogenetic compatibility: HLA-B leader match (-21 M/T, " +
-        "Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand (C1/C2/Bw4) " +
-        'comparison, computed over each side\'s full typing QC. recipient/donor: ' +
-        '{"A": [...], "B": [...], "C": [...], "DRB1": [...], ...}. ' +
+        "Donor/recipient immunogenetic compatibility under two published rule sets: HLA-B " +
+        "leader match (-21 M/T, Petersdorf 2020) for a single HLA-B mismatch, and KIR ligand " +
+        "(C1/C2/Bw4) class comparison, computed over each side's full typing QC. Rule " +
+        "checking against published frameworks; it does not rank or recommend a donor. " +
+        'recipient/donor: {"A": [...], "B": [...], "C": [...], "DRB1": [...], ...} ' +
+        "(allele strings only, no patient identifiers). " +
         "Decision support only; not a medical device.",
       inputSchema: {
         type: "object",
         required: ["recipient", "donor"],
         properties: {
-          recipient: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
-          donor: { type: "object", description: "locus -> up to 4 reported alleles", additionalProperties: { type: "array", items: { type: "string" } } },
+          recipient: TYPING_IN,
+          donor: TYPING_IN,
         },
         additionalProperties: false,
       },
@@ -445,11 +478,13 @@ function toolDefs() {
         "every allele token, flags outdated/unresolvable names and structural problems " +
         "(mixed loci within a slash-list, a repeated locus within a haplotype or across " +
         "^ blocks, more than two haplotypes, differing loci across a genotype or genotype " +
-        "list, empty elements), and returns the normalized string.",
+        "list, empty elements), and returns the normalized string. Grammar and nomenclature " +
+        "checking only; send allele names, not patient identifiers.",
       inputSchema: {
         type: "object",
         required: ["gl"],
-        properties: { gl: { type: "string", maxLength: MAX_GL_CHARS, description: "GL String to validate and normalize." } },
+        properties: { gl: { type: "string", maxLength: MAX_GL_CHARS, description:
+          "GL String to validate and normalize. Allele names and GL grammar only, never patient identifiers." } },
         additionalProperties: false,
       },
     },
@@ -466,7 +501,7 @@ function toolDefs() {
         properties: {
           email: { type: "string", maxLength: MAX_EMAIL, description: "The user's email address." },
           org: { type: "string", maxLength: MAX_ORG, description: "Lab, company or institution (optional)." },
-          use_case: { type: "string", maxLength: MAX_USE_CASE, description: "What they would use the API for (optional)." },
+          use_case: { type: "string", maxLength: MAX_USE_CASE, description: "What they would use the API for (optional). No patient details." },
           source: { type: "string", maxLength: MAX_SOURCE, description: "Where the signup came from, e.g. mcp (optional)." },
         },
         additionalProperties: false,
@@ -474,7 +509,7 @@ function toolDefs() {
     },
     {
       name: "about",
-      description: "What this server is, benchmark evidence for why to use it, the beta state, and terms.",
+      description: "What this server is and is not, what to send it, benchmark evidence for why to use it, the beta state, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
   ].map((t) => ({ ...t, outputSchema: OUTPUT_SCHEMAS[t.name],
@@ -491,6 +526,13 @@ function aboutBody(manifest) {
   return {
     name: "HLA-Verify",
     release: manifest.release,
+    scope: "Nomenclature and reference-release validation: allele names, typing-report consistency and match arithmetic, " +
+      "checked against a pinned IPD-IMGT/HLA release. Not a diagnostic aid, not clinical decision support, and it does not " +
+      "recommend a donor.",
+    inputs: "Send allele names, typing strings, GL strings and report text about HLA typing. Never send patient identifiers: " +
+      "this service neither needs nor wants names, medical record numbers, dates of birth, accession or case identifiers, or " +
+      "other patient details. Request bodies are processed in memory and not stored; de-identifying before sending is the " +
+      "caller's responsibility.",
     why: "Every LLM family tested scores 0% on 2-field ambiguity expansion and fabricates allele names at 0.05-0.14/task (HLA-Bench).",
     code: "https://github.com/jasonbrelsford/verifiable-science-envs",
     api: "https://api.hlaverify.com/docs",

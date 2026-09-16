@@ -7,7 +7,7 @@ export function DOCS_HTML(m) {
   const curl = (s) => `<pre><code>${esc(s)}</code></pre>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify API — reference</title>
-<meta name="description" content="Deterministic HLA nomenclature and donor-recipient matching verification API, pinned to IPD-IMGT/HLA ${esc(m.release)}. No LLM, nothing stored.">
+<meta name="description" content="Deterministic HLA nomenclature and donor-recipient matching verification API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Allele names, not patient identifiers. No LLM, nothing stored.">
 <style>
 :root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
@@ -19,10 +19,12 @@ pre{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px
 table{border-collapse:collapse;width:100%;font-size:.93rem}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 .beta{background:#DCEFDC;border-radius:10px;padding:12px 16px;margin:1.2em 0}
+.send{background:#EEECE4;border-left:4px solid var(--green);border-radius:10px;padding:12px 16px;margin:1.2em 0}
 </style></head><body><div class="wrap">
 <nav><a href="https://hlaverify.com">hlaverify.com</a><a href="https://hlaverify.com/demo">in-browser demo</a><a href="/openapi.json">openapi.json</a><a href="https://github.com/jasonbrelsford/verifiable-science-envs">source &amp; benchmark</a></nav>
 <h1>HLA-Verify API</h1>
 <p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
+<p class="send"><b>What to send.</b> HLA-Verify checks allele nomenclature, typing-report consistency and match arithmetic against a pinned IPD-IMGT/HLA release. Send <b>allele names, typing strings, GL strings and report text about HLA typing</b>. Do not send patient identifiers: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. The service neither needs nor wants them, request bodies are processed in memory and never stored, and de-identifying before you send is the caller's responsibility. This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor.</p>
 <p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open at 60 requests/minute per IP with no key. Paid keys with higher rate limits arrive within days: <a href="https://hlaverify.com/beta">join the list</a> to be notified (or <code>POST /v1/beta-signup</code>), or email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key now.</p>
 
 <h2>Authentication and limits</h2>
@@ -41,9 +43,9 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
-<p>Send a typing report, an EHR fragment, or a model's answer. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, or <code>hallucinated</code>. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group.</p>
+<p>Send HLA typing report text or a model's answer about HLA, with patient identifiers removed first. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, or <code>hallucinated</code>. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \\
-  -d '{"text": "Patient typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G)."}'`)}
+  -d '{"text": "Reported typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G)."}'`)}
 ${curl(`{"release":"${m.release}","clean":false,
  "counts":{"valid":2,"deleted":1,"group":1,"fabricated_group":0,"hallucinated":1},
  "tokens":[{"token":"A*0101","status":"deleted","successor":"A*01:01:01:01","current_2field":"A*01:01",
@@ -93,7 +95,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: appli
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's 60 req/min; an API key on <code>/mcp</code> gets the same tier as on REST.</p>
 <p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <p>Discovery before connecting: an MCP Server Card (SEP-2127) at <a href="/mcp/server-card"><code>GET /mcp/server-card</code></a> (also <code>/.well-known/mcp/server-card.json</code>) gives name, version, endpoint, headers and protocol versions without a handshake, and <a href="/.well-known/ai-catalog.json"><code>/.well-known/ai-catalog.json</code></a> lists it for domain-level crawlers. Tools are not in the card — call <code>tools/list</code>. The repository's <code>server.json</code> describes the same server (<code>com.hlaverify/hla-verify</code>) for the official MCP Registry.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
@@ -122,7 +124,7 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 <p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 missing/invalid/revoked key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 rate limited (tier-specific), 500 (nothing stored). MCP <code>tools/call</code> validation failures are not HTTP or JSON-RPC errors — they come back as a normal tool result with <code>isError:true</code> and an explanatory text block, per the MCP spec.</p>
 
 <h2>Terms</h2>
-<p class="mut">HLA-Verify is a research-and-evaluation tool and not a medical device; output supports and does not replace clinical judgement. Service code: PolyForm Noncommercial 1.0.0 — commercial use requires a licence from Brelsford Software LLC (<a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>). Reference data: IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Research 2025), CC-BY-ND, fetched from the official source and never redistributed in bulk. Requests are processed in memory and discarded; metering records counts per key, never content.</p>
+<p class="mut">HLA-Verify validates HLA nomenclature and match arithmetic against a pinned reference release. It is a research-and-evaluation tool and not a medical device; it is not clinical decision support, and output supports and does not replace clinical judgement. Send allele names and HLA report text only: the service is not designed to receive protected health information, does not need patient identifiers, and de-identifying input before sending is the caller's responsibility. Service code: PolyForm Noncommercial 1.0.0 — commercial use requires a licence from Brelsford Software LLC (<a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>). Reference data: IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Research 2025), CC-BY-ND, fetched from the official source and never redistributed in bulk. Requests are processed in memory and discarded; metering records counts per key, never content.</p>
 </div></body></html>`;
 }
 
@@ -218,7 +220,11 @@ export function openapi(m) {
   return {
     openapi: "3.1.0",
     info: { title: "HLA-Verify", version: "1.0.0",
-      description: `Deterministic verification of HLA nomenclature and donor-recipient match claims against IPD-IMGT/HLA ${m.release}. No LLM; nothing stored. ` +
+      description: `Deterministic validation of HLA nomenclature and donor-recipient match arithmetic against IPD-IMGT/HLA ${m.release}. No LLM; nothing stored. ` +
+        "What to send: allele names, typing strings, GL strings and report text about HLA typing. What never to send: patient identifiers of any kind " +
+        "(names, medical record numbers, dates of birth, accession or case identifiers, other patient details). The service neither needs nor wants them, " +
+        "request bodies are processed in memory and never stored, and de-identifying before sending is the caller's responsibility. " +
+        "This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor. " +
         "Free public beta: verdicts are production-quality and anonymous access stays open at 60 req/min per IP; paid keys with higher rate limits arrive within days " +
         "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).",
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
@@ -227,16 +233,22 @@ export function openapi(m) {
       securitySchemes: { ApiKey: { type: "apiKey", in: "header", name: "X-API-Key" } },
       schemas: {
         Error: { type: "object", properties: { detail: { type: "string" } } },
-        Typing: { type: "object", additionalProperties: { type: "array", items: { type: "string" }, maxItems: 4 },
+        Typing: { type: "object",
+          description: "locus -> up to 4 reported allele names. Allele strings only: never patient names, medical record numbers, dates of birth, or accession or case identifiers.",
+          additionalProperties: { type: "array", items: { type: "string" }, maxItems: 4 },
           example: { A: ["A*02:01", "A*24:02"], B: ["B*07:02", "B*44:02"], C: ["C*07:02", "C*05:01"], DRB1: ["DRB1*15:01", "DRB1*04:01"] } },
       },
     },
     security: [{}, { ApiKey: [] }],
     paths: {
       "/healthz": { get: { summary: "Liveness and pinned release", responses: { 200: { description: "ok" } } } },
-      "/v1/verify": { post: { summary: "Classify every allele-shaped token in free text",
+      "/v1/verify": { post: { summary: "Classify every allele-shaped token in HLA report text or model output",
+        description: "Nomenclature checking against the pinned release, not interpretation of a case. Send HLA typing report text or model output about HLA typing " +
+          "with patient identifiers removed first: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. " +
+          "The service neither needs nor wants them and does not store request bodies; de-identifying is the caller's responsibility.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["text"],
-          properties: { text: { type: "string", maxLength: 200000 } } } } } },
+          properties: { text: { type: "string", maxLength: 200000,
+            description: "HLA typing report text, or model output about HLA typing, to scan for allele names. Allele names and HLA content only, never patient identifiers." } } } } } },
         responses: { 200: { description: "verdicts", content: { "application/json": { schema: { type: "object", properties: {
           release: { type: "string" }, clean: { type: "boolean" },
           counts: { type: "object", additionalProperties: { type: "integer" } },
@@ -293,7 +305,7 @@ export function openapi(m) {
           422: { description: "invalid email or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           429: { description: "rate limited (60 req/min per IP)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
-        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, about. donor_compat is decision support only; not a medical device. beta_signup is the only tool that writes. See the MCP for agents section above.",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, about. donor_compat is decision support only; not a medical device. beta_signup is the only tool that writes. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object",
           required: ["jsonrpc", "method"],
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },
