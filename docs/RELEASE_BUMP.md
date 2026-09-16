@@ -5,7 +5,7 @@ IPD-IMGT/HLA cuts a new release (currently pinned: `v3.65.0-alpha`, ~46,652 alle
 roughly 600 added per quarter). Nothing in this doc touches secrets, Stripe, or
 `wrangler deploy` directly — the only release action an agent takes is editing pinned
 tag strings, regenerating fixtures, and pushing to `main`, which triggers the existing
-`edge-deploy.yml` / `cloudflare.yml` workflows.*
+`edge-deploy.yml` workflow.*
 
 ## 0. Before starting
 
