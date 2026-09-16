@@ -31,6 +31,11 @@
   "observability": { "enabled": true },
   "vars": {
     "PUBLIC_ACCESS": "1",
+    // OAuth sign-in for /mcp (src/oauth.js, docs/MCP_OAUTH.md). Live since 2026-09-16;
+    // the OAUTH_TOKEN_SECRET it also requires is set as a secret. Remove this line to
+    // turn it off — the /oauth/* and /.well-known/oauth-* routes 404 again and issued
+    // tokens stop working. Anonymous and X-API-Key access are unchanged either way.
+    "OAUTH_ENABLED": "1",
     // Maps a Stripe price id to a tier for self-serve key issuance (src/stripe.js),
     // used only when checkout.session.completed has no metadata.tier; anything not
     // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"pro"}.
@@ -45,9 +50,6 @@
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
   //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
   //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
-  // OAuth sign-in for /mcp (src/oauth.js, docs/MCP_OAUTH.md) is OFF and stays off
-  // until BOTH of these exist; do not add OAUTH_ENABLED to "vars" above without
-  // reading that doc first:
-  //   OAUTH_TOKEN_SECRET = "<64 random hex chars: openssl rand -hex 32>"  (secret)
-  //   OAUTH_ENABLED = "1"                                                 (var)
+  //   OAUTH_TOKEN_SECRET = "<64 random hex chars: openssl rand -hex 32>" — set; paired
+  //     with the OAUTH_ENABLED var above. Replacing it invalidates every issued token.
 }
