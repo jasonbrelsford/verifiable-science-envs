@@ -8,7 +8,7 @@ Deterministic, no LLM anywhere: every answer is computed from a pinned
 IPD-IMGT/HLA release (fetched at runtime, never redistributed; CC-BY-ND
 attribution in every response). Never outputs sequences.
 
-Contract: docs/LAB-TOOLKIT-SPEC.md. This module is the reference
+Contract: the Lab Toolkit spec, kept privately. This module is the reference
 implementation ("golden oracle") that the JavaScript edge Worker is later
 tested against byte-for-byte — key orders, sort orders, sentinel strings and
 detail texts here are load-bearing, not stylistic.
