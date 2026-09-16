@@ -6,7 +6,28 @@
 | Reference | IPD-IMGT/HLA 3.65.0 (fetched at runtime, md5-verified — never redistributed; CC-BY-ND) |
 | Licence | Apache-2.0, except `sci_envs/service/` under PolyForm Noncommercial 1.0.0 (see NOTICE) |
 | Contact | Brelsford Software LLC — hello@hlaverify.com · [hlaverify.com](https://hlaverify.com) · [in-browser demo](https://hlaverify.com/demo) |
-| HLA-Verify API | **Live** at [api.hlaverify.com](https://api.hlaverify.com/docs) (Cloudflare Worker, tables exported from the pinned release; golden-tested against the Python service). Open at 60 req/min; keyed access by request. |
+| HLA-Verify API | **Live** at [api.hlaverify.com](https://api.hlaverify.com/docs) (Cloudflare Worker, tables exported from the pinned release; golden-tested against the Python service). Free public beta: open at 60 req/min per IP with no key; beta keys by request. |
+
+## Free public beta — the signup list
+
+Verdicts are production-quality and pinned to the release above; the beta is
+about pricing and limits, not correctness. Paid self-serve keys wait on Stripe
+leaving TEST mode; until then beta keys are issued by hand (hello@hlaverify.com)
+and the website's `/beta` form plus the `beta_signup` MCP tool both POST to
+`/v1/beta-signup` on the Worker.
+
+Signups live in the **same KV namespace as the API keys** (`KEYS`, id
+`8360bbe6d4904699ab019702427fc19d`) behind a `beta/` prefix, one record per
+lowercased address: `{email, org, use_case, source, ts, country}` — no IP
+addresses. The prefix is what keeps them out of the key space: `authorize()`
+treats any KV value that parses as truthy JSON as a starter key, so
+`edge/src/index.js` also refuses outright any presented key beginning `beta/`
+(tested in `edge/test/beta.test.mjs`). Export the list with:
+
+```sh
+wrangler kv key list --namespace-id 8360bbe6d4904699ab019702427fc19d --remote --prefix beta/
+wrangler kv key get  --namespace-id 8360bbe6d4904699ab019702427fc19d --remote 'beta/name@lab.example'
+```
 
 ## What this is
 
