@@ -31,7 +31,9 @@ ATTRIBUTION = ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 
                "fetched at runtime from the ANHIG/IMGTHLA mirror under CC-BY-ND.")
 
 app = FastAPI(title="HLA-Verify", version="0.1.0",
-              description="Deterministic verification of HLA nomenclature against a pinned IPD-IMGT/HLA release.")
+              description="Deterministic validation of HLA nomenclature and match arithmetic against a pinned "
+                          "IPD-IMGT/HLA release. Send allele names, typing strings, GL strings and report text "
+                          "about HLA typing; never patient identifiers.")
 _ref: ImgtReference | None = None
 _stats = {"started": time.time(), "requests": 0, "tokens_checked": 0}
 
@@ -56,11 +58,15 @@ def _auth(request: Request) -> None:
 
 
 class VerifyIn(BaseModel):
-    text: str = Field(..., max_length=200_000, description="Free text: a report, an AI answer, a note.")
+    text: str = Field(..., max_length=200_000,
+                      description="HLA typing report text or model output about HLA, with patient "
+                                  "identifiers removed first. Allele names and HLA content only.")
 
 
 class NormalizeIn(BaseModel):
-    typings: list[str] = Field(..., max_length=5_000, description="Reported typing strings, any era.")
+    typings: list[str] = Field(..., max_length=5_000,
+                               description="Reported typing strings, any era. Allele strings only, "
+                                           "never patient identifiers.")
 
 
 class MatchIn(BaseModel):

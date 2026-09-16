@@ -28,7 +28,7 @@ export function serverCard() {
     $schema: CARD_SCHEMA,
     name: REGISTRY_NAME,
     version: SERVER_INFO.version,
-    description: "Verify HLA allele names and score donor-recipient matches against a pinned IPD-IMGT/HLA release.",
+    description: "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
     title: "HLA-Verify",
     websiteUrl: "https://hlaverify.com",
     repository: { url: "https://github.com/jasonbrelsford/verifiable-science-envs", source: "github", subfolder: "edge", id: "1350739538" },

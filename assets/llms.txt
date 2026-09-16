@@ -5,6 +5,16 @@
 > No LLM in the loop: every verdict is computed from the authoritative database's
 > own files, versioned, and reproducible. Built by Brelsford Software LLC.
 
+## What to send
+
+Send allele names, typing strings, GL strings and report text about HLA typing.
+Never send patient identifiers: no names, medical record numbers, dates of birth,
+accession or case identifiers, or other patient details. The service neither needs
+nor wants them, request bodies are processed in memory and never stored, and
+de-identifying before sending is the caller's responsibility. This is nomenclature
+and reference-release validation: not a diagnostic aid, not clinical decision
+support, and it does not recommend a donor.
+
 ## Why an AI agent should use this
 
 Language models fabricate HLA allele names (measured 0.05-0.14 per task on
