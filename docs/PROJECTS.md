@@ -28,23 +28,21 @@ and what is blocked. Written 2026-09-11.*
 
 ## Waiting on Jason
 
-## Latest note to Jason (2026-09-15)
+## Latest note to Jason (2026-09-16)
 
-Nothing urgent. Three small, safe things shipped today: a script (`scripts/release_diff.py`)
-that diffs the full allele table between two IPD-IMGT/HLA releases, so the next quarterly
-release bump can cite a real added/deleted/renamed count instead of saying no diff was
-computed; a queued free TOWER run for `llama3.2:3b` on the donor-matching benchmark, which
-closes the last open-model coverage gap between the two benchmark suites; and a fact-check
-of every number in the drafted launch posts against current results — nothing had drifted,
-so no changes were needed there. One new low item is on the numbered list below (#12): while
-looking at a planned usage-dashboard endpoint, today's run found the Cloudflare metering
-data the Worker already writes can't be read back without a new Cloudflare API token (a
-secret), which an agent isn't allowed to create — a one-time token creation whenever you
-want per-customer usage counts to exist. Also newly explicit on the list (#8, not new, just
-previously missing from this numbered view): the launch posts (Hacker News, Reddit,
-LinkedIn, X) have been drafted and fact-checked since early September and are ready to post
-whenever you have time — that's on you, not blocked on anything else. Everything else below
-is unchanged from before.
+Nothing urgent. Three small, safe things shipped today: a draft
+`docs/legal/TERMS_OF_SERVICE.md` for hlaverify.com (tiers, the "stores nothing" data
+handling, the PolyForm/Apache-2.0 licence boundary, a not-a-medical-device liability
+limit, governing-law placeholder) — it's a draft for counsel, not published anywhere; a
+competing-interests statement and a CC-BY licence note added to the preprint draft's
+metadata section, verbatim from the checklist; and a check of the uptime workflow's actual
+run history (11/11 scheduled checks succeeded since it shipped, zero real failures, so its
+issue-open/close code has never fired for real). Two new low-priority items on the numbered
+list below: #13, whether you want a deliberate test of that uptime workflow (it would create
+a real, visible GitHub issue on the repo, so this routine won't trigger that on its own);
+and #14, this cloud session has no pandoc/TeX toolchain installed, so the preprint's
+PDF-conversion step needs either your own machine or a future session with that toolchain.
+Neither is blocking anything else. Everything else below is unchanged from before.
 
 *Numbered, prioritized, copy-paste-ready. Ordered: credential exposure first, then
 revenue-blocking, then legal/compliance, then everything else.*
@@ -133,6 +131,21 @@ revenue-blocking, then legal/compliance, then everything else.*
     Cloudflare dashboard and stored via `wrangler secret put` — an agent cannot create
     secrets under this routine's rules, so a usage-visibility endpoint (platform action)
     stays parked until you do this once.
+13. **Decide whether to test the uptime workflow's failure/recovery path for real.** Low
+    priority. `.github/workflows/uptime.yml` has run cleanly 11/11 times since 2026-09-14
+    (per Actions history) and no `uptime`-labeled issue has ever been opened, so the
+    issue-open/comment/close code has never actually fired. Confirming it works means either
+    (a) waiting for a genuine outage, or (b) a deliberate `workflow_dispatch` test that
+    temporarily points the check at a URL that will fail, which will create a real, publicly
+    visible GitHub issue on the repo — this routine treats that as "posting" and won't do it
+    without your go-ahead. If you want it tested now, say so and an agent can run it and
+    clean up the test issue afterward.
+14. **Preprint PDF conversion needs a pandoc/TeX toolchain.** Low priority, not blocking
+    anything (submission itself still waits on your ORCID/bioRxiv account, #5). This cloud
+    session checked and has neither `pandoc` nor `xelatex`/`pdflatex` installed, so it
+    can't run the conversion command in `docs/PREPRINT_CHECKLIST.md` step 2. Either run that
+    command yourself locally once you have pandoc + a TeX distribution, or mention it and a
+    future session can try installing the toolchain if one supports that.
 
 ---
 
@@ -149,11 +162,7 @@ tier -> cancel -> 401 revoked). Live Stripe not yet activated (see Waiting on Ja
 Product page and shared nav shipped; `/pricing` redirects correctly.
 
 **Next agent actions:**
-1. Follow-on from the new uptime workflow: it has now run cleanly for a full day (5
-   scheduled runs since 2026-09-14, all `success` per Actions); confirm the `uptime` issue
-   label and the open/close cycle actually behave as designed against a real failure (or a
-   deliberate `workflow_dispatch` test) rather than trusting the YAML alone.
-2. If go-to-market or research outreach (PIPELINE.md row 9/19) surfaces real interest in
+1. If go-to-market or research outreach (PIPELINE.md row 9/19) surfaces real interest in
    agent pay-per-call, revisit `docs/AGENT_BILLING_NOTES.md` and pick Option A or B rather
    than leaving both open.
 
@@ -163,9 +172,18 @@ Product page and shared nav shipped; `/pricing` redirects correctly.
 **write-only** (`writeDataPoint`, see `edge/src/index.js` / `stripe.js`); reading it back
 needs Cloudflare's separate Analytics Engine SQL API, which needs its own API token stored
 as a new `wrangler secret` — an agent cannot create that secret under this routine's rules
-(#12 in Waiting on Jason), so this stays blocked until Jason creates the token.
+(#12 in Waiting on Jason), so this stays blocked until Jason creates the token. Testing the
+uptime workflow's failure/recovery path for real (new finding, 2026-09-16, #13 in Waiting on
+Jason) — see done log.
 
 **Done log (last 5):**
+- 2026-09-16 — confirmed the uptime workflow has run cleanly 11/11 times since 2026-09-14
+  (all `success` per Actions) and found zero `uptime`-labeled issues, open or closed — the
+  failure/open-issue/close-issue branch has never fired against real traffic and remains
+  unexercised. A deliberate test means running `workflow_dispatch` against a broken URL,
+  which creates a real, publicly-visible GitHub issue; this routine treats creating public
+  content as "posting" and doesn't do it on its own initiative, so moved to blocked-on-human
+  instead of self-authorizing a test issue.
 - 2026-09-15 — scripts: `scripts/release_diff.py`, full allele-table diff (added / deleted
   / renamed, by locus) between two release tags, wired into `RELEASE_BUMP.md` step 6 so the
   quarterly customer notice can cite a real diff; smoke-tested against the pinned tag itself
@@ -178,8 +196,6 @@ as a new `wrangler secret` — an agent cannot create that secret under this rou
   code; no billing code written.
 - 2026-09-14 — ci: uptime check workflow (`.github/workflows/uptime.yml`), curls
   `/healthz` every 15 minutes, opens/comments/closes a tracking issue on failure/recovery.
-- 2026-09-11 — docs: quarterly IPD-IMGT/HLA release-bump runbook (`docs/RELEASE_BUMP.md`),
-  procedure only, no code changes.
 
 ---
 
@@ -258,23 +274,28 @@ and prior-art memos are done; Hugging Face dataset card and demo Space are live.
    should trigger on its own. Next step is a `bench.yml` dispatch with `models=anthropic/
    claude-sonnet-4-6 split=test` (token budget is already 1600 in the harness per STATUS.md)
    — needs Jason's standing approval or a manual click; see "Waiting on Jason" below.
-2. Convert `docs/paper/hla-bench-draft.md` to PDF per the checklist's pandoc command; verify
-   the pandoc/xelatex toolchain exists locally first, and if not, note the gap rather than
-   guessing at output.
-3. Write the competing-interests statement and CC-BY licence note into the draft's metadata
-   section verbatim from `docs/PREPRINT_CHECKLIST.md` item 5, so the draft is submission-
-   ready the moment Jason has an ORCID and bioRxiv account.
-4. Add one figure (per-subtype accuracy bar chart or wrong-but-overconfident rate by model)
+2. Convert `docs/paper/hla-bench-draft.md` to PDF per the checklist's pandoc command.
+   Checked 2026-09-16: neither `pandoc` nor a LaTeX engine (`xelatex`/`pdflatex`) is
+   installed in this cloud session's environment, so the conversion can't run here; needs
+   either a session with that toolchain installed or Jason to run the documented command
+   locally.
+3. Add one figure (per-subtype accuracy bar chart or wrong-but-overconfident rate by model)
    to the draft, generated from committed `bench/` data, addressing the "no figures" gap.
-5. Begin family B's graded core per `docs/TASK_SPEC_FAMILY_B.md` section 5 layer 1
+4. Begin family B's graded core per `docs/TASK_SPEC_FAMILY_B.md` section 5 layer 1
    (synthetic-Mendelian-truth generator, no registry data needed) — not blocked on any
    licence.
 
 **Blocked on human:** submitting the preprint (needs ORCID + bioRxiv account, #5 above); any
 paid `bench.yml` run needs a manual `workflow_dispatch` click or Jason's standing approval
-(#1 above — newly confirmed this cannot be routed through the free `.tower-queue.json` path).
+(#1 above — newly confirmed this cannot be routed through the free `.tower-queue.json` path);
+the pandoc/xelatex PDF conversion (#2 above, new finding 2026-09-16 — no TeX toolchain in
+this environment).
 
 **Done log (last 5):**
+- 2026-09-16 — docs: wrote the competing-interests statement and a manuscript-licence note
+  into `docs/paper/hla-bench-draft.md`'s metadata section, verbatim from
+  `docs/PREPRINT_CHECKLIST.md` item 5; also confirmed (see blocked-on-human) that this
+  environment has no pandoc/TeX toolchain for the PDF-conversion step.
 - 2026-09-15 — queued `ollama/llama3.2:3b` on HLA-Bench-C via `.tower-queue.json` (tower
   run 18) — the last model tested on Family A still missing from Family C; once it lands,
   Family C will have full model parity with Family A except the paid claude-sonnet-4-6 row.
@@ -282,8 +303,6 @@ paid `bench.yml` run needs a manual `workflow_dispatch` click or Jason's standin
   #42) — closes half of the family-C vs family-A model-coverage gap.
 - 2026-09-11 — docs: trademark knockout memo and preprint submission checklist.
 - 2026-09-10 — docs: prior-art memo for HLA-Verify and HLA-Bench.
-- 2026-09-09 — results: phi4-mini on HLA-Bench-C, 0/205, 139 schema failures; matching now
-  covers all five open families.
 
 ---
 
@@ -299,28 +318,27 @@ or counsel, never a filing.
 yet on the site or in `docs/`.
 
 **Next agent actions:**
-1. Draft `docs/legal/TERMS_OF_SERVICE.md` for hlaverify.com covering: the free/keyed tiers,
-   "nothing sent is stored" data handling, the PolyForm Noncommercial licence boundary,
-   liability limitation (explicitly: not a medical device, not clinical decision support),
-   and governing law placeholder — mark clearly as a draft for counsel review, not final.
-2. Draft `docs/legal/PRIVACY_POLICY.md` matching what the Worker actually does (no PHI
+1. Draft `docs/legal/PRIVACY_POLICY.md` matching what the Worker actually does (no PHI
    accepted, no request bodies logged/stored, Analytics Engine records aggregate counts
    only) — verify every claim against `edge/src/*.js` before writing it, don't assume.
-3. Draft `docs/legal/DPA_TEMPLATE.md` for lab customers per the pilot SOW's data-handling
+2. Draft `docs/legal/DPA_TEMPLATE.md` for lab customers per the pilot SOW's data-handling
    section 4, for the self-hosted and hosted deployment options separately.
-4. Re-run the prior-art web searches for anything new since 2026-09-10 and append findings
+3. Re-run the prior-art web searches for anything new since 2026-09-10 and append findings
    to `docs/PRIOR_ART.md` rather than rewriting it.
-5. Once Jason decides on trademark filing (#4 in Waiting on Jason), record the decision,
+4. Once Jason decides on trademark filing (#4 in Waiting on Jason), record the decision,
    date, and (if filed) serial number in `docs/TRADEMARK.md`'s recommendation section.
 
 **Blocked on human:** the trademark filing decision and filing itself (#4); attorney review
 of the drafted legal pages before they are trusted for a real dispute; MN filings (#6).
 
 **Done log (last 5):**
+- 2026-09-16 — docs: drafted `docs/legal/TERMS_OF_SERVICE.md` — free/keyed tiers, the
+  "stores nothing" data-handling claim (verified against `edge/src/index.js`), the PolyForm
+  Noncommercial vs. Apache-2.0 licence boundary, a not-a-medical-device liability
+  limitation, and a governing-law placeholder; marked as a draft for counsel review only.
 - 2026-09-11 — docs: trademark knockout memo (`docs/TRADEMARK.md`).
 - 2026-09-11 — docs: preprint submission checklist (`docs/PREPRINT_CHECKLIST.md`).
 - 2026-09-10 — docs: prior-art memo (`docs/PRIOR_ART.md`).
-- (no earlier legal-track entries before 2026-09-10)
 
 ---
 
