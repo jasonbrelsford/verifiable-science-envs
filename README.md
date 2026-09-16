@@ -11,6 +11,10 @@ Every answer is computed from the pinned IPD-IMGT/HLA release's own files. No hu
 | **HLA-Bench-A** | 550 | Nomenclature: truncation, expression suffixes, G/P groups, serology, rename history, null-allele and near-miss traps | [`bench/HLA-Bench-A.md`](bench/HLA-Bench-A.md) |
 | **HLA-Bench-C** | 205 | Donor–recipient matching: 6/6–12/12 frameworks, antigen vs allele level, hidden nulls, GvH/HvG direction, unresolvable typing | [`bench/HLA-Bench-C.md`](bench/HLA-Bench-C.md) |
 
+*Working on this repo? Read [`CLAUDE.md`](CLAUDE.md) first: a push to `main` deploys
+production, and the project's status, decisions and runbook live in the private
+portfolio hub rather than here.*
+
 Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma) scores **0% on 2-field ambiguity expansion** — the core clinical trap; on matching, the naive string baseline falls from 28% (family A) to **0%**, and open models reach 0–14% because they count matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in the bench pages below.
 
 ## HLA-Verify — the graders as an API
