@@ -1,25 +1,17 @@
-# Configure hlaverify.com via the Cloudflare API (runs on a hosted runner because
-# both the agent workspace and the local VM sit behind an egress allowlist that
-# blocks api.cloudflare.com). Idempotent — safe to re-run.
+# Configure the hlaverify.com zone via the Cloudflare API — DNS placeholders and
+# email routing only. Runs on a hosted runner because both the agent workspace and
+# the local VM sit behind an egress allowlist that blocks api.cloudflare.com.
+# Idempotent — safe to re-run.
+#
+# What the SITE is served by is no longer decided here: jasonbrelsford/hlaverify-website
+# owns the `hlaverify-landing` Worker and every page on hlaverify.com, including
+# /product, /demo and /llms.txt. This workflow used to upload that Worker from
+# assets/ and, when it could not, point a zone-wide redirect rule at GitHub — either
+# would now overwrite or shadow that site, so both were removed. assets/ stays as the
+# source these pages were migrated from; edits there no longer reach the web.
 name: cloudflare
 on:
-  push:
-    branches: [main]
-    paths:
-      - "assets/landing.html"
-      - "assets/product.html"
-      - "assets/demo.template.html"
-      - "assets/llms.txt"
-      - ".github/workflows/cloudflare.yml"
-      - ".github/workflows/cloudflare_setup.py"
   workflow_dispatch:
-    inputs:
-      redirect_to:
-        description: "where hlaverify.com should 302 for now"
-        default: "https://github.com/jasonbrelsford/verifiable-science-envs"
-      deploy_worker:
-        description: "serve assets/landing.html from a Worker (1 = yes)"
-        default: "1"
 permissions: { contents: write }
 jobs:
   setup:
@@ -30,8 +22,6 @@ jobs:
       - name: Configure zone
         env:
           CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          REDIRECT_TO: ${{ inputs.redirect_to || 'https://github.com/jasonbrelsford/verifiable-science-envs' }}
-          DEPLOY_WORKER: ${{ inputs.deploy_worker || '1' }}
         run: |
           mkdir -p logs
           python .github/workflows/cloudflare_setup.py 2>&1 | tee logs/cloudflare.log
