@@ -51,7 +51,7 @@ organizations and is NOT assumed anywhere in this family. Three layers, in order
 3. **Partner-held layer — restricted data stays with its holders.** Organizations
    holding registry licences can run population-realistic slices on their own
    infrastructure with their own data; the environment ships to the data. No data
-   agreement with us is required. See docs/DATA_STRATEGY.md.
+   agreement with us is required — hello@hlaverify.com.
 
 ## 6. Open questions before implementation
 

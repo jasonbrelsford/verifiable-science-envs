@@ -2,20 +2,20 @@
 
 *Prepared 2026-09-11. Goal: post `docs/paper/hla-bench-draft.md` as a dated preprint for a
 DOI-timestamped disclosure (defensive publication, complementing the git-history argument
-in `docs/PRIOR_ART.md`) and to support sales conversations.*
+in the private hub's prior-art memo) and to support sales conversations.*
 
 ## Readiness assessment of the draft
 
 The draft (v0.1, dated 2026-08-31) has Abstract, Introduction, Related Work, Benchmark
 Design, Results (4.1–4.5), Discussion, and Data/Code Availability - a complete skeleton.
-Numbers checked against `STATUS.md` (2026-09-11): the Family A and Family C headline tables
-in the draft **match** STATUS.md's tables exactly, including the qwen2.5:14b row added
+Numbers checked against the status tables (2026-09-11): the Family A and Family C headline tables
+in the draft **match** those tables exactly, including the qwen2.5:14b row added
 2026-09-09 and phi4-mini's family C schema-failure finding. What is missing or explicitly
 flagged incomplete in the draft itself:
 
 - **§4.3 Training-environment demonstration - [PENDING].** No GRPO results yet; this is a
   named contribution (item vi in §1) with no data behind it.
-- **claude-sonnet-4-6 row is a lower bound**, marked with an asterisk in both STATUS.md and
+- **claude-sonnet-4-6 row is a lower bound**, marked with an asterisk in both the status tables and
   the draft, pending a clean 1600-token re-run.
 - **No figures** - the draft is table-only; a preprint benefits from at least one plot
   (per-subtype accuracy, or the wrong-but-overconfident rate by model) for scannability, though
@@ -119,12 +119,12 @@ endorser lined up - a real risk of delay right when speed matters); SSRN (wrong 
 
 ## Post-posting steps
 
-- Add both DOIs (bioRxiv + Zenodo) to `README.md`, `STATUS.md`, the hlaverify.com landing
+- Add both DOIs (bioRxiv + Zenodo) to `README.md`, the status tables, the hlaverify.com landing
   page, and `hlaverify.com/llms.txt`.
 - Add the bioRxiv DOI to Jason's Google Scholar profile (Scholar auto-indexes bioRxiv within
   ~48h, but a manual "My Citations" add speeds attribution).
 - Post the DOI link as a reply/update to the existing launch threads in
-  `docs/launch/posts.md` (HN, r/bioinformatics, LinkedIn, X, r/MachineLearning,
+  the launch copy in the private hub (HN, r/bioinformatics, LinkedIn, X, r/MachineLearning,
   r/LocalLLaMA) rather than new posts - "now with a citable preprint" is a good
   low-effort follow-up trigger for the same audience.
 - When the GRPO result and the clean Claude re-run land, post a **v2** to bioRxiv (same

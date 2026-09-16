@@ -1,4 +1,4 @@
-"""Lab Toolkit tests (docs/LAB-TOOLKIT-SPEC.md). Offline once the reference
+"""Lab Toolkit tests (spec kept privately; see sci_envs/service/lab.py). Offline once the reference
 cache is warm (~/.cache/sci_envs/imgt)."""
 import pytest
 from fastapi.testclient import TestClient
