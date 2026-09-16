@@ -9,7 +9,8 @@ import { createEngine, FRAMEWORKS } from "./engine.js";
 import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys } from "./keys.js";
-import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString } from "./handlers.js";
+import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
+  doBetaSignup, BETA_PREFIX } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
@@ -84,6 +85,12 @@ async function authorizeKey(presented, env) {
     return { label, tier, keyed: true };
   }
   if (env.KEYS) {
+    // The KEYS namespace also holds the free-beta list under BETA_PREFIX
+    // (handlers.js). Any KV value that parses as truthy JSON is treated below as
+    // a starter key, so a prefixed record must never be looked up as one:
+    // without this guard, presenting "beta/someone@example.com" as an X-API-Key
+    // would authenticate. Issued keys are "hlv_" + base64url and contain no "/".
+    if (presented.startsWith(BETA_PREFIX)) return err(401, "missing or invalid X-API-Key");
     let rec = null;
     try {
       const raw = await env.KEYS.get(presented);
@@ -187,7 +194,8 @@ export default {
       if (who instanceof Response) return who;
       const t0 = Date.now();
       const eng = getEngine(env);
-      const resp = await handleMcp(req, eng, who, manifest, (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0));
+      const resp = await handleMcp(req, eng, who, manifest,
+        (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0), env);
       const body = await resp.text();
       return new Response(body || null, {
         status: resp.status,
@@ -262,6 +270,16 @@ export default {
         const r = await doGlString(eng, manifest, body.gl);
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, tierHeader(who));
+      }
+      // Free public beta notification list. Same anonymous limiter as every
+      // other /v1/* route, so it cannot be spammed faster than 60/min per IP.
+      if (path === "/v1/beta-signup") {
+        if (req.method !== "POST") return err(405, "POST {\"email\": \"...\"}");
+        const [body, e] = await readJson(req); if (e) return e;
+        const r = await doBetaSignup(env, manifest, body, req.headers.get("cf-ipcountry"));
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "beta-signup", 200, r.units, Date.now() - t0);
         return json(r.body, 200, tierHeader(who));
       }
       return err(404, "Not Found");
