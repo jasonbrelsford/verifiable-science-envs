@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { createEngine } from "../src/engine.js";
-import { handleMcp } from "../src/mcp.js";
+import { handleMcp, INSTRUCTIONS } from "../src/mcp.js";
 import { parseKeys } from "../src/keys.js";
 import { hmacHex, verifySignature, handleWebhook } from "../src/webhook.js";
 
@@ -127,7 +127,11 @@ test("modern tools/list: resultType, ttlMs, cacheScope, read-only annotations, d
   assert.ok(json.result.ttlMs > 0);
   const again = await modernRpc("tools/list");
   assert.deepEqual(again.json.result.tools.map((t) => t.name), json.result.tools.map((t) => t.name));
-  for (const t of json.result.tools) assert.equal(t.annotations.readOnlyHint, true);
+  // Every lookup tool is read-only; beta_signup is the one writer (idempotent, closed world).
+  for (const t of json.result.tools)
+    assert.deepEqual(t.annotations, t.name === "beta_signup"
+      ? { readOnlyHint: false, idempotentHint: true, openWorldHint: false }
+      : { readOnlyHint: true, idempotentHint: true, openWorldHint: false }, t.name);
 });
 
 test("modern tools/call returns the same structuredContent as legacy", async () => {
@@ -195,7 +199,7 @@ test("tools/list: exact tool names", async () => {
   const { json } = await rpc("tools/list", {});
   const names = json.result.tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
-    "about", "allele_info", "check_typing", "donor_compat", "match_score",
+    "about", "allele_info", "beta_signup", "check_typing", "donor_compat", "match_score",
     "normalize_allele", "validate_gl_string", "verify_text",
   ]);
   for (const t of json.result.tools) {
@@ -241,11 +245,21 @@ test("batch array -> -32600", async () => {
   assert.equal(body.error.code, -32600);
 });
 
-test("about tool", async () => {
+test("about tool carries the beta state", async () => {
   const { json } = await callTool("about", {});
   assert.equal(json.result.isError, false);
-  assert.equal(json.result.structuredContent.name, "HLA-Verify");
-  assert.equal(json.result.structuredContent.release, manifest.release);
+  const sc = json.result.structuredContent;
+  assert.equal(sc.name, "HLA-Verify");
+  assert.equal(sc.release, manifest.release);
+  assert.match(sc.beta, /free public beta/i);
+  assert.match(sc.beta, new RegExp(manifest.release.replace(/\./g, "\\.")));
+  assert.match(sc.beta_key, /hello@hlaverify\.com/);
+  assert.equal(sc.beta_signup.startsWith("https://hlaverify.com/beta"), true);
+});
+
+test("INSTRUCTIONS mention the beta in one sentence", () => {
+  assert.match(INSTRUCTIONS, /free public beta/i);
+  assert.match(INSTRUCTIONS, /beta_signup/);
 });
 
 // -------------------------------------------------------- golden equivalence
@@ -397,7 +411,7 @@ const BRANCH_CALLS = [
 ];
 
 test("tools/list: every tool has an object outputSchema using only validator-supported keywords", async () => {
-  assert.equal(Object.keys(outputSchemas).length, 8);
+  assert.equal(Object.keys(outputSchemas).length, 9);
   for (const [name, schema] of Object.entries(outputSchemas)) {
     assert.ok(schema, `${name} has no outputSchema`);
     assert.equal(schema.type, "object", `${name}: outputSchema root must be type object`);
