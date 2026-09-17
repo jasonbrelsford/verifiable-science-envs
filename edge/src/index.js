@@ -14,6 +14,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
 import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
+import { getPricing, createCheckoutSession } from "./pricing.js";
 import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
 import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, isBillablePath,
   BILLABLE_TOOLS } from "./quota.js";
@@ -165,16 +166,24 @@ export default {
 
     if (path === "/healthz")
       return json({ ok: true, release: manifest.release, alleles: manifest.alleles, uptime_s: Math.floor((Date.now() - STARTED) / 1000) });
+    // /docs, /openapi.json and /pricing all read the same cached Stripe answer:
+    // the pricing page publishes it, and the other two only use it to decide
+    // whether to claim self-serve checkout works. getPricing() never throws and
+    // never blocks on Stripe once the cache is warm.
     if (path === "/" || path === "/docs")
-      return new Response(DOCS_HTML(manifest), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", ...CORS } });
+      return new Response(DOCS_HTML(manifest, await getPricing(env)), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", ...CORS } });
     if (path === "/openapi.json")
-      return json(openapi(manifest), 200, { "cache-control": "public, max-age=300" });
+      return json(openapi(manifest, await getPricing(env)), 200, { "cache-control": "public, max-age=300" });
     if (path === "/llms.txt") return Response.redirect("https://hlaverify.com/llms.txt", 302);
 
+    // Prices come from Stripe (pricing.js), so the page is cached for a minute
+    // rather than five: the server-side cache already holds Stripe calls down to
+    // one per ten minutes, and a short browser cache is what makes "change the
+    // price in Stripe, reload the page" behave the way the owner expects.
     if (path === "/pricing") {
       if (req.method !== "GET") return err(405, "GET /pricing");
-      return new Response(PRICING_HTML(manifest, { starterLink: env.STRIPE_STARTER_LINK, proLink: env.STRIPE_PRO_LINK }),
-        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300", ...CORS } });
+      return new Response(PRICING_HTML(manifest, await getPricing(env)),
+        { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60", ...CORS } });
     }
 
     // Landing page after Stripe Checkout redirects back; shows the issued key once.
@@ -318,6 +327,28 @@ export default {
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);
+      }
+      // Starts a Stripe Checkout Session for a paid tier and hands back the
+      // hosted url. Not billable — buying a bigger quota must not cost a call
+      // out of the small one you have — but it goes through the same authorize()
+      // above, so the anonymous 60/min per-IP limiter already rate-limits it.
+      if (path === "/v1/checkout") {
+        if (req.method !== "POST") return err(405, "POST {\"tier\": \"starter\"|\"lab\"|\"scale\"}");
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
+        // success_url and cancel_url must land back on THIS Worker.
+        // hlaverify.com only routes /v1/* here — /checkout/success on that host
+        // is the marketing site — so an apex or www request is sent home to
+        // api.hlaverify.com. Any other host (wrangler dev, a preview) keeps its
+        // own origin so local checkout redirects locally.
+        const origin = /(^|\.)hlaverify\.com$/.test(url.hostname) ? "https://api.hlaverify.com" : url.origin;
+        const r = await createCheckoutSession(env, body, { origin });
+        if (!r.ok) {
+          meter(env, ctx, who, "checkout", r.status, 0, Date.now() - t0);
+          return err(r.status, r.detail, hdrs);
+        }
+        meter(env, ctx, who, "checkout", 200, 0, Date.now() - t0);
+        return json({ url: r.url, session_id: r.id, tier: r.tier, price: r.price, amount: r.amount,
+          currency: r.currency, interval: r.interval, promotion_code_applied: r.promotion_code_applied }, 200, hdrs);
       }
       // Free public beta notification list. Same anonymous limiter as every
       // other /v1/* route, so it cannot be spammed faster than 60/min per IP —

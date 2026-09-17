@@ -541,7 +541,12 @@ test("negative: bad PKCE verifier, wrong redirect_uri, other client, wrong resou
     [{ client_id: undefined }, "invalid_request"],
     [{ resource: "https://other.example/mcp" }, "invalid_target"],
     [{ grant_type: "password" }, "unsupported_grant_type"],
-    [{ code: form.code.slice(0, -1) + (form.code.endsWith("A") ? "B" : "A") }, "invalid_grant"],
+    // Mutate a character INSIDE the base64url payload, not the last one: when
+    // the payload's length is not a multiple of 4 the final character carries
+    // unused low bits, so flipping it can decode to the very same bytes and the
+    // "tampered code" case would silently pass. Index 8 is past the "hlvac_"
+    // prefix and always well inside the ciphertext.
+    [{ code: form.code.slice(0, 8) + (form.code[8] === "A" ? "B" : "A") + form.code.slice(9) }, "invalid_grant"],
   ]) {
     const f = Object.fromEntries(Object.entries({ ...form, ...change }).filter(([, v]) => v !== undefined));
     const r = await tokenRequest(env, f);
