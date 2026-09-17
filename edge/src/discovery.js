@@ -37,7 +37,7 @@ export function serverCard() {
       url: MCP_URL,
       headers: [{
         name: "X-API-Key",
-        description: "Optional. Without a key /mcp shares the free tier (60 requests/minute); keys: https://api.hlaverify.com/pricing",
+        description: "Optional. Without a key /mcp shares the free tier (100 calls per UTC day per IP, 60 requests/minute); keys: https://api.hlaverify.com/pricing",
         isRequired: false,
         isSecret: true,
       }],

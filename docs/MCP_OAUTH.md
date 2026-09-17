@@ -114,7 +114,7 @@ Lifetimes: consent page 10 min, authorization code 2 min, access token 1 h, refr
 | **Mix-up attacks** | `iss` in every authorization response (success and deny); issuer is exactly the metadata `issuer`. |
 | **SSRF via Client ID Metadata Documents** | Fetch only `https` URLs on the default port with a path, on a DNS name (no IP literals, no `localhost`/`*.localhost`, no single-label hosts, not this host); no redirects followed; 5 s timeout; 16 KB cap; per-IP rate limit. Workers cannot reach private networks. |
 | **Client impersonation** | DCR names are labelled unverified on the consent page; CIMD shows the verified client-id host; the redirect hostname is always shown; localhost redirect URIs get a warning. |
-| **Rate-limit evasion** | An OAuth token consumes the same `RL_STARTER`/`RL_PRO` bucket as its key (keyed by the key itself), so many tokens for one key share one limit. |
+| **Rate-limit evasion** | An OAuth token consumes the same `RL_STARTER`/`RL_LAB`/`RL_SCALE` bucket as its key (keyed by the key itself), so many tokens for one key share one limit, and the same `QUOTA` daily counter (keyed by a digest of the key), so many tokens for one key share one daily quota. |
 | **KV outage / write quota exhausted** | OAuth endpoints fail closed (`503 temporarily_unavailable`, no token issued); `/mcp` and `/v1` are unaffected. |
 | **Accidental enablement** | Requires `OAUTH_ENABLED` exactly `"1"`, `OAUTH_TOKEN_SECRET` of at least 32 chars, and the `KEYS` binding. Any other combination is byte-identical to today. |
 
