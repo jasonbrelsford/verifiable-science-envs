@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import worker, { DailyQuota } from "../src/index.js";
-import { spendQuota, quotaHeaders, utcDay, nextUtcMidnight, isBillablePath, BILLABLE_TOOLS } from "../src/quota.js";
+import { spendQuota, quotaHeaders, subjectName, utcDay, nextUtcMidnight, isBillablePath, BILLABLE_TOOLS } from "../src/quota.js";
 import { TIER_LIMITS, limitsFor, canonicalTier } from "../src/keys.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -416,7 +416,11 @@ test("over quota on /mcp is a readable JSON-RPC frame, not a broken one", async 
   env.QUOTA.seed(env.QUOTA._names[0], utcDay(), TIER_LIMITS.free.calls);
 
   const over = await mcpCall(env, "normalize_allele", { name: "A*0101" });
-  assert.equal(over.status, 429);
+  // 200, not 429: the official MCP client throws SdkHttpError on any non-2xx
+  // POST without matching the body to the pending request, so a refusal sent on
+  // 429 never reaches the agent as text. The machine-readable signal is in the
+  // headers below instead. (REST keeps its 429 — asserted further up.)
+  assert.equal(over.status, 200);
   assert.equal(over.headers.get("content-type"), "application/json; charset=utf-8");
   assert.ok(Number(over.headers.get("retry-after")) > 0);
   assert.equal(q(over.headers).remaining, "0");
@@ -449,7 +453,7 @@ test("over quota on the 2026-07-28 era keeps the modern envelope", async () => {
 
   env.QUOTA.seed(env.QUOTA._names[0], utcDay(), TIER_LIMITS.free.calls);
   const over = await post(env, "/mcp", body, { headers });
-  assert.equal(over.status, 429);
+  assert.equal(over.status, 200);
   assert.equal(over.json.result.resultType, "complete");
   assert.equal(over.json.result.isError, true);
   assert.ok(over.json.result._meta["io.modelcontextprotocol/serverInfo"]);
@@ -552,4 +556,60 @@ test("a counter that answers with nonsense is treated as an outage, not as a zer
   const { status, headers } = await allele(env);
   assert.equal(status, 200);
   assert.equal(q(headers).remaining, "unknown", "never NaN, never a fabricated remaining");
+});
+
+// ------------------------------------------------- what the review caught
+
+test("a request rejected before its body is read still reports the call it spent", async () => {
+  const env = baseEnv();
+  const noType = await call(env, "POST", "/v1/verify", { body: "{}" });
+  assert.equal(noType.status, 415);
+  assert.equal(q(noType.headers).remaining, "99", "charged, and told so");
+  const badJson = await call(env, "POST", "/v1/verify", { headers: { "content-type": "application/json" }, body: "{" });
+  assert.equal(badJson.status, 400);
+  assert.equal(q(badJson.headers).remaining, "98");
+  const notObject = await post(env, "/v1/verify", ["nope"]);
+  assert.equal(notObject.status, 422);
+  assert.equal(q(notObject.headers).remaining, "97");
+});
+
+test("the counter fails OPEN on a body it cannot read, never closed", async () => {
+  const storage = memStorage();
+  const obj = new DailyQuota({ storage });
+  const resp = await obj.fetch(new Request("https://quota.hlaverify.internal/spend", { method: "POST", body: "{not json" }));
+  assert.equal(resp.status, 500, "an unreadable body is an outage, not a caller over quota");
+  assert.equal(storage._map.size, 0, "and nothing was written");
+
+  // Which spendQuota then turns into a served request with an unknown count.
+  const env = baseEnv({ QUOTA: { idFromName: (name) => ({ name }), get: () => ({ fetch: async () => new Response(null, { status: 500 }) }) } });
+  const { status, headers } = await allele(env);
+  assert.equal(status, 200);
+  assert.equal(q(headers).remaining, "unknown");
+});
+
+test("quota headers are readable cross-origin", async () => {
+  const env = baseEnv();
+  const exposed = (await allele(env)).headers.get("access-control-expose-headers") || "";
+  for (const h of ["x-hla-verify-tier", "x-hla-verify-daily-limit", "x-hla-verify-daily-remaining",
+    "x-hla-verify-daily-reset", "x-hla-verify-max-typings", "retry-after"])
+    assert.ok(exposed.includes(h), `${h} must be exposed to browser JS`);
+  const preflight = await call(env, "OPTIONS", "/v1/verify");
+  assert.equal(preflight.status, 204);
+  assert.ok((preflight.headers.get("access-control-expose-headers") || "").includes("x-hla-verify-daily-remaining"));
+});
+
+test("metering never records a requested allele name as the endpoint label", async () => {
+  const seen = [];
+  const env = baseEnv({ USAGE: { writeDataPoint: (p) => seen.push(p.blobs[1]) } });
+  await call(env, "GET", "/v1/allele/A*01:01");
+  env.QUOTA.seed(env.QUOTA._names[0], utcDay(), TIER_LIMITS.free.calls);
+  const over = await call(env, "GET", "/v1/allele/A*01:01");
+  assert.equal(over.status, 429);
+  assert.deepEqual(seen, ["allele", "allele"], "counts per route, never content");
+});
+
+test("a keyed caller with no key reference fails open rather than sharing a counter", async () => {
+  // subjectName() must not fall back to the label: two unlabelled self-serve
+  // keys would then be billed as one subject.
+  await assert.rejects(() => subjectName({ keyed: true, tier: "starter" }, null, utcDay()));
 });
