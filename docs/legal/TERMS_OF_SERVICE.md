@@ -181,7 +181,9 @@ PHI under HIPAA or an equivalent regime in your jurisdiction — see Section 5.1
 Allele and typing strings alone are not, by themselves, treated as PHI by this
 Service, but the operator makes no representation about your own regulatory
 obligations for the data you choose to send. Enterprise and pilot customers
-who require a data processing addendum may request one; see `DPA.md`.
+who require a data processing addendum may request one from
+hello@hlaverify.com; it is issued alongside a signed order form, not as a
+standing public document.
 
 ## 9. Intellectual property and third-party data
 
@@ -338,6 +340,9 @@ Questions about these Terms: hello@hlaverify.com.
 ---
 
 *Status: draft only, not reviewed by an attorney, not yet published on
-hlaverify.com. See also `docs/legal/PRIVACY.md` and `docs/legal/DPA.md` for
-the companion documents this Terms draft cross-references, and
-`docs/legal/LIABILITY_MEMO.md` for the reasoning behind Sections 10-12.*
+hlaverify.com. See also `docs/legal/PRIVACY.md`, the companion document this
+Terms draft cross-references. A data processing addendum template and a
+research memo on the reasoning behind Sections 10-12 (the AWS/Stripe/Twilio
+liability-cap comparison and the FDA Clinical Decision Support analysis) are
+maintained in the operator's private contract pack, not in this public
+directory — see `docs/README.md`.*

@@ -17,9 +17,14 @@ off and a real date is set.
 |---|---|
 | `TERMS_OF_SERVICE.md` | The single Terms of Service document — the merged result of an earlier `TERMS_OF_SERVICE.md` draft (nomenclature-validation positioning) and a since-removed `TERMS.md` draft (AWS/Stripe/Twilio-style B2B terms). Covers eligibility, tiers and OAuth sign-in, acceptable use, fees and billing, release pinning, IP and third-party attribution, warranty disclaimer, limitation of liability, customer indemnification, termination, changes, and governing law. |
 | `PRIVACY.md` | The Privacy Policy: what the website, API, and MCP server collect and retain, checked line-for-line against the deployed Worker code. |
-| `DPA.md` | Data Processing Addendum template, for enterprise and pilot customers who need one attached to a signed order form. Not offered at self-serve tiers. |
-| `LIABILITY_MEMO.md` | Research memo (not legal advice) on why the Terms take the shape they do: the AWS/Stripe/Twilio liability-cap comparison, and the FDA Clinical Decision Support exemption and HIPAA analysis for a nomenclature-validation tool with one decision-support-adjacent feature (`donor_compat`). |
-| `IMPLEMENTATION_NOTES.md` | Checklist for what has to happen before any of the above goes live: what this repo's agents can touch (`edge/src/docs.js`, `edge/src/mcp.js`), what belongs to the separate `jasonbrelsford/hlaverify-website` repo (publishing the actual `/terms` and `/privacy` pages), what is Jason's to do (Stripe Payment Link settings), and what is the attorney's to clear. |
+| `IMPLEMENTATION_NOTES.md` | Checklist for what has to happen before any of the above goes live: what this repo's agents can touch (`edge/src/docs.js`, `edge/src/mcp.js`), what belongs to the separate `jasonbrelsford/hlaverify-website` repo (publishing the actual `/terms` and `/privacy` pages), what is Jason's to do (Stripe Payment Link settings), what is the attorney's to clear, and a list of `/docs`-vs-`/pricing` self-contradictions this repo's own code should fix. |
+
+A Data Processing Addendum template and a liability research memo also exist, but are
+maintained in the operator's private contract pack (per `docs/README.md`), not in this
+public directory — they cite contract and business-strategy reasoning (fee structures,
+negotiation posture) that does not belong in a public repository. Enterprise and pilot
+customers who need a DPA get one from hello@hlaverify.com, attached to a signed order
+form.
 
 ## Rules for this directory
 

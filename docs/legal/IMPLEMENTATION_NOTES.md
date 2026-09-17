@@ -1,12 +1,18 @@
 # Implementation notes: publishing the legal pages
 
-*Checklist for the project board. Drafted 2026-09-17, companion to `LIABILITY_MEMO.md`,
-`TERMS_OF_SERVICE.md`, `PRIVACY.md`, `DPA.md`. Updated 2026-09-17 during the terms merge
-to reflect where things actually live. Not legal advice.*
+*Checklist for the project board. Drafted 2026-09-17, companion to
+`TERMS_OF_SERVICE.md` and `PRIVACY.md`. Updated 2026-09-17 during the terms merge to
+reflect where things actually live, and again the same day to fold in the code/doc
+accuracy items from the operator's private claims audit (see the new section below).
+The Data Processing Addendum template and the liability research memo referenced
+throughout this checklist now live in the operator's private contract pack, not in
+this repository's `docs/legal/` — see `docs/legal/README.md`. Not legal advice.*
 
-**Do not action any item below until an attorney has reviewed `TERMS_OF_SERVICE.md`,
-`PRIVACY.md`, and `DPA.md` and an effective date is set.** This file lists the follow-up
-work only; it does not authorize publishing the drafts as-is.
+**Do not action any attorney-blocked item below until an attorney has reviewed
+`TERMS_OF_SERVICE.md`, `PRIVACY.md`, and the private DPA, and an effective date is
+set.** The code/doc accuracy section is not attorney-blocked: those items are
+corrections to match what the code already does, not changes in legal position. This
+file lists follow-up work only; it does not authorize publishing the drafts as-is.
 
 ## Correction from the earlier draft of this checklist
 
@@ -26,6 +32,55 @@ That is not how this project is actually split:
   repo's `CLAUDE.md`.
 - **The MCP `about` tool lives in `edge/src/mcp.js`** (`aboutBody()`, and the `about` tool's
   `outputSchema` `ABOUT_OUT`), also in this repo, also deployed the same way.
+
+## This repo: code/doc accuracy corrections (not attorney-blocked — fix regardless)
+
+The operator's private claims audit checked what `hlaverify.com`, `api.hlaverify.com/docs`,
+and the MCP server say against what the code actually does, and found several
+self-contradictions inside this repo's own `edge/src/docs.js` and `edge/src/mcp.js`.
+These are factual accuracy fixes, not legal-position changes, so they do not need to
+wait on attorney review the way the rest of this checklist does.
+
+- [ ] **AGENT.** `edge/src/docs.js`'s `DOCS_HTML` says a keyed customer can have "an
+  older release... kept for a customer on request" and receives "a diff of changed
+  verdicts before the pin moves." Neither is implemented: the key record has no
+  release field, and `/pricing`'s own "Not built yet" list already says "a key cannot
+  be held on an older release." Delete the two `/docs` claims (or replace with
+  `/pricing`'s wording) so the API's own two pages stop contradicting each other.
+- [ ] **AGENT.** `edge/src/docs.js`'s `DOCS_HTML` lists "per-key usage reporting" as
+  something a key gets. There is no usage-read endpoint — the Analytics Engine
+  binding is write-only from the Worker — and `/pricing` already correctly lists this
+  under "Not built yet." Remove the `/docs` claim.
+- [ ] **AGENT.** `edge/src/mcp.js`'s `about` tool (`aboutBody()`) states a fabrication-rate
+  range of "0.05-0.14 per task," matching text in `assets/llms.txt` and
+  `docs/paper/hla-bench-draft.md`. The committed benchmark data
+  (`bench/HLA-Bench-A.md`, full split) shows a range of 0.06-0.20 per task; `0.14`
+  matches no row, and `0.05` is a dev-split-only figure. Correct all three locations
+  to the full-split range, starting with `mcp.js` because it is served live by the
+  production API.
+- [ ] **AGENT.** `edge/src/mcp.js`'s hard-coded "free public beta" / "issued on request"
+  language (the `INSTRUCTIONS` constant and the `about` response) does not switch to
+  self-serve wording the way `edge/src/docs.js`'s HTML surfaces already do based on
+  whether Stripe checkout is live. Make the MCP surface read the same live/beta state
+  so it does not tell a connected agent self-serve does not exist after checkout opens.
+- [ ] **AGENT.** The `attribution` string baked into every API response and MCP tool
+  output (originating in `sci_envs/service/edge_export.py`, flowing into
+  `edge/public/manifest.json`) says reference data are "fetched at runtime." For the
+  hosted edge API this is inaccurate: the edge build fetches and derives the tables at
+  *export/build* time and ships them with the deployment (the Python service in
+  `sci_envs/service/app.py` does fetch at runtime — leave that wording alone). Fix the
+  string used for the edge build specifically; attribution accuracy is what the
+  upstream IPD-IMGT/HLA licensor relies on.
+- [ ] **AGENT.** `edge/src/keys.js` silently falls back an unrecognized tier to
+  `starter` (`canonicalTier()`). A mis-mapped `$299` (lab) or `$1,999` (scale) Stripe
+  price would be served, and displayed to the buyer, as the cheaper Starter tier with
+  no error surfaced anywhere. Consider failing loudly (a 500 with a clear log/metric)
+  instead of a silent downgrade, or at minimum add a metering signal so a mis-mapped
+  price is visible.
+- [ ] **AGENT.** `pyproject.toml` has no `license` field or classifier, even though the
+  repository root `LICENSE` is Apache-2.0 and `edge/package.json` correctly declares
+  `PolyForm-Noncommercial-1.0.0`. Add one so packaging tools and license scanners do
+  not report the Python package as unlicensed.
 
 ## This repo: owns `edge/src/docs.js` and `edge/src/mcp.js` content (blocked on attorney review first)
 
@@ -63,7 +118,7 @@ That is not how this project is actually split:
 ## Jason: owns account-level Stripe settings and legal sign-off
 
 - [ ] **JASON.** Engage an attorney to review `TERMS_OF_SERVICE.md`, `PRIVACY.md`, and
-  `DPA.md` before anything above goes live.
+  the private contract pack's DPA before anything above goes live.
 - [ ] **JASON.** In the Stripe Dashboard, turn on "Require customers to accept your terms
   of service" on the self-serve Payment Links (currently `STRIPE_STARTER_LINK` and
   `STRIPE_PRO_LINK` in `edge/wrangler.jsonc`, sold to customers as the Starter and Lab
@@ -85,12 +140,13 @@ That is not how this project is actually split:
   formation — see the bracketed placeholder in `TERMS_OF_SERVICE.md` Section 15.1).
 - [ ] **ATTORNEY.** Confirm the customer-indemnification clause's scope is appropriate
   (not broader or narrower than intended).
-- [ ] **ATTORNEY.** Confirm the FDA CDS-exemption framing in `LIABILITY_MEMO.md` is
-  correctly applied to `/v1/match` and `/v1/compat`'s actual current response shapes.
-- [ ] **ATTORNEY.** Confirm the "no BAA at self-serve tiers" position and the DPA's HIPAA
-  section are sound given actual enterprise use cases as they arise.
+- [ ] **ATTORNEY.** Confirm the FDA CDS-exemption framing in the private contract
+  pack's liability memo is correctly applied to `/v1/match` and `/v1/compat`'s actual
+  current response shapes.
+- [ ] **ATTORNEY.** Confirm the "no BAA at self-serve tiers" position and the private
+  DPA's HIPAA section are sound given actual enterprise use cases as they arise.
 - [ ] **ATTORNEY.** Set the effective date and version number in `TERMS_OF_SERVICE.md`,
-  `PRIVACY.md`, and `DPA.md` before publication.
+  `PRIVACY.md`, and the private DPA before publication.
 
 ---
 
