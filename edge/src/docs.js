@@ -40,7 +40,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <h1>HLA-Verify API</h1>
 <p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
 <p class="send"><b>What to send.</b> HLA-Verify checks allele nomenclature, typing-report consistency and match arithmetic against a pinned IPD-IMGT/HLA release. Send <b>allele names, typing strings, GL strings and report text about HLA typing</b>. Do not send patient identifiers: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. The service neither needs nor wants them, request bodies are processed in memory and never stored, and de-identifying before you send is the caller's responsibility. This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor.</p>
-<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. Paid keys with higher rate limits arrive within days: <a href="https://hlaverify.com/beta">join the list</a> to be notified (or <code>POST /v1/beta-signup</code>), or email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key now.</p>
+<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. Paid keys with higher quotas — Starter, Lab and Scale — are issued on request today: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a> and say roughly what you are calling and how often. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> (or <code>POST /v1/beta-signup</code>) to hear when it is.</p>
 
 <h2>Authentication and limits</h2>
 <p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota, larger batches, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
@@ -170,7 +170,7 @@ export function PRICING_HTML(m, { starterLink, proLink } = {}) {
   const betaCta = `<a class="btn" href="https://hlaverify.com/beta">Join the beta list</a>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify — pricing</title>
-<meta name="description" content="HLA-Verify API pricing during the free public beta: open at ${CALLS("free")} calls a day per IP, paid Starter, Lab and Scale keys within days, Enterprise by request.">
+<meta name="description" content="HLA-Verify API pricing during the free public beta: open at ${CALLS("free")} calls a day per IP, paid Starter, Lab and Scale keys on request, Enterprise by arrangement.">
 <style>
 :root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
@@ -184,7 +184,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 </style></head><body><div class="wrap">
 <nav><a href="/docs">API reference</a><a href="https://hlaverify.com">hlaverify.com</a></nav>
 <h1>Pricing</h1>
-<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas arrive within days — <a href="https://hlaverify.com/beta">join the list</a> to be notified, or email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key now.</p>
+<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas are issued on request today — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> to hear when it is.</p>
 <p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Prices and billing period are set at checkout; cancel anytime from the Stripe customer portal link in your receipt.</p>
 <table>
 <tr><th>Tier</th><th>Price</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th></th></tr>
@@ -196,7 +196,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <tr><td><b>Research</b></td><td>free with approval</td><td colspan="3">hlaverify.com/research</td><td><a class="btn" href="https://hlaverify.com/research">hlaverify.com/research</a></td></tr>
 </table>
 <p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code> and <code>/v1/beta-signup</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
-<p class="mut" style="margin-top:2em">Self-serve checkout opens when the beta ends: you'll land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Until then, beta keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>
+<p class="mut" style="margin-top:2em">Self-serve checkout is not open yet. When it opens you will land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Today keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>
 </div></body></html>`;
 }
 
@@ -255,7 +255,7 @@ export function openapi(m) {
         `starter ${CALLS("starter")}/${TYPINGS("starter")}, lab ${CALLS("lab")}/${TYPINGS("lab")}, scale ${CALLS("scale")}/${TYPINGS("scale")}, enterprise uncapped/${TYPINGS("enterprise")}; ` +
         "'pro' is the legacy name for 'lab'. Quotas reset at UTC midnight and every billable response carries x-hla-verify-daily-limit, -daily-remaining, -daily-reset and -max-typings. " +
         "/healthz, /docs, /openapi.json, /pricing and /v1/beta-signup are not billable. " +
-        "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas arrive within days " +
+        "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas are issued on request " +
         "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).",
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
