@@ -112,6 +112,7 @@ function baseEnv(extra = {}) {
     }),
     RL: fakeRL(), RL_STARTER: fakeRL(), RL_LAB: fakeRL(), RL_SCALE: fakeRL(),
     QUOTA: fakeQuotaNamespace(),
+    QUOTA_IP_SALT: "test-salt-0123456789abcdef",
     ASSETS,
     ...extra,
   };
@@ -300,6 +301,32 @@ test("an anonymous counter is a fresh object each UTC day, so nothing outlives t
   await spendQuota(env, who, req, { now: Date.parse("2026-03-02T12:00:00Z") });
   assert.equal(env.QUOTA._objects.size, 2, "a new digest, and a new object, at midnight");
   assert.notEqual(env.QUOTA._names[0], env.QUOTA._names[1]);
+});
+
+test("the anonymous name is salted, so a digest is not a lookup table over IPv4", async () => {
+  const day = utcDay();
+  const who = { label: "anonymous", tier: "free", keyed: false };
+  const req = new Request(ORIGIN + "/v1/verify", { headers: { "cf-connecting-ip": "203.0.113.7" } });
+  const a = await subjectName(who, req, day, { QUOTA_IP_SALT: "salt-one-0123456789abcdef" });
+  const b = await subjectName(who, req, day, { QUOTA_IP_SALT: "salt-two-0123456789abcdef" });
+  assert.notEqual(a, b, "same IP and day, different salt, different counter");
+  assert.match(a, /^a:[0-9a-f]{32}$/);
+
+  // Without the secret the name cannot be reproduced from the address alone.
+  const unsalted = await subjectName(who, req, day, { QUOTA_IP_SALT: "" }).catch(() => null);
+  assert.equal(unsalted, null, "an absent salt must not silently produce a weaker name");
+});
+
+test("a missing salt fails the request OPEN, and never counts against a guessable name", async () => {
+  const env = baseEnv({ QUOTA_IP_SALT: undefined });
+  const { status, headers } = await allele(env);
+  assert.equal(status, 200, "a deployment mistake must not take the API down");
+  assert.equal(q(headers).remaining, "unknown");
+  assert.equal(env.QUOTA._objects.size, 0, "nothing was counted under an unsalted name");
+
+  const short = baseEnv({ QUOTA_IP_SALT: "tooshort" });
+  assert.equal((await allele(short)).status, 200);
+  assert.equal(short.QUOTA._objects.size, 0, "a too-short salt is treated as absent");
 });
 
 test("two keys never share a counter, and a key is not the anonymous counter", async () => {
@@ -611,5 +638,5 @@ test("metering never records a requested allele name as the endpoint label", asy
 test("a keyed caller with no key reference fails open rather than sharing a counter", async () => {
   // subjectName() must not fall back to the label: two unlabelled self-serve
   // keys would then be billed as one subject.
-  await assert.rejects(() => subjectName({ keyed: true, tier: "starter" }, null, utcDay()));
+  await assert.rejects(() => subjectName({ keyed: true, tier: "starter" }, null, utcDay(), baseEnv()));
 });

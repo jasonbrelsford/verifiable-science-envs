@@ -75,6 +75,10 @@
   //     scale, enterprise; "pro" is the legacy name for lab and still parses)
   //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
   //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
+  //   QUOTA_IP_SALT = "<32+ chars: openssl rand -hex 32>" — set. Salts the anonymous
+  //     daily-quota counter name so the digest is not a lookup table over IPv4. Absent
+  //     or shorter than 16 chars, anonymous requests are served uncounted (fail open).
+  //     Replacing it resets today's anonymous counters; keyed counters are unaffected.
   //   OAUTH_TOKEN_SECRET = "<64 random hex chars: openssl rand -hex 32>" — set; paired
   //     with the OAUTH_ENABLED var above. Replacing it invalidates every issued token.
 }
