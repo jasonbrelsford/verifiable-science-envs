@@ -135,7 +135,7 @@ export function batchDetail(tier, cap, n) {
   const lift = Object.keys(TIER_LIMITS).find((t) => TIER_LIMITS[t].typings > cap);
   return `typings must have at most ${plural(cap)} items on the ${tier} tier (you sent ${plural(n)})` +
     (lift ? `; the ${lift} tier (${TIER_LIMITS[lift].price}) allows ${plural(TIER_LIMITS[lift].typings)} per call: ${PRICING_URL}` : "") +
-    (canonical === "free" ? ". Split the batch, or get a key." : ". Split the batch across calls, or upgrade.");
+    (!lift ? ". Split it across calls." : canonical === "free" ? ". Split the batch, or get a key." : ". Split the batch across calls, or upgrade.");
 }
 
 // ------------------------------------------------------------ the counter
