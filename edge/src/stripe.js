@@ -30,6 +30,13 @@
 //   - POST /v1/customers/{id} accepts form-encoded metadata[key]=value and merges it into
 //     the customer's existing metadata.
 //     https://docs.stripe.com/api/customers/update
+//   - checkout.session.payment_status is "paid" | "unpaid" | "no_payment_required", and a
+//     Session whose total is zero (a 100%-off promotion code, as the research programme
+//     issues) reports "no_payment_required". Read from the reference, not re-fetched in the
+//     session that wrote this line (2026-09-17; docs.stripe.com was unreachable from the
+//     machine). If that ever proves wrong, COMPLETED_PAYMENT_STATUS below is the one place
+//     to change, and the failure is visible: the /checkout/success page says it could not
+//     confirm the checkout while the key has in fact been issued.
 //   - checkout.session object fields used here: mode ("payment"|"setup"|"subscription"),
 //     customer_details.{email,name}, client_reference_id, metadata, subscription (sub id or
 //     null), payment_intent (pi id or null), payment_status ("paid"|"unpaid"|"no_payment_required"),
@@ -128,6 +135,12 @@ function j(body, status = 200) {
 
 const subIndexKey = (id) => `stripe_sub/${id}`;
 const piIndexKey = (id) => `stripe_pi/${id}`;
+
+// Checkout Session payment_status values that mean the checkout finished and a
+// key is owed. The enum is "paid" | "unpaid" | "no_payment_required"; the third
+// is what a zero-total Session reports, which is every research-access checkout
+// (100% off) and would otherwise be read here as an unfinished one.
+export const COMPLETED_PAYMENT_STATUS = new Set(["paid", "no_payment_required"]);
 
 async function fetchLineItemPriceId(sessionId, secretKey) {
   const resp = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}/line_items`, {
@@ -317,7 +330,13 @@ export async function resolveCheckoutSuccess(sessionId, env) {
     return { status: "not_found" };
   }
 
-  if (session.payment_status !== "paid") return { status: "not_found" };
+  // "no_payment_required" is what a $0 Session reports. A research promotion
+  // code takes 100% off, so nothing was charged and payment_status is never
+  // "paid". Treating only "paid" as complete would have shown every approved
+  // research lab "we couldn't confirm this checkout" on the page that hands out
+  // their key, while the webhook had already issued it. "unpaid" still fails:
+  // that is a real checkout that has not completed.
+  if (!COMPLETED_PAYMENT_STATUS.has(session.payment_status)) return { status: "not_found" };
   if (!env.KEYS) return { status: "pending" };
 
   const ref = session.subscription || session.payment_intent || null;
@@ -326,7 +345,10 @@ export async function resolveCheckoutSuccess(sessionId, env) {
   const found = await findRecordByIndex(env, indexKey);
   if (!found) return { status: "pending" };
 
-  return { status: "ok", key: found.apiKey, tier: found.rec.tier, label: found.rec.label };
+  // `free` drives the wording on the success page only: "Payment received" is a
+  // lie to someone who redeemed a 100%-off research code and paid nothing.
+  return { status: "ok", key: found.apiKey, tier: found.rec.tier, label: found.rec.label,
+    free: session.payment_status === "no_payment_required" };
 }
 
 export { subIndexKey, piIndexKey, findRecordByIndex };

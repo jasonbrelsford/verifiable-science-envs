@@ -30,7 +30,7 @@ export function DOCS_HTML(m, pricing = { source: "table", prices: {}, live: fals
   const curl = (s) => `<pre><code>${esc(s)}</code></pre>`;
   const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
   const betaKeys = selfServe
-    ? `Paid keys with higher quotas — Starter, Lab and Scale — are self-serve: pick a tier on the <a href="/pricing">pricing page</a> and the key is issued automatically when Stripe confirms the subscription. Enterprise and research keys are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.`
+    ? `Paid keys with higher quotas — Starter, Lab and Scale — are self-serve: pick a tier on the <a href="/pricing">pricing page</a> and the key is issued automatically when Stripe confirms the subscription. Academic and nonprofit labs apply for free access with <code>POST /v1/research-access</code> (below), approved by hand. Enterprise: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.`
     : `Paid keys with higher quotas — Starter, Lab and Scale — are issued on request today: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a> and say roughly what you are calling and how often. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> (or <code>POST /v1/beta-signup</code>) to hear when it is.`;
   const betaSection = selfServe
     ? `<h3>Buying a key</h3>
@@ -76,7 +76,7 @@ ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
 <tr><td><code>x-hla-verify-daily-reset</code></td><td>ISO-8601 timestamp of the next UTC midnight.</td></tr>
 <tr><td><code>x-hla-verify-max-typings</code></td><td>Your tier's cap on <code>typings</code> in one <code>/v1/normalize</code> call.</td></tr>
 </table>
-<p>Over quota is <code>429</code> with the usual <code>{"detail": "…"}</code>, naming the tier, the limit, the reset time and where to upgrade, plus <code>Retry-After</code> in seconds. Over your tier's batch cap is <code>422</code>, naming the cap and the tier that lifts it — split the batch or upgrade. <b>What does not consume quota:</b> <code>/healthz</code>, <code>/docs</code>, <code>/openapi.json</code>, <code>/pricing</code>, <code>/checkout/success</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code>, the OAuth and <code>.well-known</code> routes, the Stripe webhook, and on <code>/mcp</code> everything that is not a tool call plus the <code>about</code> and <code>beta_signup</code> tools. <code>text</code> on <code>/v1/verify</code> stays capped at 200,000 characters for every tier, including free.</p>
+<p>Over quota is <code>429</code> with the usual <code>{"detail": "…"}</code>, naming the tier, the limit, the reset time and where to upgrade, plus <code>Retry-After</code> in seconds. Over your tier's batch cap is <code>422</code>, naming the cap and the tier that lifts it — split the batch or upgrade. <b>What does not consume quota:</b> <code>/healthz</code>, <code>/docs</code>, <code>/openapi.json</code>, <code>/pricing</code>, <code>/checkout/success</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code>, <code>/v1/research-access</code>, the OAuth and <code>.well-known</code> routes, the Stripe webhook, and on <code>/mcp</code> everything that is not a tool call plus the <code>about</code>, <code>beta_signup</code> and <code>research_access</code> tools. <code>text</code> on <code>/v1/verify</code> stays capped at 200,000 characters for every tier, including free.</p>
 ${betaSection}
 <h3>Self-serve keys</h3>
 <p>Starter, Lab and Scale keys are issued automatically through Stripe: subscribe on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
@@ -131,11 +131,17 @@ ${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: applicat
 ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: application/json' \\
   -d '{"email": "you@lab.example", "org": "Example HLA Lab", "use_case": "LIMS ingest QC", "source": "docs"}'`)}
 
+<h3><span class="pill">POST</span><code>/v1/research-access</code> — apply for free academic and nonprofit access</h3>
+<p><code>{"email": "…", "institution": "…", "use_case": "…", "expected_volume": "…", "source": "…"}</code>. <code>email</code>, <code>institution</code> (≤200 chars) and <code>use_case</code> (≤1,000) are required; <code>expected_volume</code> (≤120) and <code>source</code> (≤120) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; applying twice from the same address is not an error and does not create a second record or overwrite a decision already made. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one, a missing or empty required field, or a field over its cap. We store what you send plus a timestamp, the <code>CF-IPCountry</code> of the request and a status. No IP address is stored, and the record is not an API key.</p>
+<p><b>How approval works, plainly:</b> a person reads every application. There is no automatic decision, no SLA, and no guarantee. If it is approved you are emailed a single-use promotion code; you then pick a tier at <a href="/pricing">/pricing</a> and enter the code at checkout, which takes 100% off for 12 months. Because the total is then $0, Stripe asks for no card, and your API key is issued by the same webhook that issues a paid one. The code is good for one redemption and expires; commercial labs should buy a tier instead.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/research-access -H 'content-type: application/json' \\
+  -d '{"email": "you@lab.example", "institution": "Example University", "use_case": "Retyping QC for a 4,000-donor registry cohort study", "expected_volume": "about 20,000 typings a month", "source": "docs"}'`)}
+
 <h3><span class="pill">GET</span><code>/healthz</code></h3>
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back on HTTP 200 as an ordinary tool result with <code>isError:true</code> and a message naming the reset time, with <code>x-hla-verify-daily-remaining: 0</code> and <code>Retry-After</code> on the response: MCP clients treat a non-2xx POST as a transport failure and never read the frame, so the refusal is sent the one way an agent actually sees it. REST keeps its 429.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus the two tools that write: <code>beta_signup</code> (it joins the beta list) and <code>research_access</code> (it files a research access application), each doing exactly what its endpoint above does. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back on HTTP 200 as an ordinary tool result with <code>isError:true</code> and a message naming the reset time, with <code>x-hla-verify-daily-remaining: 0</code> and <code>Retry-After</code> on the response: MCP clients treat a non-2xx POST as a transport failure and never read the frame, so the refusal is sent the one way an agent actually sees it. REST keeps its 429.</p>
 <p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <p>Discovery before connecting: an MCP Server Card (SEP-2127) at <a href="/mcp/server-card"><code>GET /mcp/server-card</code></a> (also <code>/.well-known/mcp/server-card.json</code>) gives name, version, endpoint, headers and protocol versions without a handshake, and <a href="/.well-known/ai-catalog.json"><code>/.well-known/ai-catalog.json</code></a> lists it for domain-level crawlers. Tools are not in the card — call <code>tools/list</code>. The repository's <code>server.json</code> describes the same server (<code>com.hlaverify/hla-verify</code>) for the official MCP Registry.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
@@ -211,11 +217,11 @@ export function PRICING_HTML(m, pricing = { source: "table", prices: {}, live: f
     : "Prices are the published list; tax is calculated at checkout. Cancel anytime from the Stripe customer portal link in your receipt.";
 
   const betaNote = anyBuyable
-    ? `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Anonymous access stays open at ${CALLS("free")} calls a day per IP. Starter, Lab and Scale are self-serve below: checkout runs on Stripe and your key is issued automatically. Need Enterprise, or a research key? Email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.</p>`
+    ? `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Anonymous access stays open at ${CALLS("free")} calls a day per IP. Starter, Lab and Scale are self-serve below: checkout runs on Stripe and your key is issued automatically. Academic and nonprofit labs can apply for free access at <a href="https://hlaverify.com/research">hlaverify.com/research</a>: approved by hand, then free for 12 months. Enterprise: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.</p>`
     : `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas are issued on request today — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> to hear when it is.</p>`;
 
   const tail = anyBuyable
-    ? `<p class="mut" style="margin-top:2em">Subscribing lands you on a success page showing your API key once — copy it then; it is also written to your Stripe customer record. Cancel anytime from the customer portal link in your receipt, which revokes the key. Enterprise keys and research access are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Full endpoint reference: <a href="/docs">/docs</a>.</p>`
+    ? `<p class="mut" style="margin-top:2em">Subscribing lands you on a success page showing your API key once — copy it then; it is also written to your Stripe customer record. Cancel anytime from the customer portal link in your receipt, which revokes the key. Research access is applied for at <a href="https://hlaverify.com/research">hlaverify.com/research</a> and approved by hand; Enterprise keys are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Full endpoint reference: <a href="/docs">/docs</a>.</p>`
     : `<p class="mut" style="margin-top:2em">Self-serve checkout is not open yet. When it opens you will land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Today keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>`;
 
   // The grandfathering rule, stated where a customer decides. This is Stripe's
@@ -275,11 +281,11 @@ ${betaNote}
 <tr><td><b>Lab</b></td><td>${money("lab")}</td><td>${CALLS("lab")}</td><td>${TYPINGS("lab")}</td><td>600/min</td><td>${cell("lab")}</td></tr>
 <tr><td><b>Scale</b></td><td>${money("scale")}</td><td>${CALLS("scale")}</td><td>${TYPINGS("scale")}</td><td>6,000/min</td><td>${cell("scale")}</td></tr>
 <tr><td><b>Enterprise</b></td><td>custom</td><td>uncapped</td><td>${TYPINGS("enterprise")}</td><td>uncapped</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
-<tr><td><b>Research</b></td><td>free with approval</td><td colspan="3">hlaverify.com/research</td><td><a class="btn mut" href="https://hlaverify.com/research">hlaverify.com/research</a></td></tr>
+<tr><td><b>Research</b></td><td>free for 12 months, with approval</td><td colspan="3">Academic and nonprofit labs. Apply with the form at hlaverify.com/research or <code>POST /v1/research-access</code>. A person reads every application, so a decision is not instant and not guaranteed. Approved applicants are emailed a single-use code, pick a tier above and enter it at checkout: it takes 100% off for 12 months, Stripe asks for no card because the total is $0, and the key is issued the same way a paid one is.</td><td><a class="btn mut" href="https://hlaverify.com/research">Apply</a></td></tr>
 </table>
 <p id="checkout-note" role="status" aria-live="polite"></p>
 ${lockIn}
-<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code>, <code>/v1/checkout</code> and <code>/v1/beta-signup</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
+<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code> and <code>/v1/research-access</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
 ${tail}
 </div>${buyScript}</body></html>`;
 }
@@ -290,10 +296,12 @@ ${tail}
 export function CHECKOUT_SUCCESS_HTML(m, result = {}) {
   const body = (() => {
     if (result.status === "ok") {
-      return `<p class="pill">Payment received</p>
+      // A research code takes the total to $0, so nothing was paid and saying so
+      // would be wrong. The key is the same key either way.
+      return `<p class="pill">${result.free ? "Subscription active" : "Payment received"}</p>
 <h2>Your HLA-Verify API key</h2>
 <pre><code>${esc(result.key)}</code></pre>
-<p>Tier: <b>${esc(result.tier || "starter")}</b>. This key is shown <b>once</b> — copy it now. It is also saved to your Stripe customer record (visible in your receipt email and the Stripe customer portal) if you ever need to look it up again.</p>
+<p>Tier: <b>${esc(result.tier || "starter")}</b>.${result.free ? " Nothing was charged." : ""} This key is shown <b>once</b> — copy it now. It is also saved to your Stripe customer record (visible in your receipt email and the Stripe customer portal) if you ever need to look it up again.</p>
 <h3>Use it</h3>
 <pre><code>curl -s https://api.hlaverify.com/v1/allele/A*01:01 -H 'X-API-Key: ${esc(result.key)}'</code></pre>
 <pre><code>{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp",
@@ -333,7 +341,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
   const buying = selfServe
     ? "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys are self-serve through Stripe " +
       "(POST /v1/checkout with {\"tier\": \"starter\"|\"lab\"|\"scale\"} returns a Checkout Session url, or use the buttons on /pricing), " +
-      "and a subscription keeps the price it was created with when prices later change. Enterprise and research keys: hello@hlaverify.com."
+      "and a subscription keeps the price it was created with when prices later change. Academic and nonprofit labs apply for free access with POST /v1/research-access, which is approved by hand. Enterprise: hello@hlaverify.com."
     : "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas are issued on request " +
       "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).";
   return {
@@ -347,7 +355,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         `Limits are a daily call quota plus a per-call batch cap, both per tier: free ${CALLS("free")} calls/day per IP and ${TYPINGS("free")} typings per /v1/normalize call, ` +
         `starter ${CALLS("starter")}/${TYPINGS("starter")}, lab ${CALLS("lab")}/${TYPINGS("lab")}, scale ${CALLS("scale")}/${TYPINGS("scale")}, enterprise uncapped/${TYPINGS("enterprise")}; ` +
         "'pro' is the legacy name for 'lab'. Quotas reset at UTC midnight and every billable response carries x-hla-verify-daily-limit, -daily-remaining, -daily-reset and -max-typings. " +
-        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout and /v1/beta-signup are not billable. " + buying,
+        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout, /v1/beta-signup and /v1/research-access are not billable. " + buying,
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
     components: {
@@ -454,9 +462,32 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
             message: { type: "string" }, release: { type: "string" } } } } } },
           422: { description: "invalid email or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           429: { description: "rate limited (60 req/min per IP; /v1/beta-signup does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/research-access": { post: { summary: "Apply for free academic and nonprofit research access",
+        description: "Files one application per address for the research and education programme. Approval is manual: a person reads every " +
+          "application, there is no automatic decision, no service level and no guarantee. An approved applicant is emailed a single-use " +
+          "Stripe promotion code, redeemed at self-serve checkout against any tier: it takes 100% off for 12 months, so the total is $0, " +
+          "Stripe collects no card, and the API key is issued by the same webhook that issues a paid one. Re-submitting the same address " +
+          "returns already_recorded and never overwrites an application that has already been decided. Stores what you send plus a timestamp, " +
+          "CF-IPCountry and a status, and no IP address. The record is not an API key and cannot be used as one. Not billable against the daily " +
+          "quota, but rate limited like every other /v1/ route (60 requests/minute per IP without a key).",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["email", "institution", "use_case"],
+          properties: { email: { type: "string", maxLength: 254, example: "you@lab.example", description: "Where the approval code is sent." },
+            institution: { type: "string", maxLength: 200, example: "Example University",
+              description: "University, hospital, institute or nonprofit the work is done at." },
+            use_case: { type: "string", maxLength: 1000, example: "Retyping QC for a 4,000-donor registry cohort study",
+              description: "What the research or teaching is and what the API would do in it. This is what the decision is made on. No patient details." },
+            expected_volume: { type: "string", maxLength: 120, example: "about 20,000 typings a month" },
+            source: { type: "string", maxLength: 120, description: "Free-text hint: site, mcp, docs." } } } } } },
+        responses: { 200: { description: "recorded or already_recorded", content: { "application/json": { schema: { type: "object",
+          required: ["ok", "status", "message", "release"],
+          properties: { ok: { type: "boolean" }, status: { type: "string", enum: ["recorded", "already_recorded"] },
+            message: { type: "string" }, release: { type: "string" } } } } } },
+          422: { description: "invalid email, a missing or empty required field, or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          429: { description: "rate limited (60 req/min per IP; /v1/research-access does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "the application store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
-        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, about. " +
-          "Every tool call but about and beta_signup consumes one call of the caller's daily quota, the same one /v1/* spends. donor_compat is decision support only; not a medical device. beta_signup is the only tool that writes. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, research_access, about. " +
+          "Every tool call but about, beta_signup and research_access consumes one call of the caller's daily quota, the same one /v1/* spends. donor_compat is decision support only; not a medical device. beta_signup and research_access are the only tools that write. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object",
           required: ["jsonrpc", "method"],
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },

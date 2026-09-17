@@ -38,16 +38,19 @@ const SWEEP_AFTER_MS = 36 * 3600 * 1000;
 
 // Billable REST routes: everything that runs the engine. /healthz, /docs,
 // /openapi.json, /pricing, /checkout/success, the OAuth and .well-known routes,
-// /v1/beta-signup and the Stripe webhook are not billable and consume nothing.
+// /v1/beta-signup, /v1/research-access and the Stripe webhook are not billable
+// and consume nothing. Joining a list, or applying for free access, must never
+// cost a caller one of the calls they have.
 const BILLABLE_PATHS = new Set(["/v1/verify", "/v1/normalize", "/v1/match", "/v1/typing/check", "/v1/compat", "/v1/glstring"]);
 export function isBillablePath(path) {
   return BILLABLE_PATHS.has(path) || path.startsWith("/v1/allele/");
 }
 
 // Billable MCP tools: the same set, tool for tool. `about` is metadata (the
-// /docs of the MCP surface) and `beta_signup` mirrors /v1/beta-signup, so
-// neither consumes quota — nor does initialize, tools/list or server/discover,
-// which never reach a tool at all.
+// /docs of the MCP surface); `beta_signup` and `research_access` mirror
+// /v1/beta-signup and /v1/research-access, so none of the three consumes quota,
+// and nor does initialize, tools/list or server/discover, which never reach a
+// tool at all.
 export const BILLABLE_TOOLS = new Set(["verify_text", "normalize_allele", "allele_info", "match_score",
   "check_typing", "donor_compat", "validate_gl_string"]);
 

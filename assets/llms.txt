@@ -41,6 +41,8 @@ release; verification is pinned to an exact release version.
     GET  /v1/allele/A*24:09N                          -> assigned | valid_prefix | deleted (+successor)
     POST /v1/match     {"framework": "8/8", "recipient": {...}, "donor": {...}} -> count, verdicts, GvH/HvG, flags
     POST /v1/beta-signup {"email": "...", "org": "...", "use_case": "...", "source": "..."} -> beta list, recorded | already_recorded
+    POST /v1/research-access {"email": "...", "institution": "...", "use_case": "...", "expected_volume": "...", "source": "..."}
+                                                      -> free academic/nonprofit access application, recorded | already_recorded
 - Interactive demo (runs fully client-side, nothing leaves the browser):
   https://hlaverify.com/demo
   (mirror on Hugging Face Spaces: https://huggingface.co/spaces/jason-brelsford/hla-verify)
@@ -52,8 +54,9 @@ release; verification is pinned to an exact release version.
 - MCP server (add HLA-Verify as agent tools):
     Remote (Streamable HTTP, no install): https://api.hlaverify.com/mcp
       tools: verify_text, normalize_allele, allele_info, match_score, check_typing,
-      donor_compat, validate_gl_string, about, beta_signup (donor_compat is decision
-      support only; beta_signup is the only tool that writes)
+      donor_compat, validate_gl_string, about, beta_signup, research_access (donor_compat
+      is decision support only; beta_signup and research_access are the only tools that
+      write)
       protocol: MCP 2026-07-28 (stateless; call server/discover for versions, capabilities
       and instructions) plus the legacy initialize handshake (2025-11-25, 2025-06-18,
       2025-03-26, 2024-11-05)
@@ -69,10 +72,16 @@ release; verification is pinned to an exact release version.
   Quotas reset at UTC midnight; every billable response carries x-hla-verify-tier,
   -daily-limit, -daily-remaining, -daily-reset and -max-typings, and an exhausted quota is a
   429 naming the reset time. /v1/verify takes 200,000 characters on every tier. /healthz,
-  /docs, /openapi.json, /pricing and /v1/beta-signup are not billable. Paid keys (per-key
-  usage reporting, release-change notices) are hand-issued free during the beta and
+  /docs, /openapi.json, /pricing, /v1/beta-signup and /v1/research-access are not
+  billable. Paid keys (per-key usage reporting, release-change notices) are
+  hand-issued free during the beta and
   self-serve via Stripe checkout at https://api.hlaverify.com/pricing shortly after;
   enterprise keys and commercial licensing by request: hello@hlaverify.com
+- Research and education access (free for academic and nonprofit labs):
+  https://hlaverify.com/research, or POST /v1/research-access, or the research_access MCP
+  tool. Every application is read by a person, so approval is manual, not instant and not
+  guaranteed. An approved applicant is emailed a single-use promotion code, redeemed at
+  self-serve checkout: 100% off for 12 months, no card (the total is $0) and no contract.
 
 ## Benchmarks (for model developers)
 

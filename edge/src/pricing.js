@@ -45,6 +45,14 @@
 //     the fall back to allow_promotion_codes when the lookup is not permitted.
 //     https://docs.stripe.com/api/promotion_codes/list
 //
+// READ FROM THE STRIPE REFERENCE BUT NOT RE-FETCHED IN THE SESSION THAT ADDED IT
+// (2026-09-17; docs.stripe.com was not reachable from this machine):
+//   - payment_method_collection is "always" | "if_required", and defaults to
+//     "always" in subscription mode. Under "if_required" Checkout collects no
+//     card when the Session's total is zero, which is exactly what a 100%-off
+//     research promotion code produces. See the WHY note on checkoutParams.
+//     https://docs.stripe.com/api/checkout/sessions/create
+//
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { TIERS, TIER_ALIASES, TIER_LIMITS, canonicalTier } from "./keys.js";
@@ -265,6 +273,21 @@ async function resolvePromotionCode(code, secretKey, fetchImpl, base = STRIPE_AP
 
 // The exact form body sent to POST /v1/checkout/sessions. Separated from the
 // request so a test can assert the payload without a network call.
+//
+// WHY payment_method_collection IS "if_required". The research and education
+// programme hands an approved lab a single-use promotion code for 100% off,
+// repeating for 12 months. Redeeming it makes the Session total $0. The
+// subscription-mode default, "always", would still demand a card before letting
+// them through: a card for a subscription that will never charge, which is the
+// one thing the programme promises they do not need. "if_required" collects a
+// payment method only when there is something to charge, so a $0 checkout
+// completes with no card and a paid checkout is unchanged: at a non-zero total
+// Stripe still requires one.
+//
+// Key issuance does not care either way. The webhook issues on
+// checkout.session.completed and reads metadata.tier, not the amount (stripe.js
+// onCheckoutCompleted), so a $0 subscription produces a key exactly as a paid
+// one does. test/research.test.mjs drives that whole path.
 export function checkoutParams({ price, tier, successUrl, cancelUrl, promotionCodeId = null }) {
   const params = new URLSearchParams();
   params.set("mode", "subscription");
@@ -280,6 +303,9 @@ export function checkoutParams({ price, tier, successUrl, cancelUrl, promotionCo
   params.set("subscription_data[metadata][tier]", tier);
   if (promotionCodeId) params.set("discounts[0][promotion_code]", promotionCodeId);
   else params.set("allow_promotion_codes", "true");
+  // A card is collected only when there is something to charge; a 100%-off
+  // research code makes the total $0 and needs none. See the WHY above.
+  params.set("payment_method_collection", "if_required");
   // Stripe Tax is configured on this account; Checkout collects the address it
   // needs to compute tax.
   params.set("automatic_tax[enabled]", "true");

@@ -10,7 +10,7 @@ import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
-  doBetaSignup, BETA_PREFIX } from "./handlers.js";
+  doBetaSignup, doResearchAccess, RESERVED_PREFIXES } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
@@ -100,12 +100,15 @@ async function authorizeKey(presented, env) {
     return { label, tier, keyed: true, keyRef: presented };
   }
   if (env.KEYS) {
-    // The KEYS namespace also holds the free-beta list under BETA_PREFIX
-    // (handlers.js). Any KV value that parses as truthy JSON is treated below as
-    // a starter key, so a prefixed record must never be looked up as one:
-    // without this guard, presenting "beta/someone@example.com" as an X-API-Key
-    // would authenticate. Issued keys are "hlv_" + base64url and contain no "/".
-    if (presented.startsWith(BETA_PREFIX)) return err(401, "missing or invalid X-API-Key");
+    // The KEYS namespace also holds records that are not keys: the free-beta
+    // list under "beta/" and research access applications under "research/"
+    // (handlers.js RESERVED_PREFIXES). Any KV value that parses as truthy JSON
+    // is treated below as a starter key, so a prefixed record must never be
+    // looked up as one: without this guard, presenting
+    // "beta/someone@example.com" or "research/someone@example.com" as an
+    // X-API-Key would authenticate. Issued keys are "hlv_" + base64url and
+    // contain no "/". A new prefix in that namespace belongs in that list.
+    if (RESERVED_PREFIXES.some((p) => presented.startsWith(p))) return err(401, "missing or invalid X-API-Key");
     let rec = null;
     try {
       const raw = await env.KEYS.get(presented);
@@ -359,6 +362,18 @@ export default {
         const r = await doBetaSignup(env, manifest, body, req.headers.get("cf-ipcountry"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "beta-signup", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, hdrs);
+      }
+      // Research and education access applications. Same rules as the beta list
+      // above: the anonymous limiter covers it, it is never billable (applying
+      // for free access must not cost a call out of the free tier), and the
+      // record it writes is not a key (handlers.js RESERVED_PREFIXES).
+      if (path === "/v1/research-access") {
+        if (req.method !== "POST") return err(405, "POST {\"email\": \"...\", \"institution\": \"...\", \"use_case\": \"...\"}");
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
+        const r = await doResearchAccess(env, manifest, body, req.headers.get("cf-ipcountry"));
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "research-access", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);
       }
       return err(404, "Not Found");
