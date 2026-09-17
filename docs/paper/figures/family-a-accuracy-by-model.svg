@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 384" width="700" height="384" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<text x="220" y="20" font-size="13" font-weight="bold">Family A accuracy by model (all 550 tasks)</text>
+<text x="214" y="58" text-anchor="end">oracle-reference</text>
+<rect x="220" y="44" width="420.0" height="18" fill="#6b7280" />
+<text x="646.0" y="58">100%</text>
+<text x="214" y="86" text-anchor="end">ollama/qwen2.5:7b</text>
+<rect x="220" y="72" width="130.2" height="18" fill="#2563eb" />
+<text x="356.2" y="86">31%</text>
+<text x="214" y="114" text-anchor="end">ollama/mistral:7b</text>
+<rect x="220" y="100" width="121.8" height="18" fill="#2563eb" />
+<text x="347.8" y="114">29%</text>
+<text x="214" y="142" text-anchor="end">baseline-confident-guesser</text>
+<rect x="220" y="128" width="117.6" height="18" fill="#94a3b8" />
+<text x="343.6" y="142">28%</text>
+<text x="214" y="170" text-anchor="end">baseline-naive-string</text>
+<rect x="220" y="156" width="117.6" height="18" fill="#94a3b8" />
+<text x="343.6" y="170">28%</text>
+<text x="214" y="198" text-anchor="end">ollama/gemma3:12b</text>
+<rect x="220" y="184" width="117.6" height="18" fill="#2563eb" />
+<text x="343.6" y="198">28%</text>
+<text x="214" y="226" text-anchor="end">ollama/qwen2.5:3b</text>
+<rect x="220" y="212" width="117.6" height="18" fill="#2563eb" />
+<text x="343.6" y="226">28%</text>
+<text x="214" y="254" text-anchor="end">ollama/qwen2.5:14b</text>
+<rect x="220" y="240" width="109.2" height="18" fill="#2563eb" />
+<text x="335.2" y="254">26%</text>
+<text x="214" y="282" text-anchor="end">ollama/phi4-mini</text>
+<rect x="220" y="268" width="100.8" height="18" fill="#2563eb" />
+<text x="326.8" y="282">24%</text>
+<text x="214" y="310" text-anchor="end">ollama/llama3.1:8b</text>
+<rect x="220" y="296" width="88.2" height="18" fill="#2563eb" />
+<text x="314.2" y="310">21%</text>
+<text x="214" y="338" text-anchor="end">ollama/llama3.2:3b</text>
+<rect x="220" y="324" width="63.0" height="18" fill="#2563eb" />
+<text x="289.0" y="338">15%</text>
+<text x="214" y="366" text-anchor="end">baseline-cautious-abstainer</text>
+<rect x="220" y="352" width="16.8" height="18" fill="#94a3b8" />
+<text x="242.8" y="366">4%</text>
+</svg>
