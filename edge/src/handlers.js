@@ -125,7 +125,7 @@ function optional(v, name, max) {
 const betaMessage = (release, already) =>
   `${already ? "You are already on the beta list" : "You are on the beta list"} — free public beta. ` +
   `Verdicts are production-quality and pinned to IPD-IMGT/HLA ${release}. Paid keys with higher rate ` +
-  `limits arrive within days; we will email you, or email hello@hlaverify.com for a beta key now.`;
+  `limits are issued on request today: email hello@hlaverify.com. We will email you when self-serve checkout opens.`;
 
 // body: {email, org?, use_case?, source?}; country: cf-ipcountry or null.
 export async function doBetaSignup(env, manifest, body, country) {
