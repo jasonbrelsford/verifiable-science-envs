@@ -342,6 +342,13 @@ def cmd_approve(args, kv: KV) -> int:
         out("Nothing was changed. To mint a second code anyway, re-run with --force.")
         return 2
 
+    if status == "approved" and args.force and rec.get("promotion_code"):
+        # The old code stays redeemable in Stripe. Nothing here can deactivate
+        # it, so say so rather than leave two live codes for one application.
+        out(f"--force: this application already has code {rec['promotion_code']}. "
+            "That code stays live in Stripe until you deactivate it there.")
+        out()
+
     now = dt.datetime.now(dt.timezone.utc)
     expires = now + dt.timedelta(days=args.days)
     code = args.code.upper() if args.code else new_code()
