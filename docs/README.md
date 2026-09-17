@@ -14,4 +14,4 @@ pilot pricing while this repo was public, so it moved to the private portfolio h
 | `MCP_OAUTH.md` — the OAuth design and threat model | Internal status and the waiting-on list |
 | `pyard-concordance.md`, `research-rel_dna_ser-3.65.md` | Trademark and prior-art memos |
 | `paper/`, `PREPRINT_CHECKLIST.md` | Unshipped product and billing specs |
-| `legal/` — the published terms and privacy drafts | Launch copy |
+| (terms and privacy live in `jasonbrelsford/hlaverify-website`, the repo that serves hlaverify.com/terms and /privacy; source drafts for counsel are in the private hub) | Launch copy, legal drafts |
