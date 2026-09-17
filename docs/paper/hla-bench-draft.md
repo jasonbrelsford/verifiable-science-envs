@@ -142,6 +142,13 @@ without exposing the sealed split.
 
 ### 4.1 Family A (all 550)
 
+**Figure 1.** Accuracy by model, all 550 tasks. Generated deterministically from
+`bench/HLA-Bench-A.md`'s headline table by `scripts/generate_figures.py`;
+regenerate after any results update. Gray = oracle (validates the harness, not
+a model result); slate = non-LLM baselines; blue = evaluated models.
+
+![Family A accuracy by model, all 550 tasks](figures/family-a-accuracy-by-model.svg)
+
 | Model | Acc [95% CI] | Fabricated-name tasks | Notes |
 |---|---:|---:|---|
 | oracle | 100% | 0 | validates harness |
@@ -288,5 +295,6 @@ benchmark, generators, and graders themselves are released under Apache-2.0.
 - [x] 14B tier row (qwen2.5:14b, 2026-09-09; further 12–14B families queued on TOWER)
 - [ ] Per-subtype post-cutoff breakdown (contamination supplement)
 - [ ] Cross-machine bit-identical reproduction check (tower vs tower2)
-- [ ] Figures with provenance (Claude Science); bioRxiv category: bioinformatics
+- [x] Figure 1: Family A accuracy by model (`figures/family-a-accuracy-by-model.svg`, `scripts/generate_figures.py`)
+- [ ] Additional figures with provenance (per-subtype / calibration); bioRxiv category: bioinformatics
 - [ ] Decide author list / acknowledgements; ORCID
