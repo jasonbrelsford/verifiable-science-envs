@@ -12,6 +12,7 @@
 import { FRAMEWORKS } from "./engine.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString, doBetaSignup,
   MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE } from "./handlers.js";
+import { TIER_LIMITS } from "./keys.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -330,7 +331,7 @@ const ABOUT_OUT = {
   type: "object",
   required: ["name", "release"],
   properties: { name: STR, release: RELEASE, scope: STR, inputs: STR, why: STR, code: STR, api: STR, demo: STR,
-    agents: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
+    agents: STR, limits: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
 };
 
 const BETA_OUT = {
@@ -538,8 +539,17 @@ function aboutBody(manifest) {
     api: "https://api.hlaverify.com/docs",
     demo: "https://hlaverify.com/demo",
     agents: "https://hlaverify.com/llms.txt",
+    limits: "Per UTC day, per tier: " +
+      Object.entries(TIER_LIMITS).map(([t, l]) =>
+        `${t} (${l.price}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
+        `up to ${l.typings.toLocaleString("en-US")} typings per normalize call, ${l.burst}`).join("; ") +
+      ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
+      "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
+      "back as a tool error naming the UTC-midnight reset time — wait for it or upgrade, do not retry in a loop. " +
+      "about and beta_signup are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
     beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
-      "Anonymous access is 60 requests/minute per IP with no key; paid self-serve keys with higher rate limits arrive within days.",
+      `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
+      "with higher daily quotas and larger batches arrive within days.",
     beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
@@ -604,8 +614,8 @@ async function callTool(name, args, eng, manifest, beta) {
   }
 }
 
-function rpcResult(id, result) {
-  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, result });
+function rpcResult(id, result, status = 200) {
+  return jsonResponse({ jsonrpc: "2.0", id: id ?? null, result }, status);
 }
 function rpcError(id, code, message, { data, status } = {}) {
   const error = data === undefined ? { code, message } : { code, message, data };
@@ -615,7 +625,7 @@ function jsonResponse(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 }
 
-// handleMcp(request, engine, who, manifest, onCall?, env?) -> Response
+// handleMcp(request, engine, who, manifest, onCall?, env?, spend?) -> Response
 // onCall(toolName, httpishStatus, units) is an optional metering hook invoked
 // once per tools/call so the caller (index.js) can record usage the same way
 // it meters REST calls; it is a no-op by default so this module works standalone
@@ -623,7 +633,14 @@ function jsonResponse(obj, status = 200) {
 // env is the Worker environment, needed only by beta_signup (the KEYS binding);
 // omitted, that one tool reports the beta list as unavailable and every other
 // tool behaves identically.
-export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null) {
+// spend(toolName) is the daily-quota hook (index.js): it charges one call
+// against the caller's quota and returns null to proceed, or the refusal text
+// when the quota is spent. Charged per billable tools/call, so a handshake,
+// tools/list or server/discover is free, exactly as /docs is on REST. A refusal
+// comes back as an ordinary tool result with isError:true — a frame every MCP
+// client can read and every agent can act on — carried on HTTP 429, the status
+// this endpoint has always used for a limit.
+export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null) {
   const beta = { env, country: request.headers.get("cf-ipcountry") };
   let raw;
   try {
@@ -647,7 +664,7 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
 
   const metaVersion = params && params._meta && params._meta[META_VERSION];
   if (metaVersion !== undefined || method === "server/discover")
-    return handleModern(request, msg, metaVersion, engine, manifest, onCall, beta);
+    return handleModern(request, msg, metaVersion, engine, manifest, onCall, beta, spend);
 
   if (method === "notifications/initialized") return new Response(null, { status: 202 });
 
@@ -664,18 +681,26 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
   if (method === "tools/call") {
     const name = params && params.name;
     if (typeof name !== "string" || !name) return rpcError(id, -32602, "Invalid params: params.name (string) is required");
-    return rpcResult(id, await runTool(name, params.arguments, engine, manifest, onCall, beta));
+    const { out, overQuota } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
+    return rpcResult(id, out, overQuota ? 429 : 200);
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
-async function runTool(name, args, engine, manifest, onCall, beta) {
+// Returns { out, overQuota }: the tool result to put in the JSON-RPC frame, and
+// whether it is a quota refusal (which the caller renders as HTTP 429).
+async function runTool(name, args, engine, manifest, onCall, beta, spend = null) {
+  const refusal = spend ? await spend(name) : null;
+  if (refusal) {
+    onCall(name, 429, 0);
+    return { out: { content: [{ type: "text", text: refusal }], isError: true }, overQuota: true };
+  }
   const result = await callTool(name, args, engine, manifest, beta);
   onCall(name, result.isError ? 422 : 200, result.units ?? 0);
   const out = { content: result.content, isError: result.isError };
   if (!result.isError) out.structuredContent = result.structuredContent;
-  return out;
+  return { out, overQuota: false };
 }
 
 // Mcp-Name may carry a non-header-safe name as =?base64?<UTF-8 base64>?=.
@@ -692,7 +717,7 @@ function decodeHeaderValue(v) {
 // 2026-07-28: no handshake, no ping. Every request names its protocol version in
 // _meta, which must agree with the MCP-Protocol-Version / Mcp-Method / Mcp-Name
 // headers so gateways routing on headers and this handler see the same request.
-async function handleModern(request, msg, metaVersion, engine, manifest, onCall, beta) {
+async function handleModern(request, msg, metaVersion, engine, manifest, onCall, beta, spend = null) {
   const { method, params, id } = msg;
   const h = request.headers;
   const mismatch = (message) => rpcError(id, HEADER_MISMATCH, `Header mismatch: ${message}`, { status: 400 });
@@ -711,7 +736,8 @@ async function handleModern(request, msg, metaVersion, engine, manifest, onCall,
     return rpcError(id, UNSUPPORTED_PROTOCOL_VERSION, "Unsupported protocol version",
       { data: { supported: SUPPORTED_VERSIONS, requested: String(version) }, status: 400 });
 
-  const complete = (result) => rpcResult(id, { resultType: "complete", ...result, _meta: { [META_SERVER_INFO]: SERVER_INFO } });
+  const complete = (result, status = 200) =>
+    rpcResult(id, { resultType: "complete", ...result, _meta: { [META_SERVER_INFO]: SERVER_INFO } }, status);
 
   if (method === "server/discover")
     return complete({ supportedVersions: SUPPORTED_VERSIONS, capabilities: { tools: {} }, instructions: INSTRUCTIONS,
@@ -725,7 +751,8 @@ async function handleModern(request, msg, metaVersion, engine, manifest, onCall,
     const hn = decodeHeaderValue(h.get("mcp-name"));
     if (hn === null) return mismatch("Mcp-Name header is required for tools/call");
     if (hn !== name) return mismatch(`Mcp-Name header value '${hn}' does not match body value '${name}'`);
-    return complete(await runTool(name, params.arguments, engine, manifest, onCall, beta));
+    const { out, overQuota } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
+    return complete(out, overQuota ? 429 : 200);
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`, { status: 404 });

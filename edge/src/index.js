@@ -15,10 +15,14 @@ import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
+import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, isBillablePath,
+  BILLABLE_TOOLS } from "./quota.js";
+import { TIER_LIMITS, limitsFor } from "./keys.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
-const ANON_LIMIT_NOTE = `60 requests/minute without an API key — keys for labs, LIMS vendors and agent platforms: ${PRICING_NOTE}`;
+const ANON_LIMIT_NOTE = `${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute without an API key — ` +
+  `keys for labs, LIMS vendors and agent platforms: ${PRICING_NOTE}`;
 
 let engine = null;
 function getEngine(env) {
@@ -47,14 +51,17 @@ function json(body, status = 200, extra = {}) {
       "x-hla-verify-release": manifest.release, ...CORS, ...extra },
   });
 }
-const err = (status, detail) => json({ detail }, status);
+const err = (status, detail, extra = {}) => json({ detail }, status, extra);
 const tierHeader = (who) => ({ "x-hla-verify-tier": who.tier });
 
-// Tier -> rate-limit binding. "free" (anonymous) is metered by IP on RL;
-// "enterprise" is uncapped; "starter"/"pro" are metered by the presented key.
+// Tier -> per-minute rate-limit binding (the burst dial; the daily quota is
+// quota.js). "free" (anonymous) is metered by IP on RL; "enterprise" is
+// uncapped; the rest are metered by the presented key. "pro" is the legacy name
+// for "lab" and shares its limiter.
 function limiterFor(env, tier) {
   if (tier === "starter") return env.RL_STARTER;
-  if (tier === "pro") return env.RL_PRO;
+  if (tier === "lab" || tier === "pro") return env.RL_LAB;
+  if (tier === "scale") return env.RL_SCALE;
   return null;
 }
 
@@ -78,11 +85,14 @@ async function authorize(req, env) {
 
 // A presented API key -> caller identity or a 401/429 Response. Shared by
 // authorize() and by OAuth access tokens on /mcp (oauth.js), which carry a key.
+// `keyRef` is the presented key itself; it never leaves the request beyond
+// quota.js, which hashes it into this caller's daily-counter name so two keys
+// can never share a counter and an OAuth token counts against its own key.
 async function authorizeKey(presented, env) {
   const keys = parseKeys(env.HLA_VERIFY_API_KEYS);
   if (keys.has(presented)) {
     const { label, tier } = keys.get(presented);
-    return { label, tier, keyed: true };
+    return { label, tier, keyed: true, keyRef: presented };
   }
   if (env.KEYS) {
     // The KEYS namespace also holds the free-beta list under BETA_PREFIX
@@ -103,10 +113,10 @@ async function authorizeKey(presented, env) {
       if (rl) {
         try {
           const { success } = await rl.limit({ key: presented });
-          if (!success) return err(429, `rate limited for the ${tier} tier — upgrade at ${PRICING_NOTE}`);
+          if (!success) return err(429, `rate limited for the ${tier} tier (${limitsFor(tier).burst}) — upgrade, ${PRICING_NOTE}`);
         } catch (_) { /* limiter unavailable: fail open */ }
       }
-      return { label: rec.label || "self-serve", tier, keyed: true };
+      return { label: rec.label || "self-serve", tier, keyed: true, keyRef: presented };
     }
   }
   return err(401, "missing or invalid X-API-Key");
@@ -194,15 +204,27 @@ export default {
       if (who instanceof Response) return who;
       const t0 = Date.now();
       const eng = getEngine(env);
+      // The daily quota is charged per billable tools/call, not per POST, so an
+      // initialize handshake, tools/list or server/discover costs nothing — the
+      // same rule the REST side applies to /docs and /openapi.json. handleMcp
+      // calls spend() before running the tool and renders a refusal as a tool
+      // error, so an over-quota agent gets a readable frame, never a broken one.
+      let q = null;
+      const spend = async (tool) => {
+        if (!BILLABLE_TOOLS.has(tool)) return null;
+        q = await spendQuota(env, who, req);
+        return q.ok ? null : quotaDetail(q);
+      };
       const resp = await handleMcp(req, eng, who, manifest,
-        (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0), env);
+        (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0), env, spend);
       const body = await resp.text();
       return new Response(body || null, {
         status: resp.status,
         headers: {
           ...(body ? { "content-type": resp.headers.get("content-type") || "application/json; charset=utf-8" } : {}),
           "x-hla-verify-release": manifest.release,
-          ...tierHeader(who),
+          ...(q ? quotaHeaders(q) : tierHeader(who)),
+          ...(q && !q.ok ? { "retry-after": String(retryAfterSeconds(q)) } : {}),
           ...CORS,
         },
       });
@@ -213,81 +235,101 @@ export default {
     const who = await authorize(req, env);
     if (who instanceof Response) return who;
     const t0 = Date.now();
+
+    // Daily quota. Charged once per request to a billable route, before the
+    // body is validated — the same rule the per-minute limiter already uses, so
+    // a malformed request costs what a good one does. /v1/beta-signup and an
+    // unknown /v1/* path are not billable and never reach this.
+    let q = null;
+    if (isBillablePath(path)) {
+      q = await spendQuota(env, who, req);
+      if (!q.ok) {
+        const headers = { ...quotaHeaders(q), "retry-after": String(retryAfterSeconds(q)) };
+        meter(env, ctx, who, path.slice(4), 429, 0, Date.now() - t0);
+        return err(429, quotaDetail(q), headers);
+      }
+    }
+    const hdrs = q ? quotaHeaders(q) : tierHeader(who);
+
     const eng = getEngine(env);
     try {
       if (path === "/v1/verify") {
-        if (req.method !== "POST") return err(405, "POST {\"text\": ...}");
+        if (req.method !== "POST") return err(405, "POST {\"text\": ...}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doVerify(eng, manifest, body.text);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "verify", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       if (path === "/v1/normalize") {
-        if (req.method !== "POST") return err(405, "POST {\"typings\": [...]}");
+        if (req.method !== "POST") return err(405, "POST {\"typings\": [...]}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
-        const r = await doNormalize(eng, manifest, body.typings);
-        if (!r.ok) return err(r.status, r.detail);
+        const r = await doNormalize(eng, manifest, body.typings, { tier: who.tier, cap: q.maxTypings });
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "normalize", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       if (path.startsWith("/v1/allele/")) {
-        if (req.method !== "GET") return err(405, "GET /v1/allele/{name}");
+        if (req.method !== "GET") return err(405, "GET /v1/allele/{name}", hdrs);
         let name;
-        try { name = decodeURIComponent(url.pathname.slice("/v1/allele/".length)); } catch (_) { return err(400, "bad name encoding"); }
+        try { name = decodeURIComponent(url.pathname.slice("/v1/allele/".length)); } catch (_) { return err(400, "bad name encoding", hdrs); }
         const r = await doAllele(eng, manifest, name);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "allele", r.status, r.units, Date.now() - t0);
-        return json(r.body, r.status, tierHeader(who));
+        return json(r.body, r.status, hdrs);
       }
       if (path === "/v1/match") {
-        if (req.method !== "POST") return err(405, "POST {\"framework\": \"8/8\", \"recipient\": {...}, \"donor\": {...}}");
+        if (req.method !== "POST") return err(405, "POST {\"framework\": \"8/8\", \"recipient\": {...}, \"donor\": {...}}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doMatch(eng, manifest, body.framework, body.recipient, body.donor);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "match", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       if (path === "/v1/typing/check") {
-        if (req.method !== "POST") return err(405, "POST {\"typing\": {...}}");
+        if (req.method !== "POST") return err(405, "POST {\"typing\": {...}}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doTypingCheck(eng, manifest, body.typing);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "typing/check", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       if (path === "/v1/compat") {
-        if (req.method !== "POST") return err(405, "POST {\"recipient\": {...}, \"donor\": {...}}");
+        if (req.method !== "POST") return err(405, "POST {\"recipient\": {...}, \"donor\": {...}}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doCompat(eng, manifest, body.recipient, body.donor);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "compat", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       if (path === "/v1/glstring") {
-        if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}");
+        if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}", hdrs);
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doGlString(eng, manifest, body.gl);
-        if (!r.ok) return err(r.status, r.detail);
+        if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       // Free public beta notification list. Same anonymous limiter as every
-      // other /v1/* route, so it cannot be spammed faster than 60/min per IP.
+      // other /v1/* route, so it cannot be spammed faster than 60/min per IP —
+      // but not billable: joining the list must never cost a caller a call.
       if (path === "/v1/beta-signup") {
         if (req.method !== "POST") return err(405, "POST {\"email\": \"...\"}");
         const [body, e] = await readJson(req); if (e) return e;
         const r = await doBetaSignup(env, manifest, body, req.headers.get("cf-ipcountry"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "beta-signup", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, tierHeader(who));
+        return json(r.body, 200, hdrs);
       }
       return err(404, "Not Found");
     } catch (ex) {
       meter(env, ctx, who, path.slice(4), 500, 0, Date.now() - t0);
-      return err(500, "internal error computing the verdict; nothing was stored");
+      return err(500, "internal error computing the verdict; nothing was stored", hdrs);
     }
   },
 };
 
 export { FRAMEWORKS };
+// The daily-quota counter. A Durable Object class has to be exported from the
+// Worker's entrypoint for the binding in wrangler.jsonc to find it.
+export { DailyQuota };

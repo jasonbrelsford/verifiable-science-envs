@@ -12,10 +12,31 @@
     { "pattern": "hlaverify.com/v1/*", "zone_name": "hlaverify.com" },
     { "pattern": "www.hlaverify.com/v1/*", "zone_name": "hlaverify.com" }
   ],
+  // Per-minute burst limits (the daily quota is the Durable Object below; the
+  // rate-limit binding only supports 10s and 60s windows, so it cannot count a
+  // day). One namespace per limit value: 1002 and 1003 keep the ids they have
+  // always had because their limits are unchanged — the tiers pointed at them
+  // were renamed (starter's 600/min became lab's), not re-valued. Starter's new
+  // 60/min gets its own namespace so it never shares counters with anonymous
+  // callers on RL. Enterprise has no binding: uncapped.
   "ratelimits": [
     { "name": "RL", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
-    { "name": "RL_STARTER", "namespace_id": "1002", "simple": { "limit": 600, "period": 60 } },
-    { "name": "RL_PRO", "namespace_id": "1003", "simple": { "limit": 6000, "period": 60 } }
+    { "name": "RL_LAB", "namespace_id": "1002", "simple": { "limit": 600, "period": 60 } },
+    { "name": "RL_SCALE", "namespace_id": "1003", "simple": { "limit": 6000, "period": 60 } },
+    { "name": "RL_STARTER", "namespace_id": "1004", "simple": { "limit": 60, "period": 60 } }
+  ],
+  // Daily call quotas (src/quota.js): one Durable Object instance per counting
+  // subject — per API key, or per IP-hash per UTC day for anonymous callers —
+  // holding {day, count} and rolling over at UTC midnight. SQLite-backed: the
+  // current default storage class for a new Durable Object class, and the one
+  // available on every plan.
+  "durable_objects": {
+    "bindings": [
+      { "name": "QUOTA", "class_name": "DailyQuota" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DailyQuota"] }
   ],
   // KV namespace for self-serve/tiered keys (record shape documented in
   // src/stripe.js). The overseer creates this once with
@@ -38,7 +59,10 @@
     "OAUTH_ENABLED": "1",
     // Maps a Stripe price id to a tier for self-serve key issuance (src/stripe.js),
     // used only when checkout.session.completed has no metadata.tier; anything not
-    // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"pro"}.
+    // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"lab"}.
+    // The map below still says "pro" for the $299 price: that is the legacy name for
+    // lab and resolves to Lab limits, so the live products can be renamed when the
+    // owner creates them without a deploy. Adding lab/scale prices is a var edit.
     "STRIPE_TIER_MAP": "{\"price_1UEZpKPULaK83987DPGNMPdD\": \"starter\", \"price_1UEZpLPULaK83987RyGL96dG\": \"pro\"}",
     // Stripe Payment Links shown as buttons on GET /pricing; each renders as
     // "coming soon" until set. Set metadata.tier on the underlying price (or on
@@ -47,7 +71,8 @@
     "STRIPE_PRO_LINK": "https://buy.stripe.com/test_00wcN7ddf6JN4ks0RvcZa01"
   }
   // Secrets (wrangler secret put):
-  //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, pro, enterprise)
+  //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, lab,
+  //     scale, enterprise; "pro" is the legacy name for lab and still parses)
   //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
   //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
   //   OAUTH_TOKEN_SECRET = "<64 random hex chars: openssl rand -hex 32>" — set; paired

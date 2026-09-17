@@ -64,7 +64,7 @@ function baseEnv(extra = {}) {
       [STARTER_KEY]: JSON.stringify({ label: "starter@example.com", tier: "starter", status: "active" }),
       [REVOKED_KEY]: JSON.stringify({ label: "gone@example.com", tier: "pro", status: "revoked" }),
     }),
-    RL: fakeRL(), RL_STARTER: fakeRL(), RL_PRO: fakeRL(),
+    RL: fakeRL(), RL_STARTER: fakeRL(), RL_LAB: fakeRL(), RL_SCALE: fakeRL(),
     ASSETS,
     ...extra,
   };
@@ -190,7 +190,7 @@ test("inert: 401 (PUBLIC_ACCESS=0) and 429 (anonymous and keyed) responses are u
   const cases = [
     ["closed anon", { PUBLIC_ACCESS: "0" }, {}],
     ["anon limited", { RL: fakeRL(false) }, {}],
-    ["pro limited", { RL_PRO: fakeRL(false) }, { "x-api-key": PRO_KEY }],
+    ["pro limited", { RL_LAB: fakeRL(false) }, { "x-api-key": PRO_KEY }],
   ];
   for (const [name, extra, headers] of cases) {
     for (const [iname, mk] of Object.entries(INERT_ENVS)) {
@@ -329,13 +329,13 @@ test("flag on: DCR client, PKCE, consent with a KV key, token exchange, /mcp at 
   // The client never sees the key: not in the client_id, code, or tokens.
   for (const v of [client.client_id, location.href, tokens.access_token, tokens.refresh_token]) assert.ok(!v.includes(PRO_KEY));
 
-  env.RL_PRO.calls.length = 0;
+  env.RL_LAB.calls.length = 0;
   const r = await mcpWith(env, tokens.access_token, mcpBody("tools/call", { name: "verify_text", arguments: { text: "A*0101 DQB1*05:03:26:99" } }));
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("x-hla-verify-tier"), "pro");
   const j = await r.json();
   assert.equal(j.result.isError, false);
-  assert.deepEqual(env.RL_PRO.calls, [PRO_KEY], "token usage counts against the key's own rate limit");
+  assert.deepEqual(env.RL_LAB.calls, [PRO_KEY], "token usage counts against the key's own rate limit");
 
   // The same call with the raw key produces the same result body.
   const direct = await call(env, "POST", "/mcp", { headers: { ...MCP_JSON, "x-api-key": PRO_KEY }, body: mcpBody("tools/call", { name: "verify_text", arguments: { text: "A*0101 DQB1*05:03:26:99" } }) });

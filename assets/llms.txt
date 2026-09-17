@@ -27,13 +27,13 @@ release; verification is pinned to an exact release version.
 
 - Product page (plans, pipeline integration points, MCP setup, for lab directors, LIMS
   product managers, and AI platform teams): https://hlaverify.com/product
-- Pricing (free/starter/pro/enterprise tiers; self-serve Stripe checkout opens when the
-  free public beta ends): https://api.hlaverify.com/pricing
+- Pricing (free/starter/lab/scale/enterprise tiers; self-serve Stripe checkout opens when
+  the free public beta ends): https://api.hlaverify.com/pricing
 - Free public beta: verdicts are production-quality and pinned to IPD-IMGT/HLA 3.65.0, and
-  anonymous access stays open at 60 req/min per IP. Paid keys with higher rate limits arrive
+  anonymous access stays open at 100 calls/day per IP. Paid keys with higher quotas arrive
   within days — join the list at https://hlaverify.com/beta (or POST /v1/beta-signup), or
   email hello@hlaverify.com for a beta key now.
-- Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 60 req/min; keys for
+- Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 100 calls/day; keys for
   production): https://api.hlaverify.com — reference https://api.hlaverify.com/docs,
   OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…
     POST /v1/verify    {"text": "..."}                -> every allele-shaped token classified
@@ -61,10 +61,17 @@ release; verification is pinned to an exact release version.
     Local (stdio): `pip install "verifiable-science-envs[mcp] @ git+https://github.com/jasonbrelsford/verifiable-science-envs"` then `python -m sci_envs.mcp_server`
       tools: verify_text, normalize_allele, match_score, check_typing, donor_compat,
       validate_gl_string, about (no allele_info; use the remote server or GET /v1/allele/{name})
-- API keys: free 60 req/min per IP with no key; starter/pro keys (higher per-minute limits,
-  per-key usage reporting, release-change notices) are hand-issued free during the beta and
+- API keys and limits (calls per UTC day / typings per /v1/normalize call / burst):
+  free 100 / 250 / 60-per-min per IP with no key; starter $49/mo 500 / 250 / 60-per-min;
+  lab $299/mo 10,000 / 5,000 / 600-per-min; scale $1,999/mo 1,000,000 / 5,000 / 6,000-per-min;
+  enterprise uncapped. "pro" is the legacy name for "lab" and keeps Lab's limits.
+  Quotas reset at UTC midnight; every billable response carries x-hla-verify-tier,
+  -daily-limit, -daily-remaining, -daily-reset and -max-typings, and an exhausted quota is a
+  429 naming the reset time. /v1/verify takes 200,000 characters on every tier. /healthz,
+  /docs, /openapi.json, /pricing and /v1/beta-signup are not billable. Paid keys (per-key
+  usage reporting, release-change notices) are hand-issued free during the beta and
   self-serve via Stripe checkout at https://api.hlaverify.com/pricing shortly after;
-  enterprise keys (uncapped) and commercial licensing by request: hello@hlaverify.com
+  enterprise keys and commercial licensing by request: hello@hlaverify.com
 
 ## Benchmarks (for model developers)
 
