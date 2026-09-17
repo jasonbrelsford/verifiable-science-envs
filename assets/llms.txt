@@ -64,7 +64,8 @@ release; verification is pinned to an exact release version.
 - API keys and limits (calls per UTC day / typings per /v1/normalize call / burst):
   free 100 / 250 / 60-per-min per IP with no key; starter $49/mo 500 / 250 / 60-per-min;
   lab $299/mo 10,000 / 5,000 / 600-per-min; scale $1,999/mo 1,000,000 / 5,000 / 6,000-per-min;
-  enterprise uncapped. "pro" is the legacy name for "lab" and keeps Lab's limits.
+  enterprise uncapped / 5,000 / uncapped. "pro" is the legacy name for "lab" and keeps
+  Lab's limits.
   Quotas reset at UTC midnight; every billable response carries x-hla-verify-tier,
   -daily-limit, -daily-remaining, -daily-reset and -max-typings, and an exhausted quota is a
   429 naming the reset time. /v1/verify takes 200,000 characters on every tier. /healthz,
