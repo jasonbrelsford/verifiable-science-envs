@@ -13,6 +13,7 @@ import { FRAMEWORKS } from "./engine.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString, doBetaSignup,
   MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE } from "./handlers.js";
 import { TIER_LIMITS } from "./keys.js";
+import { getPricing, priceLabel } from "./pricing.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -523,7 +524,11 @@ const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHi
 // idempotent — the second call on the same address records nothing new.
 const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorldHint: false };
 
-function aboutBody(manifest) {
+// `pricing` is pricing.js getPricing()'s return value. The money in `limits`
+// comes from Stripe the same way /pricing's does, so an agent reading `about`
+// and a human reading the pricing page are quoted the same number; the enforced
+// limits either side of it still come from TIER_LIMITS.
+function aboutBody(manifest, pricing) {
   return {
     name: "HLA-Verify",
     release: manifest.release,
@@ -541,7 +546,7 @@ function aboutBody(manifest) {
     agents: "https://hlaverify.com/llms.txt",
     limits: "Per UTC day, per tier: " +
       Object.entries(TIER_LIMITS).map(([t, l]) =>
-        `${t} (${l.price}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
+        `${t} (${t === "free" || t === "enterprise" ? l.price : priceLabel(t, pricing)}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
         `up to ${l.typings.toLocaleString("en-US")} typings per normalize call, ${l.burst}`).join("; ") +
       ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
@@ -609,7 +614,7 @@ async function callTool(name, args, eng, manifest, beta) {
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
     case "about":
-      return okResult(aboutBody(manifest), 0);
+      return okResult(aboutBody(manifest, await getPricing(beta && beta.env)), 0);
     default:
       return errResult(`unknown tool: ${name}`);
   }

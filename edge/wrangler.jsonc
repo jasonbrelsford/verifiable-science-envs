@@ -57,24 +57,35 @@
     // turn it off — the /oauth/* and /.well-known/oauth-* routes 404 again and issued
     // tokens stop working. Anonymous and X-API-Key access are unchanged either way.
     "OAUTH_ENABLED": "1",
-    // Maps a Stripe price id to a tier for self-serve key issuance (src/stripe.js),
-    // used only when checkout.session.completed has no metadata.tier; anything not
-    // listed here falls back to "starter". Example: {"price_123":"starter","price_456":"lab"}.
-    // The map below still says "pro" for the $299 price: that is the legacy name for
-    // lab and resolves to Lab limits, so the live products can be renamed when the
-    // owner creates them without a deploy. Adding lab/scale prices is a var edit.
-    "STRIPE_TIER_MAP": "{\"price_1UEZpKPULaK83987DPGNMPdD\": \"starter\", \"price_1UEZpLPULaK83987RyGL96dG\": \"pro\"}",
-    // Stripe Payment Links shown as buttons on GET /pricing; each renders as
-    // "coming soon" until set. Set metadata.tier on the underlying price (or on
-    // the Payment Link itself) so the webhook can read session.metadata.tier.
-    "STRIPE_STARTER_LINK": "https://buy.stripe.com/test_14A14p4GJ1pt5owcAdcZa00",
-    "STRIPE_PRO_LINK": "https://buy.stripe.com/test_00wcN7ddf6JN4ks0RvcZa01"
+    // BACKSTOP ONLY. Maps a Stripe price id to a tier for self-serve key issuance
+    // (src/stripe.js resolveTier), and it is read only when a completed checkout
+    // session has no metadata.tier. The primary path sets that metadata:
+    // POST /v1/checkout (src/pricing.js) copies the tier off the price's own
+    // metadata.tier onto the session, and the webhook reads it with no API call.
+    // This map is what catches a session created some other way — by hand in the
+    // dashboard, or by an invoice — so keep the three live price ids in it.
+    // Anything not listed falls back to "starter".
+    //   price_1UGX9VBgPah7LBLfVLh5b8Xh  HLA-Verify Starter  $49/mo
+    //   price_1UGXT9BgPah7LBLfDRiP0XTs  HLA-Verify Lab      $299/mo
+    //   price_1UGXVWBgPah7LBLfpl5LpTyy  HLA-Verify Scale    $1,999/mo
+    // The prices themselves are NOT configured here: GET /pricing reads amount,
+    // currency and interval live from Stripe (src/pricing.js), so changing a
+    // price in the dashboard changes the published page with no deploy. Only a
+    // NEW price id needs this line edited.
+    "STRIPE_TIER_MAP": "{\"price_1UGX9VBgPah7LBLfVLh5b8Xh\": \"starter\", \"price_1UGXT9BgPah7LBLfDRiP0XTs\": \"lab\", \"price_1UGXVWBgPah7LBLfpl5LpTyy\": \"scale\"}"
+    // STRIPE_API_BASE is deliberately NOT set here. It is a local-testing seam
+    // (src/pricing.js) that points the Stripe calls at a stub, and it is honoured
+    // only when it addresses the loopback interface, so it cannot send the secret
+    // key anywhere else. Set it in edge/.dev.vars for `wrangler dev`, never here.
   }
   // Secrets (wrangler secret put):
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, lab,
   //     scale, enterprise; "pro" is the legacy name for lab and still parses)
   //   STRIPE_WEBHOOK_SECRET = "<the whsec_... signing secret from the Stripe webhook endpoint settings>"
-  //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions read, Customers write only>"
+  //   STRIPE_SECRET_KEY = "<a RESTRICTED Stripe API key: Checkout Sessions write; Prices,
+  //     Products and Customers read>". Absent, GET /pricing still renders from the last
+  //     cached Stripe answer or from the TIER_LIMITS table, the buy buttons are hidden,
+  //     and POST /v1/checkout answers 503 pointing at hello@hlaverify.com.
   //   QUOTA_IP_SALT = "<32+ chars: openssl rand -hex 32>" — set. Salts the anonymous
   //     daily-quota counter name so the digest is not a lookup table over IPv4. Absent
   //     or shorter than 16 chars, anonymous requests are served uncounted (fail open).
