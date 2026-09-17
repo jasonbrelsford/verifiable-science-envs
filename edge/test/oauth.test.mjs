@@ -179,7 +179,8 @@ test("inert: /mcp and /v1 auth paths are identical with the flag unset or any pa
     assert.equal(baseline[k].status, 401, k);
     assert.equal(baseline[k].body, '{"detail":"missing or invalid X-API-Key"}', k);
     assert.deepEqual(baseline[k].headers.map(([h]) => h), ["access-control-allow-headers", "access-control-allow-methods",
-      "access-control-allow-origin", "access-control-max-age", "cache-control", "content-type", "x-hla-verify-release"], k);
+      "access-control-allow-origin", "access-control-expose-headers", "access-control-max-age", "cache-control",
+      "content-type", "x-hla-verify-release"], k);
   }
   assert.equal(baseline["revoked key mcp"].body, '{"detail":"API key revoked"}');
   assert.equal(baseline["OPTIONS oauth token"].status, 204);

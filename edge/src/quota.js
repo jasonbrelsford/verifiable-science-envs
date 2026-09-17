@@ -65,7 +65,13 @@ async function sha256Hex(s) {
 // outlives the day it was counted in. Raw keys and raw IPs go no further than
 // this function.
 export async function subjectName(who, req, day) {
-  if (who.keyed) return `k:${(await sha256Hex(`hlv-quota-key:${who.keyRef || who.label}`)).slice(0, 32)}`;
+  if (who.keyed) {
+    // Deliberately fatal rather than falling back to the label: a keyed caller
+    // with no keyRef is a bug, and any fallback would silently bill every such
+    // key to one shared counter. Throwing here fails the request OPEN instead.
+    if (typeof who.keyRef !== "string" || !who.keyRef) throw new Error("keyed caller without a key reference");
+    return `k:${(await sha256Hex(`hlv-quota-key:${who.keyRef}`)).slice(0, 32)}`;
+  }
   const ip = (req && req.headers.get("cf-connecting-ip")) || "unknown";
   return `a:${(await sha256Hex(`hlv-quota-ip:${day}:${ip}`)).slice(0, 32)}`;
 }
@@ -77,7 +83,7 @@ export async function spendQuota(env, who, req, { now = Date.now() } = {}) {
   const lim = limitsFor(who.tier);
   const day = utcDay(now);
   const state = { tier: who.tier, limit: lim.calls, maxTypings: lim.typings,
-    reset: nextUtcMidnight(now).toISOString(), remaining: null, ok: true, counted: false };
+    reset: nextUtcMidnight(now).toISOString(), remaining: null, ok: true };
   if (lim.calls === null || !env || !env.QUOTA) return state;
   try {
     const stub = env.QUOTA.get(env.QUOTA.idFromName(await subjectName(who, req, day)));
@@ -91,7 +97,6 @@ export async function spendQuota(env, who, req, { now = Date.now() } = {}) {
     // that did not count: treated as an outage, not as a zero.
     if (typeof count !== "number" || !Number.isFinite(count)) throw new Error("bad counter response");
     state.ok = !over;
-    state.counted = !over;
     state.remaining = Math.max(0, lim.calls - count);
   } catch (_) {
     // Counter unreachable or erroring: serve the request and record it as
@@ -151,10 +156,15 @@ export class DailyQuota {
   }
 
   async fetch(request) {
-    let day = utcDay(), limit = 0;
+    let day, limit;
     try {
       ({ day, limit } = await request.json());
-    } catch (_) { /* unparseable body: treated as a zero limit, i.e. refuse */ }
+    } catch (_) {
+      // A body we could not read is an outage, not a caller over their quota:
+      // answer with an error so spendQuota() fails OPEN rather than refusing a
+      // request on a count that was never made.
+      return new Response(null, { status: 500 });
+    }
 
     const rec = (await this.state.storage.get("q")) || { day: "", count: 0 };
     const rolled = rec.day !== day;

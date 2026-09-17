@@ -4,6 +4,7 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { TIER_LIMITS } from "./keys.js";
+import { MAX_TYPINGS } from "./handlers.js";
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const n = (v) => (v === null ? "uncapped" : v.toLocaleString("en-US"));
@@ -118,7 +119,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: appli
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back as an ordinary tool result with <code>isError:true</code> and a message naming the reset time — a frame every client can read — on HTTP 429.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus <code>beta_signup</code>, the one tool that writes (it joins the beta list, as the endpoint above does). Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back on HTTP 200 as an ordinary tool result with <code>isError:true</code> and a message naming the reset time, with <code>x-hla-verify-daily-remaining: 0</code> and <code>Retry-After</code> on the response: MCP clients treat a non-2xx POST as a transport failure and never read the frame, so the refusal is sent the one way an agent actually sees it. REST keeps its 429.</p>
 <p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <p>Discovery before connecting: an MCP Server Card (SEP-2127) at <a href="/mcp/server-card"><code>GET /mcp/server-card</code></a> (also <code>/.well-known/mcp/server-card.json</code>) gives name, version, endpoint, headers and protocol versions without a handshake, and <a href="/.well-known/ai-catalog.json"><code>/.well-known/ai-catalog.json</code></a> lists it for domain-level crawlers. Tools are not in the card — call <code>tools/list</code>. The repository's <code>server.json</code> describes the same server (<code>com.hlaverify/hla-verify</code>) for the official MCP Registry.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
@@ -287,11 +288,11 @@ export function openapi(m) {
             g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } },
           attribution } } } } }, 422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/normalize": { post: { summary: "Normalize reported typings to the current release",
-        description: `maxItems is the ceiling (enterprise, scale and lab). The cap that applies to a request is the caller's tier's — ` +
-          `free and starter ${TYPINGS("free")} typings per call — and is reported on every response as x-hla-verify-max-typings; ` +
-          "a batch over it is a 422 naming the cap and the tier that lifts it.",
+        description: `maxItems is the ceiling. The cap that applies to a request is the caller's tier's (` +
+          Object.entries(TIER_LIMITS).map(([t, l]) => `${t} ${n(l.typings)}`).join(", ") +
+          "), reported on every response as x-hla-verify-max-typings; a batch over it is a 422 naming the cap and the tier that lifts it.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["typings"],
-          properties: { typings: { type: "array", items: { type: "string" }, maxItems: 5000 } } } } } },
+          properties: { typings: { type: "array", items: { type: "string" }, maxItems: MAX_TYPINGS } } } } } },
         responses: { 200: { description: "rows", content: { "application/json": { schema: { type: "object", properties: {
           release: { type: "string" }, rows: { type: "array", items: { type: "object", properties: {
             reported: { type: "string" }, current_name: { type: "string" }, allele_2field: { type: "string" },
@@ -344,7 +345,7 @@ export function openapi(m) {
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },
         responses: { 200: { description: "JSON-RPC 2.0 response or error" }, 202: { description: "notification acknowledged (no body)" },
           405: { description: "GET not supported" },
-          429: { description: "daily quota exhausted — a JSON-RPC result whose tool result has isError:true and names the UTC-midnight reset" } } } },
+          429: { description: "rate limited (per-minute burst). A spent DAILY quota is not a 429 here: it is a 200 JSON-RPC result whose tool result has isError:true and names the UTC-midnight reset, with x-hla-verify-daily-remaining: 0 and Retry-After on the response." } } } },
     },
   };
 }

@@ -8,7 +8,7 @@
 import { createEngine, FRAMEWORKS } from "./engine.js";
 import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
-import { parseKeys } from "./keys.js";
+import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
   doBetaSignup, BETA_PREFIX } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
@@ -17,7 +17,6 @@ import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
 import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
 import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, isBillablePath,
   BILLABLE_TOOLS } from "./quota.js";
-import { TIER_LIMITS, limitsFor } from "./keys.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -43,6 +42,11 @@ const CORS = {
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers": "content-type, x-api-key, authorization, mcp-protocol-version, mcp-method, mcp-name",
   "access-control-max-age": "86400",
+  // Without this, browser JS can read none of the headers below — including the
+  // whole quota contract /docs tells callers to read. Same mechanism the Server
+  // Card (discovery.js) and the OAuth challenge (oauth.js) already use.
+  "access-control-expose-headers": "x-hla-verify-release, x-hla-verify-tier, x-hla-verify-daily-limit, " +
+    "x-hla-verify-daily-remaining, x-hla-verify-daily-reset, x-hla-verify-max-typings, retry-after",
 };
 function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), {
@@ -133,12 +137,14 @@ function meter(env, ctx, who, endpoint, status, units, ms) {
   } catch (_) { /* metering must never break a verdict */ }
 }
 
-async function readJson(req) {
+// `extra` is the caller's quota headers: a request rejected here has already
+// been charged, so it must still be told what it has left.
+async function readJson(req, extra = {}) {
   const ct = req.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) return [null, err(415, "send application/json")];
+  if (!ct.includes("application/json")) return [null, err(415, "send application/json", extra)];
   let body;
-  try { body = await req.json(); } catch (_) { return [null, err(400, "malformed JSON body")]; }
-  if (!body || typeof body !== "object" || Array.isArray(body)) return [null, err(422, "body must be a JSON object")];
+  try { body = await req.json(); } catch (_) { return [null, err(400, "malformed JSON body", extra)]; }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return [null, err(422, "body must be a JSON object", extra)];
   return [body, null];
 }
 
@@ -240,12 +246,15 @@ export default {
     // body is validated — the same rule the per-minute limiter already uses, so
     // a malformed request costs what a good one does. /v1/beta-signup and an
     // unknown /v1/* path are not billable and never reach this.
+    // Metering records counts, never content: /v1/allele/{name} carries the
+    // requested name in its path, so the endpoint label is the route, not the path.
+    const endpoint = path.startsWith("/v1/allele/") ? "allele" : path.slice(4);
     let q = null;
     if (isBillablePath(path)) {
       q = await spendQuota(env, who, req);
       if (!q.ok) {
         const headers = { ...quotaHeaders(q), "retry-after": String(retryAfterSeconds(q)) };
-        meter(env, ctx, who, path.slice(4), 429, 0, Date.now() - t0);
+        meter(env, ctx, who, endpoint, 429, 0, Date.now() - t0);
         return err(429, quotaDetail(q), headers);
       }
     }
@@ -255,7 +264,7 @@ export default {
     try {
       if (path === "/v1/verify") {
         if (req.method !== "POST") return err(405, "POST {\"text\": ...}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doVerify(eng, manifest, body.text);
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "verify", 200, r.units, Date.now() - t0);
@@ -263,7 +272,7 @@ export default {
       }
       if (path === "/v1/normalize") {
         if (req.method !== "POST") return err(405, "POST {\"typings\": [...]}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doNormalize(eng, manifest, body.typings, { tier: who.tier, cap: q.maxTypings });
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "normalize", 200, r.units, Date.now() - t0);
@@ -280,7 +289,7 @@ export default {
       }
       if (path === "/v1/match") {
         if (req.method !== "POST") return err(405, "POST {\"framework\": \"8/8\", \"recipient\": {...}, \"donor\": {...}}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doMatch(eng, manifest, body.framework, body.recipient, body.donor);
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "match", 200, r.units, Date.now() - t0);
@@ -288,7 +297,7 @@ export default {
       }
       if (path === "/v1/typing/check") {
         if (req.method !== "POST") return err(405, "POST {\"typing\": {...}}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doTypingCheck(eng, manifest, body.typing);
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "typing/check", 200, r.units, Date.now() - t0);
@@ -296,7 +305,7 @@ export default {
       }
       if (path === "/v1/compat") {
         if (req.method !== "POST") return err(405, "POST {\"recipient\": {...}, \"donor\": {...}}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doCompat(eng, manifest, body.recipient, body.donor);
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "compat", 200, r.units, Date.now() - t0);
@@ -304,7 +313,7 @@ export default {
       }
       if (path === "/v1/glstring") {
         if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}", hdrs);
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doGlString(eng, manifest, body.gl);
         if (!r.ok) return err(r.status, r.detail, hdrs);
         meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
@@ -315,7 +324,7 @@ export default {
       // but not billable: joining the list must never cost a caller a call.
       if (path === "/v1/beta-signup") {
         if (req.method !== "POST") return err(405, "POST {\"email\": \"...\"}");
-        const [body, e] = await readJson(req); if (e) return e;
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
         const r = await doBetaSignup(env, manifest, body, req.headers.get("cf-ipcountry"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "beta-signup", 200, r.units, Date.now() - t0);
@@ -323,7 +332,7 @@ export default {
       }
       return err(404, "Not Found");
     } catch (ex) {
-      meter(env, ctx, who, path.slice(4), 500, 0, Date.now() - t0);
+      meter(env, ctx, who, endpoint, 500, 0, Date.now() - t0);
       return err(500, "internal error computing the verdict; nothing was stored", hdrs);
     }
   },

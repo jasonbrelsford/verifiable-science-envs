@@ -545,7 +545,8 @@ function aboutBody(manifest) {
         `up to ${l.typings.toLocaleString("en-US")} typings per normalize call, ${l.burst}`).join("; ") +
       ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
-      "back as a tool error naming the UTC-midnight reset time — wait for it or upgrade, do not retry in a loop. " +
+      "back as a tool result with isError true, naming the UTC-midnight reset time, and x-hla-verify-daily-remaining 0 " +
+      "with Retry-After on the response — wait for the reset or upgrade, do not retry in a loop. " +
       "about and beta_signup are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
     beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
       `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
@@ -637,9 +638,13 @@ function jsonResponse(obj, status = 200) {
 // against the caller's quota and returns null to proceed, or the refusal text
 // when the quota is spent. Charged per billable tools/call, so a handshake,
 // tools/list or server/discover is free, exactly as /docs is on REST. A refusal
-// comes back as an ordinary tool result with isError:true — a frame every MCP
-// client can read and every agent can act on — carried on HTTP 429, the status
-// this endpoint has always used for a limit.
+// comes back as an ordinary tool result with isError:true, on HTTP 200 — the
+// only shape an agent actually reads. The official MCP client (v2) throws
+// SdkHttpError on any non-2xx POST without matching the body to the pending
+// request, so a refusal sent on 429 reaches the model as an opaque transport
+// failure instead of "retry after midnight, or upgrade". The machine-readable
+// signal is on the response headers instead: x-hla-verify-daily-remaining: 0
+// and Retry-After. REST keeps its 429.
 export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null) {
   const beta = { env, country: request.headers.get("cf-ipcountry") };
   let raw;
@@ -681,15 +686,15 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
   if (method === "tools/call") {
     const name = params && params.name;
     if (typeof name !== "string" || !name) return rpcError(id, -32602, "Invalid params: params.name (string) is required");
-    const { out, overQuota } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
-    return rpcResult(id, out, overQuota ? 429 : 200);
+    const { out } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
+    return rpcResult(id, out);
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
 // Returns { out, overQuota }: the tool result to put in the JSON-RPC frame, and
-// whether it is a quota refusal (which the caller renders as HTTP 429).
+// whether it is a quota refusal (metered as 429, answered on 200 — see above).
 async function runTool(name, args, engine, manifest, onCall, beta, spend = null) {
   const refusal = spend ? await spend(name) : null;
   if (refusal) {
@@ -751,8 +756,8 @@ async function handleModern(request, msg, metaVersion, engine, manifest, onCall,
     const hn = decodeHeaderValue(h.get("mcp-name"));
     if (hn === null) return mismatch("Mcp-Name header is required for tools/call");
     if (hn !== name) return mismatch(`Mcp-Name header value '${hn}' does not match body value '${name}'`);
-    const { out, overQuota } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
-    return complete(out, overQuota ? 429 : 200);
+    const { out } = await runTool(name, params.arguments, engine, manifest, onCall, beta, spend);
+    return complete(out);
   }
 
   return rpcError(id, -32601, `Method not found: ${method}`, { status: 404 });
