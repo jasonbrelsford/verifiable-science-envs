@@ -1,10 +1,13 @@
 // API reference page and OpenAPI document for api.hlaverify.com.
 // The tier table on /docs and /pricing is generated from keys.js TIER_LIMITS,
-// so the published limits and the enforced ones cannot drift apart.
+// so the published limits and the enforced ones cannot drift apart. The money
+// column comes from a different source of truth: live Stripe prices via
+// pricing.js, falling back to TIER_LIMITS[t].price when Stripe is unreachable.
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { TIER_LIMITS } from "./keys.js";
 import { MAX_TYPINGS } from "./handlers.js";
+import { priceLabel, SELLABLE_TIERS } from "./pricing.js";
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const n = (v) => (v === null ? "uncapped" : v.toLocaleString("en-US"));
@@ -18,8 +21,22 @@ function tierRows(extra) {
     `<tr><td><code>${t}</code></td><td>${n(l.calls)} calls/day</td><td>${n(l.typings)}</td><td>${esc(l.burst)}</td><td>${extra(t, l)}</td></tr>`).join("\n");
 }
 
-export function DOCS_HTML(m) {
+// `pricing` is pricing.js getPricing()'s return value; only two paragraphs read
+// it, and only to decide whether self-serve checkout is claimed to work. The
+// claim is made behind exactly the condition that makes it true — a secret key
+// plus at least one live Stripe price — so the page never promises a checkout
+// that would answer with the email fallback.
+export function DOCS_HTML(m, pricing = { source: "table", prices: {}, live: false }) {
   const curl = (s) => `<pre><code>${esc(s)}</code></pre>`;
+  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
+  const betaKeys = selfServe
+    ? `Paid keys with higher quotas — Starter, Lab and Scale — are self-serve: pick a tier on the <a href="/pricing">pricing page</a> and the key is issued automatically when Stripe confirms the subscription. Enterprise and research keys are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.`
+    : `Paid keys with higher quotas — Starter, Lab and Scale — are issued on request today: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a> and say roughly what you are calling and how often. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> (or <code>POST /v1/beta-signup</code>) to hear when it is.`;
+  const betaSection = selfServe
+    ? `<h3>Buying a key</h3>
+<p>Prices come from Stripe at request time, so the <a href="/pricing">pricing page</a> is always what you will actually be charged. <code>POST /v1/checkout</code> with <code>{"tier": "lab"}</code> returns a Stripe Checkout Session url; the buttons on the pricing page do exactly that. The endpoint is free and does not consume daily quota. <b>The price you sign at is the price you keep:</b> a subscription stays on the price it was created with until it is deliberately migrated, so a later price change applies to new subscribers, not to you. Beta keys at a paid tier's limits are still issued by hand on request — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a>.</p>`
+    : `<h3>Keys during the beta</h3>
+<p>Self-serve checkout is not open yet. Beta keys are issued by hand at a paid tier's limit, free for the duration of the beta — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> with roughly what you're calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to be told when checkout opens. The rest of this section describes how self-serve will work when it does.</p>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify API — reference</title>
 <meta name="description" content="Deterministic HLA nomenclature and donor-recipient matching verification API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Allele names, not patient identifiers. No LLM, nothing stored.">
@@ -40,7 +57,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <h1>HLA-Verify API</h1>
 <p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
 <p class="send"><b>What to send.</b> HLA-Verify checks allele nomenclature, typing-report consistency and match arithmetic against a pinned IPD-IMGT/HLA release. Send <b>allele names, typing strings, GL strings and report text about HLA typing</b>. Do not send patient identifiers: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. The service neither needs nor wants them, request bodies are processed in memory and never stored, and de-identifying before you send is the caller's responsibility. This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor.</p>
-<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. Paid keys with higher quotas — Starter, Lab and Scale — are issued on request today: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a> and say roughly what you are calling and how often. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> (or <code>POST /v1/beta-signup</code>) to hear when it is.</p>
+<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
 
 <h2>Authentication and limits</h2>
 <p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota, larger batches, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
@@ -59,11 +76,10 @@ ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
 <tr><td><code>x-hla-verify-daily-reset</code></td><td>ISO-8601 timestamp of the next UTC midnight.</td></tr>
 <tr><td><code>x-hla-verify-max-typings</code></td><td>Your tier's cap on <code>typings</code> in one <code>/v1/normalize</code> call.</td></tr>
 </table>
-<p>Over quota is <code>429</code> with the usual <code>{"detail": "…"}</code>, naming the tier, the limit, the reset time and where to upgrade, plus <code>Retry-After</code> in seconds. Over your tier's batch cap is <code>422</code>, naming the cap and the tier that lifts it — split the batch or upgrade. <b>What does not consume quota:</b> <code>/healthz</code>, <code>/docs</code>, <code>/openapi.json</code>, <code>/pricing</code>, <code>/checkout/success</code>, <code>/v1/beta-signup</code>, the OAuth and <code>.well-known</code> routes, the Stripe webhook, and on <code>/mcp</code> everything that is not a tool call plus the <code>about</code> and <code>beta_signup</code> tools. <code>text</code> on <code>/v1/verify</code> stays capped at 200,000 characters for every tier, including free.</p>
-<h3>Keys during the beta</h3>
-<p>Self-serve checkout is not open yet. Beta keys are issued by hand at a paid tier's limit, free for the duration of the beta — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> with roughly what you're calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to be told when checkout opens. The rest of this section describes how self-serve will work when it does.</p>
+<p>Over quota is <code>429</code> with the usual <code>{"detail": "…"}</code>, naming the tier, the limit, the reset time and where to upgrade, plus <code>Retry-After</code> in seconds. Over your tier's batch cap is <code>422</code>, naming the cap and the tier that lifts it — split the batch or upgrade. <b>What does not consume quota:</b> <code>/healthz</code>, <code>/docs</code>, <code>/openapi.json</code>, <code>/pricing</code>, <code>/checkout/success</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code>, the OAuth and <code>.well-known</code> routes, the Stripe webhook, and on <code>/mcp</code> everything that is not a tool call plus the <code>about</code> and <code>beta_signup</code> tools. <code>text</code> on <code>/v1/verify</code> stays capped at 200,000 characters for every tier, including free.</p>
+${betaSection}
 <h3>Self-serve keys</h3>
-<p>Starter and Pro keys are issued automatically through Stripe: buy on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Starter, Lab and Scale keys are issued automatically through Stripe: subscribe on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
@@ -164,13 +180,76 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 // `betaCta` cells in the table below back to `buy(starterLink, "Buy Starter")`
 // and `buy(proLink, "Buy Lab")`. Nothing else here or in stripe.js changed; the
 // `buy` helper and both link vars are kept wired for exactly that swap.
-export function PRICING_HTML(m, { starterLink, proLink } = {}) {
-  const buy = (link, label) =>
-    link ? `<a class="btn" href="${esc(link)}">${esc(label)}</a>` : `<span class="btn mut" aria-disabled="true">coming soon</span>`;
-  const betaCta = `<a class="btn" href="https://hlaverify.com/beta">Join the beta list</a>`;
+// GET /pricing. `pricing` is pricing.js getPricing()'s return value:
+// {source:"stripe"|"cache"|"table", prices:{tier:shape}, live}.
+//
+// What each source renders:
+//   stripe / cache — the amount, interval and currency Stripe holds. A sellable
+//     tier missing from that answer is shown as "contact us": its price was
+//     archived or untagged in Stripe, and inventing one here would publish a
+//     number nobody can actually be charged.
+//   table — no contact with Stripe at all (no secret key, or a cold cache
+//     during an outage). The published prices in TIER_LIMITS are shown, buy
+//     buttons are hidden, and the page reverts to the email path in full.
+// Buy buttons appear only when `live` is true, which means a secret key is
+// present and a real Stripe price id is in hand — so the beta wording that says
+// checkout is not open only disappears where checkout actually works.
+export function PRICING_HTML(m, pricing = { source: "table", prices: {}, live: false }) {
+  const prices = pricing.prices || {};
+  const fromStripe = pricing.source === "stripe" || pricing.source === "cache";
+  const canBuy = (t) => Boolean(pricing.live && prices[t]);
+  const anyBuyable = SELLABLE_TIERS.some(canBuy);
+
+  const cell = (t) => {
+    if (canBuy(t)) return `<button class="btn buy" type="button" data-tier="${esc(t)}">Subscribe</button>`;
+    return `<a class="btn mut" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20${esc(t)}%20key">Email us</a>`;
+  };
+  // A sellable tier Stripe does not list has no real price to quote.
+  const money = (t) => (fromStripe && !prices[t] ? "contact us" : esc(priceLabel(t, pricing)));
+  const sourceNote = fromStripe
+    ? "Prices are read from Stripe when this page is built, so what you see is what you will be charged; tax is calculated at checkout. Cancel anytime from the Stripe customer portal link in your receipt."
+    : "Prices are the published list; tax is calculated at checkout. Cancel anytime from the Stripe customer portal link in your receipt.";
+
+  const betaNote = anyBuyable
+    ? `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Anonymous access stays open at ${CALLS("free")} calls a day per IP. Starter, Lab and Scale are self-serve below: checkout runs on Stripe and your key is issued automatically. Need Enterprise, or a research key? Email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.</p>`
+    : `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas are issued on request today — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> to hear when it is.</p>`;
+
+  const tail = anyBuyable
+    ? `<p class="mut" style="margin-top:2em">Subscribing lands you on a success page showing your API key once — copy it then; it is also written to your Stripe customer record. Cancel anytime from the customer portal link in your receipt, which revokes the key. Enterprise keys and research access are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Full endpoint reference: <a href="/docs">/docs</a>.</p>`
+    : `<p class="mut" style="margin-top:2em">Self-serve checkout is not open yet. When it opens you will land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Today keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>`;
+
+  // The grandfathering rule, stated where a customer decides. This is Stripe's
+  // own behaviour, not something this Worker implements: a subscription stays
+  // on the price it was created with until someone deliberately migrates it.
+  const lockIn = `<p class="lock"><b>The price you sign at is the price you keep.</b> These prices track our cost and demand and are reviewed monthly. A subscription stays on the price it started on until it is deliberately migrated, so a change here applies to new subscribers — an existing subscription is not re-rated, and keeps its price until you change plan or renew a contract at a new one.</p>`;
+
+  const buyScript = anyBuyable
+    ? `<script>
+document.querySelectorAll('button.buy').forEach(function(b){
+  b.addEventListener('click', function(){
+    var note = document.getElementById('checkout-note');
+    var label = b.textContent;
+    b.disabled = true; b.textContent = 'Starting\\u2026'; note.textContent = '';
+    fetch('/v1/checkout', {method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({tier: b.dataset.tier})})
+      .then(function(r){ return r.json().then(function(d){ return {ok: r.ok, d: d}; }); })
+      .then(function(r){
+        if (r.ok && r.d && r.d.url) { window.location.href = r.d.url; return; }
+        note.textContent = (r.d && r.d.detail) || 'Checkout is unavailable right now. Email hello@hlaverify.com.';
+        b.disabled = false; b.textContent = label;
+      })
+      .catch(function(){
+        note.textContent = 'Checkout is unavailable right now. Email hello@hlaverify.com.';
+        b.disabled = false; b.textContent = label;
+      });
+  });
+});
+</script>`
+    : "";
+
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify — pricing</title>
-<meta name="description" content="HLA-Verify API pricing during the free public beta: open at ${CALLS("free")} calls a day per IP, paid Starter, Lab and Scale keys on request, Enterprise by arrangement.">
+<meta name="description" content="HLA-Verify API pricing during the free public beta: open at ${CALLS("free")} calls a day per IP, paid Starter, Lab and Scale keys, Enterprise by arrangement.">
 <style>
 :root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
@@ -178,26 +257,31 @@ export function PRICING_HTML(m, { starterLink, proLink } = {}) {
 h1{font-family:Georgia,serif;font-size:2rem;margin:.2em 0}
 table{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:1.2em}td,th{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
 a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
-.btn{display:inline-block;background:var(--green);color:#fff;border-radius:8px;padding:8px 16px;text-decoration:none;font-weight:600}
+.btn{display:inline-block;background:var(--green);color:#fff;border:0;border-radius:8px;padding:8px 16px;text-decoration:none;font:inherit;font-weight:600;cursor:pointer}
 .btn.mut{background:#EEECE4;color:var(--mut)}
+.btn[disabled]{opacity:.6;cursor:default}
 .beta{background:#DCEFDC;border-radius:10px;padding:12px 16px;margin-top:1.2em}
+.lock{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-top:1.2em}
+#checkout-note{color:#8A3324;min-height:1.4em}
 </style></head><body><div class="wrap">
 <nav><a href="/docs">API reference</a><a href="https://hlaverify.com">hlaverify.com</a></nav>
 <h1>Pricing</h1>
-<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas are issued on request today — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> to hear when it is.</p>
-<p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Prices and billing period are set at checkout; cancel anytime from the Stripe customer portal link in your receipt.</p>
+${betaNote}
+<p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. ${sourceNote}</p>
 <table>
 <tr><th>Tier</th><th>Price</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th></th></tr>
-<tr><td><b>Free</b></td><td>free, no key</td><td>${CALLS("free")} per IP</td><td>${TYPINGS("free")}</td><td>60/min</td><td class="mut">just start calling the API</td></tr>
-<tr><td><b>Starter</b></td><td>$49/mo</td><td>${CALLS("starter")}</td><td>${TYPINGS("starter")}</td><td>60/min</td><td>${betaCta}</td></tr>
-<tr><td><b>Lab</b></td><td>$299/mo</td><td>${CALLS("lab")}</td><td>${TYPINGS("lab")}</td><td>600/min</td><td>${betaCta}</td></tr>
-<tr><td><b>Scale</b></td><td>$1,999/mo</td><td>${CALLS("scale")}</td><td>${TYPINGS("scale")}</td><td>6,000/min</td><td>${betaCta}</td></tr>
+<tr><td><b>Free</b></td><td>free, no key</td><td>${CALLS("free")} per IP</td><td>${TYPINGS("free")}</td><td>60/min</td><td><a class="btn mut" href="https://hlaverify.com/beta">Join the beta list</a></td></tr>
+<tr><td><b>Starter</b></td><td>${money("starter")}</td><td>${CALLS("starter")}</td><td>${TYPINGS("starter")}</td><td>60/min</td><td>${cell("starter")}</td></tr>
+<tr><td><b>Lab</b></td><td>${money("lab")}</td><td>${CALLS("lab")}</td><td>${TYPINGS("lab")}</td><td>600/min</td><td>${cell("lab")}</td></tr>
+<tr><td><b>Scale</b></td><td>${money("scale")}</td><td>${CALLS("scale")}</td><td>${TYPINGS("scale")}</td><td>6,000/min</td><td>${cell("scale")}</td></tr>
 <tr><td><b>Enterprise</b></td><td>custom</td><td>uncapped</td><td>${TYPINGS("enterprise")}</td><td>uncapped</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
-<tr><td><b>Research</b></td><td>free with approval</td><td colspan="3">hlaverify.com/research</td><td><a class="btn" href="https://hlaverify.com/research">hlaverify.com/research</a></td></tr>
+<tr><td><b>Research</b></td><td>free with approval</td><td colspan="3">hlaverify.com/research</td><td><a class="btn mut" href="https://hlaverify.com/research">hlaverify.com/research</a></td></tr>
 </table>
-<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code> and <code>/v1/beta-signup</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
-<p class="mut" style="margin-top:2em">Self-serve checkout is not open yet. When it opens you will land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Today keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>
-</div></body></html>`;
+<p id="checkout-note" role="status" aria-live="polite"></p>
+${lockIn}
+<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code>, <code>/v1/checkout</code> and <code>/v1/beta-signup</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
+${tail}
+</div>${buyScript}</body></html>`;
 }
 
 // GET /checkout/success?session_id=... — shown right after Stripe redirects
@@ -241,8 +325,17 @@ ${body}
 </div></body></html>`;
 }
 
-export function openapi(m) {
+// `pricing` is pricing.js getPricing()'s return value; as on /docs, the
+// self-serve sentence is written only when self-serve actually works.
+export function openapi(m, pricing = { source: "table", prices: {}, live: false }) {
   const attribution = { type: "string" };
+  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
+  const buying = selfServe
+    ? "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys are self-serve through Stripe " +
+      "(POST /v1/checkout with {\"tier\": \"starter\"|\"lab\"|\"scale\"} returns a Checkout Session url, or use the buttons on /pricing), " +
+      "and a subscription keeps the price it was created with when prices later change. Enterprise and research keys: hello@hlaverify.com."
+    : "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas are issued on request " +
+      "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).";
   return {
     openapi: "3.1.0",
     info: { title: "HLA-Verify", version: "1.0.0",
@@ -254,9 +347,7 @@ export function openapi(m) {
         `Limits are a daily call quota plus a per-call batch cap, both per tier: free ${CALLS("free")} calls/day per IP and ${TYPINGS("free")} typings per /v1/normalize call, ` +
         `starter ${CALLS("starter")}/${TYPINGS("starter")}, lab ${CALLS("lab")}/${TYPINGS("lab")}, scale ${CALLS("scale")}/${TYPINGS("scale")}, enterprise uncapped/${TYPINGS("enterprise")}; ` +
         "'pro' is the legacy name for 'lab'. Quotas reset at UTC midnight and every billable response carries x-hla-verify-daily-limit, -daily-remaining, -daily-reset and -max-typings. " +
-        "/healthz, /docs, /openapi.json, /pricing and /v1/beta-signup are not billable. " +
-        "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas are issued on request " +
-        "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now).",
+        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout and /v1/beta-signup are not billable. " + buying,
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
     components: {
@@ -325,6 +416,32 @@ export function openapi(m) {
           properties: { gl: { type: "string", maxLength: 100000 } } } } } },
         responses: { 200: { description: "release, valid, normalized_gl, changed, loci, alleles, issues, counts, attribution" },
           422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/pricing": { get: { summary: "Published prices and limits (HTML)",
+        description: "Amount, currency and billing interval are read from Stripe at request time and cached for ten minutes, so a price change in Stripe " +
+          "publishes without a deploy. An existing subscription is not re-rated: it keeps the price it was created with until it is deliberately migrated. " +
+          "Not billable.",
+        responses: { 200: { description: "text/html" } } } },
+      "/v1/checkout": { post: { summary: "Start a Stripe Checkout Session for a paid tier",
+        description: "Creates a subscription-mode Stripe Checkout Session for the named tier at its current Stripe price and returns the hosted url to send " +
+          "the buyer to. metadata.tier is set on the session from the price's own tier metadata, which is what the webhook reads to issue the key. " +
+          "Promotion codes are accepted on Stripe's page; pass promotion_code to pre-apply one. Not billable against the daily quota, but rate limited " +
+          "like every other /v1/ route (60 requests/minute per IP without a key). 503 when self-serve checkout is not configured on the deployment or the " +
+          "tier has no live price — email hello@hlaverify.com in that case.",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object",
+          properties: { tier: { type: "string", enum: SELLABLE_TIERS, description: "Which plan to buy." },
+            price: { type: "string", description: "A specific active Stripe price id, instead of (or as a cross-check on) tier." },
+            promotion_code: { type: "string", maxLength: 64, description: "A customer-facing promotion code to pre-apply, for example a launch discount." } } } } } },
+        responses: { 200: { description: "checkout session created", content: { "application/json": { schema: { type: "object",
+          required: ["url", "tier"],
+          properties: { url: { type: "string", description: "Hosted Stripe Checkout url; send the buyer here." },
+            session_id: { type: "string" }, tier: { type: "string" }, price: { type: "string" },
+            amount: { type: "integer", description: "Unit amount in the currency's minor unit, as Stripe holds it." },
+            currency: { type: "string" }, interval: { type: "string" },
+            promotion_code_applied: { type: "boolean" } } } } } },
+          422: { description: "unknown or missing tier, or a price that is not an active plan", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          429: { description: "rate limited (60 req/min per IP; /v1/checkout does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          502: { description: "Stripe rejected the session or was unreachable", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "self-serve checkout is not configured, or that tier is not on sale", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/beta-signup": { post: { summary: "Join the free public beta's list for paid API keys",
         description: "Records one address per beta list entry; re-submitting the same address returns already_recorded rather than failing. Stores the address, the optional fields, a timestamp and CF-IPCountry — no IP address. The record is not an API key and cannot be used as one.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["email"],
