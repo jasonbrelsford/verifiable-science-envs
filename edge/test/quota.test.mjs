@@ -546,3 +546,10 @@ test("the docs, the OpenAPI document and the pricing page publish the enforced n
   assert.match(spec.paths["/v1/normalize"].post.description, /x-hla-verify-max-typings/);
   assert.equal(spec.paths["/v1/normalize"].post.requestBody.content["application/json"].schema.properties.typings.maxItems, 5000);
 });
+
+test("a counter that answers with nonsense is treated as an outage, not as a zero", async () => {
+  const env = baseEnv({ QUOTA: { idFromName: (name) => ({ name }), get: () => ({ fetch: async () => new Response("{}") }) } });
+  const { status, headers } = await allele(env);
+  assert.equal(status, 200);
+  assert.equal(q(headers).remaining, "unknown", "never NaN, never a fabricated remaining");
+});
