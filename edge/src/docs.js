@@ -37,6 +37,16 @@ export function DOCS_HTML(m, pricing = { source: "table", prices: {}, live: fals
 <p>Prices come from Stripe at request time, so the <a href="/pricing">pricing page</a> is always what you will actually be charged. <code>POST /v1/checkout</code> with <code>{"tier": "lab"}</code> returns a Stripe Checkout Session url; the buttons on the pricing page do exactly that. The endpoint is free and does not consume daily quota. <b>The price you sign at is the price you keep:</b> a subscription stays on the price it was created with until it is deliberately migrated, so a later price change applies to new subscribers, not to you. Beta keys at a paid tier's limits are still issued by hand on request — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a>.</p>`
     : `<h3>Keys during the beta</h3>
 <p>Self-serve checkout is not open yet. Beta keys are issued by hand at a paid tier's limit, free for the duration of the beta — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> with roughly what you're calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to be told when checkout opens. The rest of this section describes how self-serve will work when it does.</p>`;
+  // Same gate as betaKeys/betaSection above: the webhook genuinely issues and
+  // revokes keys end to end (stripe.js onCheckoutCompleted / onSubscription*),
+  // but that machinery is only live for a buyer once Stripe is holding a real,
+  // tier-tagged price this deployment can charge. Until then, say so plainly
+  // instead of describing the checkout flow as already open to buyers.
+  const selfServeKeysSection = selfServe
+    ? `<h3 id="self-serve-keys">Self-serve keys</h3>
+<p>Starter, Lab and Scale keys are issued automatically through Stripe: subscribe on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. Need an <code>enterprise</code> key? Email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>`
+    : `<h3 id="self-serve-keys">Self-serve keys</h3>
+<p>Not open yet: this deployment's Stripe configuration is still sandboxed, so a real purchase cannot complete. The automatic path is built — <code>POST /v1/checkout</code> creates a Stripe Checkout Session, and on a completed checkout Stripe's webhook creates an active key in the same store the API reads, shown once on the checkout success page and also written to the Stripe customer record — it just is not switched on for real money yet. Starter, Lab and Scale keys are issued by hand in the meantime: email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a> and say roughly what you are calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to hear when checkout opens.</p>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify API — reference</title>
 <meta name="description" content="Deterministic HLA nomenclature and donor-recipient matching verification API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Allele names, not patient identifiers. No LLM, nothing stored.">
@@ -60,7 +70,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
 
 <h2>Authentication and limits</h2>
-<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota, larger batches, per-key usage reporting, and a release-change notice before each quarterly IPD-IMGT/HLA update. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota and larger batches. Per-key usage reporting and a per-key notice before a release moves are on the roadmap, not built yet — see <a href="#release-pinning">Release pinning</a> below. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 <table>
 <tr><th>Tier</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th>Auth</th></tr>
 ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
@@ -78,8 +88,7 @@ ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
 </table>
 <p>Over quota is <code>429</code> with the usual <code>{"detail": "…"}</code>, naming the tier, the limit, the reset time and where to upgrade, plus <code>Retry-After</code> in seconds. Over your tier's batch cap is <code>422</code>, naming the cap and the tier that lifts it — split the batch or upgrade. <b>What does not consume quota:</b> <code>/healthz</code>, <code>/docs</code>, <code>/openapi.json</code>, <code>/pricing</code>, <code>/checkout/success</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code>, <code>/v1/research-access</code>, the OAuth and <code>.well-known</code> routes, the Stripe webhook, and on <code>/mcp</code> everything that is not a tool call plus the <code>about</code>, <code>beta_signup</code> and <code>research_access</code> tools. <code>text</code> on <code>/v1/verify</code> stays capped at 200,000 characters for every tier, including free.</p>
 ${betaSection}
-<h3>Self-serve keys</h3>
-<p>Starter, Lab and Scale keys are issued automatically through Stripe: subscribe on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. If self-serve checkout isn't live yet for your account, or you need an <code>enterprise</code> key, email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+${selfServeKeysSection}
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
@@ -126,6 +135,10 @@ ${curl(`curl -s https://api.hlaverify.com/v1/compat -H 'content-type: applicatio
 <p>Lab Toolkit. <code>{"gl": "A*01:01/A*02:01+A*03:01~B*07:02"}</code> — the <code>^</code> locus-block / <code>|</code> genotype-list / <code>+</code> genotype / <code>~</code> haplotype / <code>/</code> allele-list grammar, up to 5,000 allele tokens. Resolves and renames every allele token and flags structural problems (<code>mixed_locus_allele_list</code>, <code>haplotype_repeats_locus</code>, <code>more_than_two_haplotypes</code>, <code>genotype_loci_differ</code>, <code>genotype_list_loci_differ</code>, <code>locus_repeated_across_blocks</code>, <code>empty_element</code>, <code>whitespace_in_name</code>), returning a normalized string with outdated names rewritten to current. Units metered = allele token count (including empty slots from a doubled separator).</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: application/json' -d '{"gl": "A*0101+A*02:01"}'`)}
 
+<h3><span class="pill">POST</span><code>/v1/checkout</code> — start a Stripe Checkout Session for a paid tier</h3>
+<p><code>{"tier": "starter"|"lab"|"scale"}</code> (or a specific active <code>price</code> id, as a cross-check on <code>tier</code>). Returns a hosted Stripe Checkout url to send the buyer to; the buttons on <a href="/pricing">/pricing</a> call this endpoint. On a completed checkout, Stripe's webhook creates the key — see <a href="#self-serve-keys">Self-serve keys</a> above for whether that is switched on for real purchases right now. Free and not billable against the daily quota, but rate limited like every other <code>/v1/</code> route. 503 when self-serve checkout is not configured on this deployment or the tier has no live price.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/checkout -H 'content-type: application/json' -d '{"tier": "starter"}'`)}
+
 <h3><span class="pill">POST</span><code>/v1/beta-signup</code> — join the beta list for paid keys</h3>
 <p><code>{"email": "you@lab.example", "org": "…", "use_case": "…", "source": "…"}</code> — only <code>email</code> is required; <code>org</code> (≤120 chars), <code>use_case</code> (≤500) and <code>source</code> (≤120, a free-text hint such as <code>site</code>, <code>mcp</code> or <code>docs</code>) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; signing the same address twice is not an error and does not create a second record. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one or a field over its cap. We store the address, the optional fields, a timestamp and the <code>CF-IPCountry</code> of the request — no IP address, nothing else, and the record is not an API key. Need a higher limit today? Email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: application/json' \\
@@ -163,8 +176,8 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 </table>
 <p>Python (no HTTP): <code>pip install "verifiable-science-envs @ git+https://github.com/jasonbrelsford/verifiable-science-envs"</code>, then <code>from sci_envs.families.nomenclature.normalize import normalize</code> and <code>from sci_envs.families.matching.rules import score</code> — the same engine that computed these tables. Agents: MCP server <code>python -m sci_envs.mcp_server</code> with tools <code>verify_text</code>, <code>normalize_allele</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>; see <a href="https://hlaverify.com/llms.txt">llms.txt</a>.</p>
 
-<h2>Release pinning</h2>
-<p>This deployment is pinned to <b>${esc(m.release)}</b>; the tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; keyed customers receive a diff of changed verdicts before the pin moves, and an older release can be kept for a customer on request.</p>
+<h2 id="release-pinning">Release pinning</h2>
+<p>This deployment is pinned to <b>${esc(m.release)}</b> for every caller — one release for the whole deployment, not a value that varies by key. The tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; when this deployment's pin moves to a new release, that move is a deliberate, recorded step (see <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/RELEASE_BUMP.md">the release runbook</a>), not a silent change. <b>Per-key pinning — holding an individual key on an older release, or sending a keyed customer a diff of changed verdicts before the deployment-wide pin moves — is on the roadmap and not built today.</b></p>
 
 <h2>Errors</h2>
 <p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 missing/invalid/revoked key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 rate limited or daily quota exhausted (tier-specific, with <code>Retry-After</code>), 500 (nothing stored). MCP <code>tools/call</code> validation failures are not HTTP or JSON-RPC errors — they come back as a normal tool result with <code>isError:true</code> and an explanatory text block, per the MCP spec.</p>
@@ -177,15 +190,16 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 // /pricing — plain HTML, same styling as DOCS_HTML.
 //
 // FREE PUBLIC BETA (2026-09): the paid cells show a "Join the beta list" call to
-// action instead of the Stripe checkout buttons, because the Payment Links are
-// still Stripe TEST links and cannot take real money. The tiers and their limits
+// action instead of buy buttons because this deployment's Stripe configuration
+// is still sandboxed and cannot take real money yet. The tiers and their limits
 // stay visible — the prices are real, only the checkout is not.
 //
-// TO RESTORE THE BUTTONS when Stripe goes live: put the LIVE Payment Links in
-// STRIPE_STARTER_LINK / STRIPE_PRO_LINK (edge/wrangler.jsonc), then swap the
-// `betaCta` cells in the table below back to `buy(starterLink, "Buy Starter")`
-// and `buy(proLink, "Buy Lab")`. Nothing else here or in stripe.js changed; the
-// `buy` helper and both link vars are kept wired for exactly that swap.
+// TO GO LIVE, point this deployment at Stripe's live mode (a live
+// STRIPE_SECRET_KEY plus at least one live, tier-tagged Price — see
+// STRIPE_TIER_MAP in edge/wrangler.jsonc). No code change is needed here or in
+// stripe.js: `canBuy`/`anyBuyable` below already switch on `pricing.live`, and
+// the checkout flow is POST /v1/checkout (pricing.js createCheckoutSession),
+// not a static Payment Link.
 // GET /pricing. `pricing` is pricing.js getPricing()'s return value:
 // {source:"stripe"|"cache"|"table", prices:{tier:shape}, live}.
 //
