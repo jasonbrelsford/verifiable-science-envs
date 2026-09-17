@@ -25,12 +25,14 @@ construction, giving contamination resistance that static benchmarks cannot offe
 Across eight open-weight models (3B–14B) and one frontier model, accuracy on
 nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
-expansion** — the core clinical trap that a two-field name denotes many
+expansion** (0 of 30 tasks for each of the nine models) — the core clinical trap that a two-field name denotes many
 full-resolution alleles. On matching, string manipulation collapses to 0% and the
 best tested open model reached 13.7%; the dominant errors are counting matched loci
 instead of chromosomes, inventing the denominator, and over-crediting matches, and
 no model ever flagged unresolvable typing. Models fabricated allele
-names at 0.05–0.14 per task. A GRPO fine-tune on a disjoint generated split
+names at 0.06–0.20 per task on the full 550-task suite; the claude-sonnet-4-6
+rate of 0.09 is a lower bound, because 187 of its 550 responses were truncated
+and graded malformed and so could contribute no fabricated names. A GRPO fine-tune on a disjoint generated split
 [RESULTS PENDING] demonstrates the suites function as training environments, not
 only evaluations. All generators, graders, and the verification service are open
 source; the scored split remains sealed and regenerates every release.
@@ -143,7 +145,7 @@ without exposing the sealed split.
 | Model | Acc [95% CI] | Fabricated-name tasks | Notes |
 |---|---:|---:|---|
 | oracle | 100% | 0 | validates harness |
-| claude-sonnet-4-6 | 34.7%* | — | *600-token truncation on 187 tasks; clean 1600-token re-run pending |
+| claude-sonnet-4-6 | 34.7%* | 41* | *600-token truncation on 187 of 550 tasks, graded `malformed_response`; both the accuracy and the 0.09/task fabrication rate are lower bounds; clean 1600-token re-run pending |
 | qwen2.5:7b | 31% [27–35] | 47 | perfect null_trap; 0% expand_ambiguity |
 | mistral:7b | 29% [26–33] | 76 | truncation changes digits (B*15:504→B*15:01) |
 | naive-string baseline | 28% | 0 | |
@@ -154,6 +156,8 @@ without exposing the sealed split.
 | llama3.1:8b | 21% [18–25] | 43 | worst calibration (402/550 wrong-overconfident) |
 | llama3.2:3b | 15% [12–18] | 57 | below the string baseline |
 | cautious-abstainer | 4% | 0 | refusal floor |
+
+Fabrication rate per task, full suite: 0.06 (qwen2.5:3b) to 0.20 (gemma3:12b).
 
 Key findings: (1) universal 0% on `expand_ambiguity` across Claude, Qwen,
 Mistral, Llama, Phi, and Gemma, at every scale from 3B to 14B — no tested model knows

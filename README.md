@@ -15,7 +15,11 @@ Every answer is computed from the pinned IPD-IMGT/HLA release's own files. No hu
 production, and the project's status, decisions and runbook live in the private
 portfolio hub rather than here.*
 
-Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma) scores **0% on 2-field ambiguity expansion** — the core clinical trap; on matching, the naive string baseline falls from 28% (family A) to **0%**, and open models reach 0–14% because they count matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in the bench pages below.
+Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llama, Phi, Gemma) scores **0% on 2-field ambiguity expansion** (0 of 30 tasks per model on the full 550-task suite), the core clinical trap; models fabricate allele names at **0.06–0.20 per task**, and the `anthropic/claude-sonnet-4-6` figure of 0.09 is a lower bound because 187 of its 550 responses were truncated and graded malformed; on matching, the naive string baseline falls from 28% (family A) to **0%**, and open models reach 0–14% because they count matched loci instead of chromosomes. Full tables with Wilson CIs on the bench pages; current state in the bench pages below.
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jasonbrelsford/verifiable-science-envs/blob/main/bench/reproduce.ipynb) Every headline figure above is recomputed from the committed run artifacts in
+[`bench/reproduce.ipynb`](bench/reproduce.ipynb), which prints the published number next to the
+recomputed one with a pass or fail for each claim. It needs no API key and no local checkout.
 
 ## HLA-Verify — the graders as an API
 

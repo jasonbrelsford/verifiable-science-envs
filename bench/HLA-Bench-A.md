@@ -1,8 +1,17 @@
 # HLA-Bench-A-v0.1@IMGT-3.65.0
 
-**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** 550 generated tasks, 20 subtypes in 4 tiers, graded by exact match against IPD-IMGT/HLA release 3.65.0 (v3.65.0-alpha). No fuzzy credit. Fabricated allele names are the headline metric.
+**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** 550 generated tasks, 20 subtypes in 4 tiers, graded by exact match against IPD-IMGT/HLA release 3.65.0 (v3.65.0-alpha). No fuzzy credit. Fabricated allele names are the headline metric: across the nine language models
+run on the full 550-task suite the rate is 0.06 to 0.20 fabricated names per task, and every model
+scores 0% on two-field ambiguity expansion (0 of 30 tasks each). Figures quoted elsewhere must come
+from the `all` split; the `dev` rows below are a 112-task public subset and are not the suite result.
 
 Dev split: 112 tasks (public). Sealed split: 438 tasks (server-side). 33% of Tier 3/4 allele tasks concern names that did not exist at IMGT 3.58.0 (assumed model cutoff). Regenerated every IPD release; this page is versioned.
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jasonbrelsford/verifiable-science-envs/blob/main/bench/reproduce.ipynb)
+
+Check these numbers yourself: [`reproduce.ipynb`](reproduce.ipynb) refetches the per-model result
+artifacts from a pinned commit and recomputes every headline figure on this page, with a pass or
+fail per claim. No API key, no local data.
 
 ## Headline
 
@@ -10,7 +19,7 @@ Dev split: 112 tasks (public). Sealed split: 438 tasks (server-side). 33% of Tie
 |---|---|---:|---:|---:|---:|---:|---|
 | `oracle-reference` | all | 550 | 100% <sub>[99–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
 | `oracle-reference` | dev | 112 | 100% <sub>[97–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
-| `anthropic/claude-sonnet-4-6` | all | 550 | 35% <sub>[31–39]</sub> | 41 | 0.09 | 52% | `malformed_response` |
+| `anthropic/claude-sonnet-4-6`\* | all | 550 | 35%\* <sub>[31–39]</sub> | 41\* | 0.09\* | 52% | `malformed_response` |
 | `ollama/qwen2.5:7b` | all | 550 | 31% <sub>[27–35]</sub> | 47 | 0.09 | 31% | `wrong_but_overconfident` |
 | `ollama/qwen2.5:7b` | dev | 112 | 30% <sub>[23–39]</sub> | 6 | 0.05 | 30% | `wrong_but_overconfident` |
 | `ollama/mistral:7b` | all | 550 | 29% <sub>[26–33]</sub> | 76 | 0.19 | 30% | `wrong_but_overconfident` |
@@ -26,6 +35,13 @@ Dev split: 112 tasks (public). Sealed split: 438 tasks (server-side). 33% of Tie
 | `ollama/llama3.2:3b` | all | 550 | 15% <sub>[12–18]</sub> | 57 | 0.11 | 42% | `wrong_but_overconfident` |
 | `baseline-cautious-abstainer` | all | 550 | 4% <sub>[2–6]</sub> | 0 | 0.00 | 100% | `refused` |
 | `baseline-cautious-abstainer` | dev | 112 | 4% <sub>[1–9]</sub> | 0 | 0.00 | 100% | `refused` |
+
+\* `anthropic/claude-sonnet-4-6` is a **lower bound** on every column. 187 of its 550 responses were
+truncated at the old 600-token budget and graded `malformed_response`; the grader returns no
+fabricated names for a response it cannot parse (`sci_envs/families/nomenclature/grade.py`), so those
+187 tasks contribute 0 to the fabrication count while still counting in the 550-task denominator.
+Over the 363 parseable responses the rate is 0.13 per task. A clean re-run at a 1600-token budget is
+pending; until then this row understates both error and fabrication.
 
 ## By tier
 
