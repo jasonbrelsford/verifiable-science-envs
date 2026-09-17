@@ -14,9 +14,13 @@
 // COUNTING SUBJECT. A keyed caller is counted per API key, so two keys never
 // share a counter and an OAuth token counts against the key behind it. An
 // anonymous caller is counted per IP per day, and the IP is never stored: the
-// object's name is a SHA-256 digest of the UTC day and the address, so the
-// digest changes at midnight and yesterday's object is never addressed again.
-// The privacy policy says IP addresses are not retained; this keeps that true.
+// object's name is a SHA-256 digest of the UTC day, the address and the
+// QUOTA_IP_SALT secret, so the digest changes at midnight and yesterday's
+// object is never addressed again. The salt matters: without it the daily
+// digest of a 32-bit address space is trivially brute-forced by anyone who
+// obtains one, which would turn the name back into an identifier. With it, a
+// name is meaningless to anyone who does not hold the secret. The privacy
+// policy says IP addresses are not retained; this keeps that true.
 //
 // FAIL OPEN. Every failure path here serves the request, exactly as
 // limiterFor() already fails open when the rate limiter is unavailable: a
@@ -64,7 +68,7 @@ async function sha256Hex(s) {
 // day and the client IP, so a fresh object each UTC day and no stored value
 // outlives the day it was counted in. Raw keys and raw IPs go no further than
 // this function.
-export async function subjectName(who, req, day) {
+export async function subjectName(who, req, day, env) {
   if (who.keyed) {
     // Deliberately fatal rather than falling back to the label: a keyed caller
     // with no keyRef is a bug, and any fallback would silently bill every such
@@ -73,7 +77,12 @@ export async function subjectName(who, req, day) {
     return `k:${(await sha256Hex(`hlv-quota-key:${who.keyRef}`)).slice(0, 32)}`;
   }
   const ip = (req && req.headers.get("cf-connecting-ip")) || "unknown";
-  return `a:${(await sha256Hex(`hlv-quota-ip:${day}:${ip}`)).slice(0, 32)}`;
+  // Unsalted, a per-day digest over IPv4 is brute-forceable in minutes. An
+  // absent salt is a deployment mistake, not a reason to fall back to a weaker
+  // name, so it is fatal here — spendQuota() turns that into a fail-open.
+  const salt = env && env.QUOTA_IP_SALT;
+  if (typeof salt !== "string" || salt.length < 16) throw new Error("QUOTA_IP_SALT missing or too short");
+  return `a:${(await sha256Hex(`hlv-quota-ip:${day}:${salt}:${ip}`)).slice(0, 32)}`;
 }
 
 // Charges one billable call to the caller's daily quota. Returns the quota
@@ -86,7 +95,7 @@ export async function spendQuota(env, who, req, { now = Date.now() } = {}) {
     reset: nextUtcMidnight(now).toISOString(), remaining: null, ok: true };
   if (lim.calls === null || !env || !env.QUOTA) return state;
   try {
-    const stub = env.QUOTA.get(env.QUOTA.idFromName(await subjectName(who, req, day)));
+    const stub = env.QUOTA.get(env.QUOTA.idFromName(await subjectName(who, req, day, env)));
     const resp = await stub.fetch("https://quota.hlaverify.internal/spend", {
       method: "POST",
       headers: { "content-type": "application/json" },
