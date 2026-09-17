@@ -127,9 +127,11 @@ test("modern tools/list: resultType, ttlMs, cacheScope, read-only annotations, d
   assert.ok(json.result.ttlMs > 0);
   const again = await modernRpc("tools/list");
   assert.deepEqual(again.json.result.tools.map((t) => t.name), json.result.tools.map((t) => t.name));
-  // Every lookup tool is read-only; beta_signup is the one writer (idempotent, closed world).
+  // Every lookup tool is read-only; beta_signup and research_access are the
+  // writers (both idempotent, closed world).
+  const writers = new Set(["beta_signup", "research_access"]);
   for (const t of json.result.tools)
-    assert.deepEqual(t.annotations, t.name === "beta_signup"
+    assert.deepEqual(t.annotations, writers.has(t.name)
       ? { readOnlyHint: false, idempotentHint: true, openWorldHint: false }
       : { readOnlyHint: true, idempotentHint: true, openWorldHint: false }, t.name);
 });
@@ -200,7 +202,7 @@ test("tools/list: exact tool names", async () => {
   const names = json.result.tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
     "about", "allele_info", "beta_signup", "check_typing", "donor_compat", "match_score",
-    "normalize_allele", "validate_gl_string", "verify_text",
+    "normalize_allele", "research_access", "validate_gl_string", "verify_text",
   ]);
   for (const t of json.result.tools) {
     assert.equal(typeof t.description, "string");
@@ -411,7 +413,7 @@ const BRANCH_CALLS = [
 ];
 
 test("tools/list: every tool has an object outputSchema using only validator-supported keywords", async () => {
-  assert.equal(Object.keys(outputSchemas).length, 9);
+  assert.equal(Object.keys(outputSchemas).length, 10);
   for (const [name, schema] of Object.entries(outputSchemas)) {
     assert.ok(schema, `${name} has no outputSchema`);
     assert.equal(schema.type, "object", `${name}: outputSchema root must be type object`);

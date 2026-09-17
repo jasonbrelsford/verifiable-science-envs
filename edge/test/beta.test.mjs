@@ -328,7 +328,7 @@ test("MCP beta_signup is advertised with write annotations and an outputSchema",
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
   });
   const tools = (await resp.json()).result.tools;
-  assert.equal(tools.length, 9);
+  assert.equal(tools.length, 10);
   const t = tools.find((x) => x.name === "beta_signup");
   assert.ok(t, "beta_signup missing from tools/list");
   assert.deepEqual(t.annotations, { readOnlyHint: false, idempotentHint: true, openWorldHint: false });
@@ -389,7 +389,7 @@ test("every pre-existing route behaves exactly as before", async () => {
   const list = await call(env, "POST", "/mcp", body({ jsonrpc: "2.0", id: 2, method: "tools/list" }));
   assert.deepEqual((await list.json()).result.tools.map((t) => t.name).sort(), [
     "about", "allele_info", "beta_signup", "check_typing", "donor_compat", "match_score",
-    "normalize_allele", "validate_gl_string", "verify_text",
+    "normalize_allele", "research_access", "validate_gl_string", "verify_text",
   ]);
   // None of the above wrote anything to KV.
   assert.deepEqual(env.KEYS._puts, []);
