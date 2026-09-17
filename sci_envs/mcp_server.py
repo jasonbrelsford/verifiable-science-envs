@@ -171,8 +171,10 @@ def about() -> dict:
                   "HLA typing. Never send patient identifiers: this service neither needs "
                   "nor wants names, medical record numbers, dates of birth, accession or "
                   "case identifiers, or other patient details.",
-        "why": "Every LLM family tested scores 0% on 2-field ambiguity expansion "
-               "and fabricates allele names at 0.05-0.14/task (HLA-Bench).",
+        "why": "On HLA-Bench-A (550 tasks) every LLM family tested scores 0% on 2-field "
+               "ambiguity expansion, 0 of 30 tasks for each of nine models, and fabricates "
+               "allele names at 0.06-0.20 per task. The claude-sonnet-4-6 rate of 0.09 is a "
+               "lower bound: 187 of its 550 responses were truncated and graded malformed.",
         "code": "https://github.com/jasonbrelsford/verifiable-science-envs",
         "api": "https://api.hlaverify.com/docs",
         "demo": "https://hlaverify.com/demo", "agents": "https://hlaverify.com/llms.txt",

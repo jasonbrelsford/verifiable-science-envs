@@ -259,6 +259,22 @@ test("about tool carries the beta state", async () => {
   assert.equal(sc.beta_signup.startsWith("https://hlaverify.com/beta"), true);
 });
 
+// The `why` line is the benchmark claim an agent reads before it decides to call
+// this service, so it is pinned to the figures the committed run artifacts support:
+// runs/hla-bench-a/results/*.json, field hallucination.rate_per_task, over the nine
+// language models on the 550-task `all` split (0.0618 to 0.1964). 0.05-0.14 was
+// published for a year: 0.05 was the qwen2.5:7b *dev*-split rate and 0.14 matched
+// nothing at all. Do not widen or restate this without re-deriving it.
+test("about tool quotes the benchmark figures the artifacts support", async () => {
+  const { json } = await callTool("about", {});
+  const why = json.result.structuredContent.why;
+  assert.match(why, /0\.06-0\.20 per task/, "fabrication rate must be the full-suite range");
+  assert.doesNotMatch(why, /0\.05-0\.14/, "the retracted 0.05-0.14 range must not come back");
+  assert.match(why, /550 tasks/, "the range must name its denominator");
+  assert.match(why, /0% on 2-field ambiguity expansion/);
+  assert.match(why, /lower bound/, "the truncated claude-sonnet-4-6 row must stay qualified");
+});
+
 test("INSTRUCTIONS mention the beta in one sentence", () => {
   assert.match(INSTRUCTIONS, /free public beta/i);
   assert.match(INSTRUCTIONS, /beta_signup/);
