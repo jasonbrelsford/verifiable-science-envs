@@ -6,7 +6,13 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { FRAMEWORKS, countGlTokens, MAX_GL_CHARS, MAX_GL_ALLELES } from "./engine.js";
+import { batchDetail } from "./quota.js";
 
+// MAX_TYPINGS is the ceiling — the most any tier may send in one
+// /v1/normalize call, and what the OpenAPI document advertises. The cap that
+// actually applies to a request is the caller's tier's (keys.js TIER_LIMITS),
+// passed into doNormalize; it is never larger than this. MAX_TEXT does NOT vary
+// by tier: 200,000 characters is a published contract for every caller.
 export const MAX_TEXT = 200_000, MAX_TYPINGS = 5_000, MAX_LOCI = 24, MAX_PER_LOCUS = 4, MAX_NAME = 64;
 export { MAX_GL_CHARS, MAX_GL_ALLELES };
 
@@ -32,10 +38,13 @@ export async function doVerify(eng, manifest, text) {
   return good(body, body.tokens.length);
 }
 
-export async function doNormalize(eng, manifest, typings) {
+// `tier` is the caller's tier and `cap` its per-call typings limit; both default
+// to the ceiling so this module still works standalone (tests, the stdio path).
+export async function doNormalize(eng, manifest, typings, { tier = "enterprise", cap = MAX_TYPINGS } = {}) {
   if (!Array.isArray(typings) || !typings.every((s) => typeof s === "string"))
     return bad(422, "typings must be a list of strings");
-  if (typings.length > MAX_TYPINGS) return bad(422, `typings must have at most ${MAX_TYPINGS} items`);
+  const limit = Math.min(cap, MAX_TYPINGS);
+  if (typings.length > limit) return bad(422, batchDetail(tier, limit, typings.length));
   const body = await eng.normalizeBatch(typings);
   return good(body, typings.length);
 }

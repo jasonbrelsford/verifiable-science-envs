@@ -57,7 +57,7 @@ function baseEnv(extra = {}) {
     PUBLIC_ACCESS: "1",
     HLA_VERIFY_API_KEYS: `${SECRET_KEY}=Lab:enterprise`,
     KEYS: fakeKV({ [PRO_KEY]: JSON.stringify({ label: "pro@example.com", tier: "pro", status: "active" }) }),
-    RL: fakeRL(), RL_STARTER: fakeRL(), RL_PRO: fakeRL(),
+    RL: fakeRL(), RL_STARTER: fakeRL(), RL_LAB: fakeRL(), RL_SCALE: fakeRL(),
     ASSETS,
     ...extra,
   };
