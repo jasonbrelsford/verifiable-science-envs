@@ -18,7 +18,8 @@ The page runs entirely in your browser (Pyodide); nothing you paste leaves the t
 
 Same engine as [hlaverify.com/demo](https://hlaverify.com/demo) and the graders behind
 [HLA-Bench](https://huggingface.co/datasets/jason-brelsford/hla-bench), where every
-model family tested scores 0% on two-field ambiguity expansion. Source (Apache-2.0):
+model family tested scores 0% on two-field ambiguity expansion (0 of 30 tasks per
+model) and fabricates allele names at 0.06–0.20 per task. Source (Apache-2.0):
 [verifiable-science-envs](https://github.com/jasonbrelsford/verifiable-science-envs).
 Reference data are fetched at load time from the ANHIG/IMGTHLA mirror under CC-BY-ND
 (Barker DJ et al., NAR 2025) and never redistributed. Research tool, not a medical device.

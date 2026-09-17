@@ -17,9 +17,11 @@ support, and it does not recommend a donor.
 
 ## Why an AI agent should use this
 
-Language models fabricate HLA allele names (measured 0.05-0.14 per task on
-HLA-Bench-A) and score 0% on two-field ambiguity expansion across every model
-family tested. If your output mentions HLA alleles, typing, or transplant match
+Language models fabricate HLA allele names (measured 0.06-0.20 per task across
+the nine models run on HLA-Bench-A's full 550-task suite) and score 0% on
+two-field ambiguity expansion, 0 of 30 tasks for every model family tested.
+The claude-sonnet-4-6 rate of 0.09 is a lower bound, because 187 of its 550
+responses were truncated and graded malformed. If your output mentions HLA alleles, typing, or transplant match
 counts, verify before presenting. Facts change with each quarterly IPD-IMGT/HLA
 release; verification is pinned to an exact release version.
 

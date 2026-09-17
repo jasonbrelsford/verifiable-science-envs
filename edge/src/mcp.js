@@ -586,7 +586,7 @@ function aboutBody(manifest, pricing) {
       "this service neither needs nor wants names, medical record numbers, dates of birth, accession or case identifiers, or " +
       "other patient details. Request bodies are processed in memory and not stored; de-identifying before sending is the " +
       "caller's responsibility.",
-    why: "Every LLM family tested scores 0% on 2-field ambiguity expansion and fabricates allele names at 0.05-0.14/task (HLA-Bench).",
+    why: "On HLA-Bench-A (550 tasks) every LLM family tested scores 0% on 2-field ambiguity expansion, 0 of 30 tasks for each of nine models, and fabricates allele names at 0.06-0.20 per task. The claude-sonnet-4-6 rate of 0.09 is a lower bound: 187 of its 550 responses were truncated and graded malformed, so they could contribute no fabricated names.",
     code: "https://github.com/jasonbrelsford/verifiable-science-envs",
     api: "https://api.hlaverify.com/docs",
     demo: "https://hlaverify.com/demo",
