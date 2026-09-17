@@ -549,7 +549,7 @@ function aboutBody(manifest) {
       "about and beta_signup are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
     beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
       `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
-      "with higher daily quotas and larger batches arrive within days.",
+      "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
     beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",

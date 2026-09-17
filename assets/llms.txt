@@ -27,12 +27,12 @@ release; verification is pinned to an exact release version.
 
 - Product page (plans, pipeline integration points, MCP setup, for lab directors, LIMS
   product managers, and AI platform teams): https://hlaverify.com/product
-- Pricing (free/starter/lab/scale/enterprise tiers; self-serve Stripe checkout opens when
-  the free public beta ends): https://api.hlaverify.com/pricing
+- Pricing (free/starter/lab/scale/enterprise tiers; paid keys are issued on request today,
+  self-serve Stripe checkout is not open yet): https://api.hlaverify.com/pricing
 - Free public beta: verdicts are production-quality and pinned to IPD-IMGT/HLA 3.65.0, and
-  anonymous access stays open at 100 calls/day per IP. Paid keys with higher quotas arrive
-  within days — join the list at https://hlaverify.com/beta (or POST /v1/beta-signup), or
-  email hello@hlaverify.com for a beta key now.
+  anonymous access stays open at 100 calls/day per IP. Paid keys with higher quotas are
+  issued on request — email hello@hlaverify.com, or join the list at
+  https://hlaverify.com/beta (or POST /v1/beta-signup) to hear when checkout opens.
 - Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 100 calls/day; keys for
   production): https://api.hlaverify.com — reference https://api.hlaverify.com/docs,
   OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…
