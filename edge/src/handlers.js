@@ -159,3 +159,93 @@ export async function doBetaSignup(env, manifest, body, country) {
   return good({ ok: true, status: already ? "already_recorded" : "recorded",
     message: betaMessage(manifest.release, already), release: manifest.release }, 1);
 }
+
+// --------------------------------------------------- research access applications
+// The research and education programme: free access for academic and nonprofit
+// labs, approved one application at a time by a person. An application is not an
+// account and not a key. It is one record per address in the KEYS namespace
+// behind RESEARCH_PREFIX, holding what the applicant typed plus cf-ipcountry, a
+// timestamp and a status. Never the IP, never a header dump.
+//
+// WHAT HAPPENS NEXT is deliberately outside the Worker. scripts/research_access.py
+// (run by the owner on his own machine) lists the pending records, mints a
+// single-use Stripe promotion code on the research coupon, and writes the code
+// and `status: "approved"` back onto the record. Nothing here talks to Stripe:
+// the Worker's Stripe key is restricted to prices and Checkout Sessions, and
+// issuing a discount is an owner decision, not a request handler's.
+//
+// The containment rule is the same one BETA_PREFIX has, for the same reason:
+// authorize() (index.js) treats ANY KV value that parses as truthy JSON as a
+// starter key, so a prefixed record must never be reachable from a key lookup.
+// authorizeKey() refuses a presented key starting with any RESERVED_PREFIXES
+// entry outright, and issued keys ("hlv_" + base64url) contain no "/". Both
+// halves are tested in test/research.test.mjs. Do not drop either one.
+export const RESEARCH_PREFIX = "research/";
+
+// Every prefix under which the KEYS namespace holds something that is NOT an
+// API key but does parse as truthy JSON. Adding a prefix to this list is what
+// keeps it out of authorizeKey(); adding one without it is the bug that made
+// a beta/ record presentable as a paid key.
+export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX];
+
+// use_case carries the reason the owner will approve or refuse on, so it gets
+// more room than the beta list's; institution is a name, expected_volume a
+// phrase like "about 20,000 typings a month".
+export const MAX_INSTITUTION = 200, MAX_RESEARCH_USE_CASE = 1000, MAX_EXPECTED_VOLUME = 120;
+
+// Required free-text field. Returns [value, null] or [null, detail].
+function requiredText(v, name, max) {
+  if (typeof v !== "string") return [null, `${name} must be a string`];
+  const s = v.trim();
+  if (!s) return [null, `${name} must not be empty`];
+  if (s.length > max) return [null, `${name} must be at most ${max} characters`];
+  return [s, null];
+}
+
+// Says plainly that a person reads this. Nothing here promises approval, and
+// nothing promises a date: the queue is one owner's inbox.
+const researchMessage = (already) =>
+  `${already ? "Your research access application is already on file" : "Your research access application is recorded"}. ` +
+  "Status: pending. A person reviews each one by hand, so this is not instant. If it is approved you will be emailed a " +
+  "single-use code that takes 100% off a subscription for 12 months at self-serve checkout: no card, no contract. " +
+  "Questions, or an application you need decided sooner: hello@hlaverify.com.";
+
+// body: {email, institution, use_case, expected_volume?, source?}; country: cf-ipcountry or null.
+export async function doResearchAccess(env, manifest, body, country) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return bad(422, "body must be a JSON object");
+  if (typeof body.email !== "string") return bad(422, "email must be a string");
+  const email = body.email.trim();
+  if (email.length > MAX_EMAIL) return bad(422, `email must be at most ${MAX_EMAIL} characters`);
+  if (!EMAIL_RE.test(email)) return bad(422, "email must look like an address, e.g. name@lab.example");
+
+  const [institution, instErr] = requiredText(body.institution, "institution", MAX_INSTITUTION);
+  if (instErr) return bad(422, instErr);
+  const [useCase, useCaseErr] = requiredText(body.use_case, "use_case", MAX_RESEARCH_USE_CASE);
+  if (useCaseErr) return bad(422, useCaseErr);
+  const [volume, volumeErr] = optional(body.expected_volume, "expected_volume", MAX_EXPECTED_VOLUME);
+  if (volumeErr) return bad(422, volumeErr);
+  const [source, sourceErr] = optional(body.source, "source", MAX_SOURCE);
+  if (sourceErr) return bad(422, sourceErr);
+
+  if (!env || !env.KEYS)
+    return bad(503, "research applications are not available on this deployment; email hello@hlaverify.com");
+
+  const kvKey = RESEARCH_PREFIX + email.toLowerCase();
+  let already = false;
+  try {
+    already = (await env.KEYS.get(kvKey)) !== null;
+  } catch (_) { /* read failure: fall through and write, put() is the real test */ }
+  // Idempotent per address, and the FIRST application wins: a record that has
+  // already been approved carries a promotion code, and re-applying must never
+  // overwrite it with a fresh pending record.
+  if (!already) {
+    await env.KEYS.put(kvKey, JSON.stringify({
+      email, institution, use_case: useCase, expected_volume: volume, source,
+      ts: new Date().toISOString(),
+      country: country || null,
+      status: "pending",
+    }));
+  }
+  return good({ ok: true, status: already ? "already_recorded" : "recorded",
+    message: researchMessage(already), release: manifest.release }, 1);
+}
