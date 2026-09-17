@@ -21,7 +21,7 @@ Headline findings so far: every model family tested (Claude, Qwen, Mistral, Llam
 
 The same engine as a verification service (no LLM, no storage): `POST /v1/verify` checks every allele-shaped token in free text against the pinned release (fabricated / deleted-with-successor / legacy / valid, with G groups and flags); `POST /v1/normalize` fixes typing reports; `GET /v1/allele/<name>` returns the facts; `POST /v1/match` scores a donor–recipient pair under the published rules R1–R6.
 
-**Hosted, live: [api.hlaverify.com](https://api.hlaverify.com/docs)** (also `https://hlaverify.com/v1/…`). Open for evaluation at 60 requests/minute per IP; keyed access for labs, LIMS vendors and agent platforms (hello@hlaverify.com).
+**Hosted, live: [api.hlaverify.com](https://api.hlaverify.com/docs)** (also `https://hlaverify.com/v1/…`). Open for evaluation at 100 calls a day per IP (60 requests/minute, up to 250 typings per `/v1/normalize` call); keyed access for labs, LIMS vendors and agent platforms with higher daily quotas and larger batches (hello@hlaverify.com). Quotas reset at UTC midnight and every billable response carries `x-hla-verify-daily-limit`, `-daily-remaining` and `-daily-reset`.
 
 ```bash
 curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \
@@ -52,7 +52,7 @@ Remote (Streamable HTTP, JSON-RPC 2.0, stateless — nothing to install):
 ```
 
 Add `"headers": {"Authorization": "Bearer YOUR_KEY"}` for a keyed tier; anonymous
-calls share the free tier's 60 req/min. Works in Claude Desktop, claude.ai
+calls share the free tier's 100 calls a day and 60 req/min. Works in Claude Desktop, claude.ai
 connectors, Cursor, and any other MCP-capable client.
 
 Local (stdio):
