@@ -87,6 +87,9 @@ export async function spendQuota(env, who, req, { now = Date.now() } = {}) {
       body: JSON.stringify({ day, limit: lim.calls }),
     });
     const { count, over } = await resp.json();
+    // A counter that answered with something other than a count is a counter
+    // that did not count: treated as an outage, not as a zero.
+    if (typeof count !== "number" || !Number.isFinite(count)) throw new Error("bad counter response");
     state.ok = !over;
     state.counted = !over;
     state.remaining = Math.max(0, lim.calls - count);
