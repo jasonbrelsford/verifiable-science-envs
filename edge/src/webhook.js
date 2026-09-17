@@ -128,7 +128,9 @@ export async function handleWebhook(request, env) {
       await env.KEYS.put(
         key,
         JSON.stringify({
-          label: attrs.user_email || productName || "self-serve",
+          // Never the address: the label is the metering index and /privacy says
+          // that row carries no email. The address stays in `email` below.
+          label: licenseId != null ? `lemonsqueezy:${licenseId}` : (productName || "self-serve"),
           tier,
           status: "active",
           email: attrs.user_email,

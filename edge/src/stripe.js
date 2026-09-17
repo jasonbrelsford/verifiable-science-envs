@@ -195,7 +195,13 @@ async function onCheckoutCompleted(session, env) {
 
   const tier = await resolveTier(session, env);
   const details = session.customer_details || {};
-  const label = details.email || details.name || "self-serve";
+  // The label is the metering index (index.js meter()), so it must never be an
+  // email address: /privacy states that the metering row carries no email, and a
+  // label taken from customer_details would have broken that on the first sale.
+  // The Stripe customer id identifies the account for support without naming a
+  // person; the address itself stays in `email` on the key record, which the
+  // privacy policy does disclose.
+  const label = session.customer ? `stripe:${session.customer}` : "self-serve";
   const apiKey = generateApiKey();
   const record = {
     label,
