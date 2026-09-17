@@ -138,8 +138,36 @@ test("checkout.session.completed (metadata.tier) creates an active key + subscri
   assert.equal(rec.tier, "pro");
   assert.equal(rec.status, "active");
   assert.equal(rec.provider, "stripe");
-  assert.equal(rec.label, "buyer@example.com");
+  assert.equal(rec.label, "self-serve", "no customer id on this session, and never the address");
   assert.equal(rec.ref, "sub_meta_1");
+});
+
+test("the key label is never the purchaser's email, because the label is the metering index", async () => {
+  // /privacy states the metering row carries a key label and "no email address is
+  // in that row". meter() indexes on who.label, so a label taken from
+  // customer_details would have made that false on the first sale.
+  const secret = "whsec_test";
+  const env = { STRIPE_WEBHOOK_SECRET: secret, KEYS: fakeKV() };
+  const session = {
+    id: "cs_label_1",
+    mode: "subscription",
+    subscription: "sub_label_1",
+    customer: "cus_label_1",
+    metadata: { tier: "lab" },
+    customer_details: { email: "buyer@example.com", name: "Acme Labs" },
+  };
+  const raw = JSON.stringify({ type: "checkout.session.completed", data: { object: session } });
+  assert.equal((await handleStripeWebhook(await signedRequest(secret, raw), env)).status, 200);
+
+  const apiKey = await env.KEYS.get(subIndexKey("sub_label_1"));
+  const rec = JSON.parse(await env.KEYS.get(apiKey));
+  assert.equal(rec.label, "stripe:cus_label_1", "pseudonymous, and useful for support");
+  assert.equal(rec.email, "buyer@example.com", "the address is kept where /privacy says it is");
+
+  // Belt and braces: the address must appear nowhere a label could reach.
+  assert.equal(rec.label.includes("@"), false);
+  assert.equal(rec.label.includes("buyer"), false);
+  assert.equal(rec.label.includes("Acme"), false);
 });
 
 test("checkout.session.completed: price-id resolves tier via STRIPE_TIER_MAP when metadata.tier is absent", async () => {
@@ -342,7 +370,8 @@ test("resolveCheckoutSuccess: ok once the webhook has written the key", async ()
 
   await withFetch(async () => new Response(JSON.stringify({ payment_status: "paid", subscription: "sub_ok1" }), { status: 200 }), async () => {
     const result = await resolveCheckoutSuccess("cs_ok1", env);
-    assert.deepEqual(result, { status: "ok", key: apiKey, tier: "pro", label: "z@z.com" });
+    // No customer on this session, so the label falls back rather than to the address.
+    assert.deepEqual(result, { status: "ok", key: apiKey, tier: "pro", label: "self-serve" });
   });
 });
 
