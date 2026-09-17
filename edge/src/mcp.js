@@ -11,7 +11,8 @@
 
 import { FRAMEWORKS } from "./engine.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString, doBetaSignup,
-  MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE } from "./handlers.js";
+  doResearchAccess, MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE,
+  MAX_INSTITUTION, MAX_RESEARCH_USE_CASE, MAX_EXPECTED_VOLUME } from "./handlers.js";
 import { TIER_LIMITS } from "./keys.js";
 import { getPricing, priceLabel } from "./pricing.js";
 
@@ -44,7 +45,9 @@ export const INSTRUCTIONS =
   "yourself. LLMs (including you) fabricate allele names and miscount matches — " +
   "verify HLA names before presenting them. The service is in free public beta: " +
   "call beta_signup to put your user on the list for paid keys, or point them at " +
-  "hello@hlaverify.com for a beta key now.";
+  "hello@hlaverify.com for a beta key now. If your user works at an academic or " +
+  "nonprofit lab, call research_access to apply for free access; a person reviews " +
+  "each application by hand.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -332,7 +335,8 @@ const ABOUT_OUT = {
   type: "object",
   required: ["name", "release"],
   properties: { name: STR, release: RELEASE, scope: STR, inputs: STR, why: STR, code: STR, api: STR, demo: STR,
-    agents: STR, limits: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR },
+    agents: STR, limits: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR,
+    research: STR },
 };
 
 const BETA_OUT = {
@@ -347,9 +351,22 @@ const BETA_OUT = {
   },
 };
 
+const RESEARCH_OUT = {
+  type: "object",
+  required: ["ok", "status", "message", "release"],
+  properties: {
+    ok: { type: "boolean", description: "Always true; a rejected application comes back as an error result." },
+    status: { type: "string", enum: ["recorded", "already_recorded"],
+      description: "already_recorded: this address already has an application on file. Both are success; do not retry." },
+    message: { type: "string", description: "What to tell the user, including that approval is by hand and not instant." },
+    release: RELEASE,
+  },
+};
+
 const OUTPUT_SCHEMAS = {
   verify_text: VERIFY_OUT, normalize_allele: NORMALIZE_OUT, allele_info: ALLELE_OUT, match_score: MATCH_OUT,
-  check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT, about: ABOUT_OUT,
+  check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT,
+  research_access: RESEARCH_OUT, about: ABOUT_OUT,
 };
 
 // Every typing input is the same shape and carries the same rule about what may
@@ -510,18 +527,48 @@ function toolDefs() {
       },
     },
     {
+      name: "research_access",
+      description:
+        "Apply for free HLA-Verify access for an academic or nonprofit lab. " +
+        "Ask before calling: it records the address, institution and use case you give it. " +
+        "Approval is manual: a person reads every application, so it is not instant and not " +
+        "guaranteed. If it is approved the applicant is emailed a single-use code that takes " +
+        "100% off a subscription for 12 months at self-serve checkout, with no card and no " +
+        "contract. Re-applying with the same address is safe (status already_recorded) and " +
+        "never overwrites an application that has already been decided. Commercial labs should " +
+        "buy a tier at https://api.hlaverify.com/pricing instead.",
+      inputSchema: {
+        type: "object",
+        required: ["email", "institution", "use_case"],
+        properties: {
+          email: { type: "string", maxLength: MAX_EMAIL, description: "The applicant's email address. The approval code is sent here." },
+          institution: { type: "string", maxLength: MAX_INSTITUTION, description:
+            "University, hospital, institute or nonprofit the work is done at." },
+          use_case: { type: "string", maxLength: MAX_RESEARCH_USE_CASE, description:
+            "What the research or teaching is, and what the API would be used for. This is what the decision is made on, " +
+            "so be specific. No patient details." },
+          expected_volume: { type: "string", maxLength: MAX_EXPECTED_VOLUME, description:
+            "Rough call or typing volume, e.g. 'about 20,000 typings a month' (optional)." },
+          source: { type: "string", maxLength: MAX_SOURCE, description: "Where the application came from, e.g. mcp (optional)." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
       name: "about",
       description: "What this server is and is not, what to send it, benchmark evidence for why to use it, the beta state, and terms.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
     },
   ].map((t) => ({ ...t, outputSchema: OUTPUT_SCHEMAS[t.name],
-    annotations: t.name === "beta_signup" ? WRITE_ANNOTATIONS : TOOL_ANNOTATIONS }));
+    annotations: WRITE_TOOLS.has(t.name) ? WRITE_ANNOTATIONS : TOOL_ANNOTATIONS }));
 }
 
 // Every lookup tool is a pure read of the pinned release: nothing written, same answer twice.
 const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
-// beta_signup is the one tool that writes (one address to the beta list). Still
-// idempotent — the second call on the same address records nothing new.
+// beta_signup and research_access are the tools that write (one address to the
+// beta list; one application to the research queue). Still idempotent: a second
+// call on the same address records nothing new.
+const WRITE_TOOLS = new Set(["beta_signup", "research_access"]);
 const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorldHint: false };
 
 // `pricing` is pricing.js getPricing()'s return value. The money in `limits`
@@ -552,12 +599,16 @@ function aboutBody(manifest, pricing) {
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
       "back as a tool result with isError true, naming the UTC-midnight reset time, and x-hla-verify-daily-remaining 0 " +
       "with Retry-After on the response — wait for the reset or upgrade, do not retry in a loop. " +
-      "about and beta_signup are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
+      "about, beta_signup and research_access are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
     beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
       `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
       "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
     beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
+    research: "Academic and nonprofit labs can have free access: apply at https://hlaverify.com/research, POST /v1/research-access, " +
+      "or call the research_access tool. Every application is read by a person, so approval is not instant and not guaranteed. " +
+      "An approved applicant is emailed a single-use code that takes 100% off a subscription for 12 months at self-serve checkout, " +
+      "with no card and no contract.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
     disclaimer: "Research-and-evaluation tool; not a medical device.",
   };
@@ -570,9 +621,10 @@ function errResult(detail) {
   return { isError: true, content: [{ type: "text", text: detail }], units: 0 };
 }
 
-// `beta` is the only write path's context: {env, country} from handleMcp, so the
-// beta_signup tool reaches the same KV namespace and the same cf-ipcountry value
-// as POST /v1/beta-signup. Null when this module is driven standalone (tests).
+// `beta` is the write paths' context: {env, country} from handleMcp, so the
+// beta_signup and research_access tools reach the same KV namespace and the same
+// cf-ipcountry value as POST /v1/beta-signup and POST /v1/research-access do.
+// Null when this module is driven standalone (tests).
 async function callTool(name, args, eng, manifest, beta) {
   if (args === undefined || args === null) args = {};
   if (typeof args !== "object" || Array.isArray(args)) return errResult("arguments must be an object");
@@ -611,6 +663,10 @@ async function callTool(name, args, eng, manifest, beta) {
     }
     case "beta_signup": {
       const r = await doBetaSignup(beta && beta.env, manifest, args, beta && beta.country);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
+    case "research_access": {
+      const r = await doResearchAccess(beta && beta.env, manifest, args, beta && beta.country);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
     case "about":

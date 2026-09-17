@@ -371,7 +371,9 @@ test("resolveCheckoutSuccess: ok once the webhook has written the key", async ()
   await withFetch(async () => new Response(JSON.stringify({ payment_status: "paid", subscription: "sub_ok1" }), { status: 200 }), async () => {
     const result = await resolveCheckoutSuccess("cs_ok1", env);
     // No customer on this session, so the label falls back rather than to the address.
-    assert.deepEqual(result, { status: "ok", key: apiKey, tier: "pro", label: "self-serve" });
+    // free:false: this one was paid; a zero-total research session sets it true
+    // (test/research.test.mjs) and only changes the wording on the page.
+    assert.deepEqual(result, { status: "ok", key: apiKey, tier: "pro", label: "self-serve", free: false });
   });
 });
 
