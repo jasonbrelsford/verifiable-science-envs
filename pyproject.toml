@@ -4,6 +4,11 @@ version = "0.1.0"
 description = "Verifiable-reward environments and evals for clinical genomics / immunogenetics"
 requires-python = ">=3.10"
 dependencies = []
+# No single `license = "..."` SPDX string: this distribution is open-core and
+# genuinely mixed. sci_envs/service/ (the HLA-Verify API) is PolyForm
+# Noncommercial 1.0.0; everything else is Apache-2.0. See NOTICE for the split
+# and sci_envs/service/LICENSE / LICENSE for the two texts, both listed below.
+license-files = ["LICENSE", "NOTICE"]
 
 [project.optional-dependencies]
 mcp = ["mcp>=2.0,<3"]
