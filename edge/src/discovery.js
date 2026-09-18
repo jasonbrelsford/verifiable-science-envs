@@ -22,6 +22,12 @@ export const CATALOG_TYPE = "application/ai-catalog+json";
 // the .well-known alias serves clients that probe the SEP-1649-era path.
 export const CARD_PATHS = ["/mcp/server-card", "/.well-known/mcp/server-card.json"];
 export const CATALOG_PATH = "/.well-known/ai-catalog.json";
+// ai-catalog.json's successor (agenticresourcediscovery.org/spec): a consumer
+// resolving this domain's entries MUST fetch this path. Same urn:air: identifier
+// as the ai-catalog entry below; ARD adds representativeQueries/capabilities.
+export const ARD_PATH = "/.well-known/ard.json";
+export const ARD_TYPE = "application/json; charset=utf-8";
+const ENTRY_IDENTIFIER = `urn:air:hlaverify.com:mcp:${SERVER_INFO.name}`;
 
 export function serverCard() {
   return {
@@ -51,10 +57,34 @@ export function aiCatalog() {
     specVersion: "1.0",
     host: { displayName: "HLA-Verify", identifier: "hlaverify.com", documentationUrl: "https://api.hlaverify.com/docs" },
     entries: [{
-      identifier: `urn:air:hlaverify.com:mcp:${SERVER_INFO.name}`,
+      identifier: ENTRY_IDENTIFIER,
       type: CARD_TYPE,
       url: `${MCP_URL}/server-card`,
       tags: ["hla", "immunogenetics", "mcp"],
+    }],
+  };
+}
+
+// ARD entry: every ARD entry is a well-formed catalog entry but not vice versa —
+// this adds the MUST field (displayName) and the SHOULD fields (representativeQueries,
+// capabilities) the ai-catalog entry above never carried.
+export function ardManifest() {
+  return {
+    entries: [{
+      identifier: ENTRY_IDENTIFIER,
+      displayName: "HLA-Verify",
+      type: CARD_TYPE,
+      url: `${MCP_URL}/server-card`,
+      description: "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
+      version: SERVER_INFO.version,
+      tags: ["hla", "immunogenetics", "mcp"],
+      capabilities: ["verify_text", "normalize_allele", "allele_info", "match_score", "check_typing", "donor_compat", "validate_gl_string"],
+      representativeQueries: [
+        "is DRB1*04:01:01 a valid HLA allele name in the current release",
+        "normalize this HLA typing to two-field resolution",
+        "what G group does this HLA allele belong to",
+        "check this donor and recipient HLA typing for a match",
+      ],
     }],
   };
 }
@@ -67,10 +97,13 @@ const DISCOVERY_CORS = {
   "access-control-expose-headers": "ETag",
 };
 
+const KIND_BODY = { card: serverCard, catalog: aiCatalog, ard: ardManifest };
+const KIND_TYPE = { card: CARD_TYPE, catalog: CATALOG_TYPE, ard: ARD_TYPE };
+
 const bodies = new Map(); // path kind -> { text, etag }; content only changes on deploy
 async function rendered(kind) {
   if (!bodies.has(kind)) {
-    const text = JSON.stringify(kind === "card" ? serverCard() : aiCatalog());
+    const text = JSON.stringify(KIND_BODY[kind]());
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
     const hex = [...new Uint8Array(digest)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
     bodies.set(kind, { text, etag: `"${hex}"` });
@@ -80,7 +113,7 @@ async function rendered(kind) {
 
 // Returns a Response for a discovery path, or null so the caller keeps routing.
 export async function handleDiscovery(req, path) {
-  const kind = CARD_PATHS.includes(path) ? "card" : path === CATALOG_PATH ? "catalog" : null;
+  const kind = CARD_PATHS.includes(path) ? "card" : path === CATALOG_PATH ? "catalog" : path === ARD_PATH ? "ard" : null;
   if (!kind) return null;
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...DISCOVERY_CORS, "access-control-max-age": "86400" } });
   if (req.method !== "GET" && req.method !== "HEAD")
@@ -91,6 +124,6 @@ export async function handleDiscovery(req, path) {
   const inm = req.headers.get("if-none-match") || "";
   if (inm.split(",").some((t) => t.trim().replace(/^W\//, "") === etag || t.trim() === "*"))
     return new Response(null, { status: 304, headers });
-  headers["content-type"] = kind === "card" ? CARD_TYPE : CATALOG_TYPE;
+  headers["content-type"] = KIND_TYPE[kind];
   return new Response(req.method === "HEAD" ? null : text, { headers });
 }

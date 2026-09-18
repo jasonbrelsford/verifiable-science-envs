@@ -10,7 +10,7 @@ import path from "node:path";
 
 import worker from "../src/index.js";
 import { handleMcp, SERVER_INFO, SUPPORTED_VERSIONS, PROTOCOL_VERSIONS, MODERN_PROTOCOL_VERSIONS } from "../src/mcp.js";
-import { serverCard, aiCatalog, CARD_PATHS, CATALOG_PATH, CARD_TYPE, CATALOG_TYPE, MCP_URL, REGISTRY_NAME } from "../src/discovery.js";
+import { serverCard, aiCatalog, ardManifest, CARD_PATHS, CATALOG_PATH, ARD_PATH, CARD_TYPE, CATALOG_TYPE, ARD_TYPE, MCP_URL, REGISTRY_NAME } from "../src/discovery.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const serverJson = JSON.parse(await readFile(path.join(here, "..", "..", "server.json"), "utf8"));
@@ -47,6 +47,27 @@ test("ai catalog lists the card by url with the catalog media type", async () =>
   assert.equal(e.url, `${MCP_URL}/server-card`);
   assert.ok(CARD_PATHS.includes(new URL(e.url).pathname));
   assert.match(e.identifier, /^urn:air:hlaverify\.com:mcp:hla-verify$/);
+});
+
+test("ard.json (agenticresourcediscovery.org/spec) carries every MUST and SHOULD entry field", async () => {
+  const r = await get(ARD_PATH);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), ARD_TYPE);
+  assert.equal(r.headers.get("access-control-allow-origin"), "*");
+  const manifest = await r.json();
+  assert.deepEqual(manifest, ardManifest());
+  assert.equal(manifest.entries.length, 1);
+  const [e] = manifest.entries;
+  // MUST: identifier, displayName, type, exactly one of url/data
+  assert.match(e.identifier, /^urn:air:[a-zA-Z0-9.-]+(:[a-zA-Z0-9._-]+)+$/);
+  assert.equal(e.identifier, aiCatalog().entries[0].identifier, "same urn as the predecessor ai-catalog entry");
+  assert.ok(e.displayName);
+  assert.equal(e.type, CARD_TYPE);
+  assert.ok(e.url && !e.data);
+  assert.ok(CARD_PATHS.includes(new URL(e.url).pathname));
+  // SHOULD: representativeQueries (2-5), capabilities
+  assert.ok(e.representativeQueries.length >= 2 && e.representativeQueries.length <= 5);
+  assert.ok(e.capabilities.length > 0);
 });
 
 test("If-None-Match revalidates to 304; HEAD has no body; preflight and other methods", async () => {
