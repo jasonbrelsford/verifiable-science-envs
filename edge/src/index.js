@@ -62,10 +62,11 @@ const tierHeader = (who) => ({ "x-hla-verify-tier": who.tier });
 // Tier -> per-minute rate-limit binding (the burst dial; the daily quota is
 // quota.js). "free" (anonymous) is metered by IP on RL; "enterprise" is
 // uncapped; the rest are metered by the presented key. "pro" is the legacy name
-// for "lab" and shares its limiter.
+// for "lab" and shares its limiter; "academic" has Lab's published limits
+// (keys.js TIER_LIMITS) and shares its limiter too.
 function limiterFor(env, tier) {
   if (tier === "starter") return env.RL_STARTER;
-  if (tier === "lab" || tier === "pro") return env.RL_LAB;
+  if (tier === "lab" || tier === "pro" || tier === "academic") return env.RL_LAB;
   if (tier === "scale") return env.RL_SCALE;
   return null;
 }
