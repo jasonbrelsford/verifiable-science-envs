@@ -6,13 +6,14 @@
 //                      before tiers existed keep their old uncapped behavior)
 //   key               (bare; label defaults to "key", tier "enterprise")
 // Tiers: free (anonymous only, never presented as a key), starter, lab, scale,
-// enterprise (uncapped), plus "pro" — the legacy name for what is now "lab".
+// enterprise (uncapped), academic (hand-issued, never sold through Stripe —
+// see TIER_LIMITS below), plus "pro" — the legacy name for what is now "lab".
 // An unrecognized trailing ":word" is treated as part of the label rather than a
 // tier, so labels may contain colons.
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 // "pro" stays in the list: keys were minted with it and must keep working.
-export const TIERS = ["free", "starter", "lab", "scale", "enterprise", "pro"];
+export const TIERS = ["free", "starter", "lab", "scale", "enterprise", "pro", "academic"];
 
 // Legacy tier name -> the tier whose limits it gets. "pro" was the $299 tier's
 // name before it was renamed "lab"; existing pro keys are Lab keys in all but
@@ -33,10 +34,21 @@ export const TIER_LIMITS = {
   lab: { calls: 10_000, typings: 5_000, burst: "600 requests/minute", price: "$299/mo" },
   scale: { calls: 1_000_000, typings: 5_000, burst: "6,000 requests/minute", price: "$1,999/mo" },
   enterprise: { calls: null, typings: 5_000, burst: "uncapped", price: "custom" },
+  // Same limits as lab. Never sold through Stripe (pricing.js/stripe.js both
+  // exclude it from their sellable-tier lists) and left out of NEXT_TIER below,
+  // so no over-quota or over-batch message ever upsells into it — it is issued,
+  // not bought. Keys are minted by hand in HLA_VERIFY_API_KEYS or a KV record
+  // (key=label:academic) after an email to hello@hlaverify.com from an
+  // institutional address.
+  academic: { calls: 10_000, typings: 5_000, burst: "600 requests/minute",
+    price: "free for accredited universities, hospitals' research units, registries and non-profits; issued on request" },
 };
 
 // The upgrade path, used by the over-quota and over-batch messages so a caller
 // (or an agent reading them) is told which tier lifts the limit it just hit.
+// "academic" is deliberately absent on both sides: it is not sold, so nothing
+// upgrades into it, and it already has Lab's limits, so it has nowhere to
+// upgrade to.
 export const NEXT_TIER = { free: "starter", starter: "lab", lab: "scale", scale: "enterprise" };
 
 // Canonical tier name for limit lookups: resolves the legacy alias, and falls

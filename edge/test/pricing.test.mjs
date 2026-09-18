@@ -385,7 +385,9 @@ test("/pricing renders the Stripe amounts with buy buttons", async () => {
   assert.match(html, /mailto:hello@hlaverify\.com/, "the email path stays visible");
   assert.match(html, /Join the beta list/, "the free tier keeps its beta framing");
   assert.doesNotMatch(html, /Self-serve checkout is not open yet/);
-  assert.doesNotMatch(html, /issued on request/);
+  assert.doesNotMatch(html, /Paid keys with higher daily quotas are issued on request/, "the pre-self-serve fallback wording for paid tiers must be gone once Stripe is live");
+  // The Academic tier is issued on request permanently, self-serve or not — a different, deliberate claim.
+  assert.match(html, /Academic.*issued on request/s);
   assert.match(html, /price you sign at is the price you keep/i, "the grandfathering rule must be on the page");
   assert.match(html, /deliberately migrated/);
 });

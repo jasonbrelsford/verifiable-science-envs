@@ -96,6 +96,7 @@ function fakeQuotaNamespace({ fail = false } = {}) {
 
 const LAB_KEY = "hlv_lab_key_0123456789abcdefghijklmnopqrstu";
 const PRO_KEY = "hlv_pro_key_0123456789abcdefghijklmnopqrstu";
+const ACADEMIC_KEY = "hlv_academic_key_0123456789abcdefghijklmno";
 const STARTER_KEY = "hlv_starter_key_0123456789abcdefghijklmnop";
 const OTHER_STARTER_KEY = "hlv_starter_two_0123456789abcdefghijklmnop";
 const ENTERPRISE_KEY = "sk_enterprise_lab";
@@ -107,6 +108,7 @@ function baseEnv(extra = {}) {
     KEYS: fakeKV({
       [LAB_KEY]: JSON.stringify({ label: "lab@example.com", tier: "lab", status: "active" }),
       [PRO_KEY]: JSON.stringify({ label: "pro@example.com", tier: "pro", status: "active" }),
+      [ACADEMIC_KEY]: JSON.stringify({ label: "univ@example.edu", tier: "academic", status: "active" }),
       [STARTER_KEY]: JSON.stringify({ label: "starter@example.com", tier: "starter", status: "active" }),
       [OTHER_STARTER_KEY]: JSON.stringify({ label: "other@example.com", tier: "starter", status: "active" }),
     }),
@@ -152,6 +154,7 @@ test("the tier table is exactly what /pricing publishes, and pro is an alias for
     ["lab", 10_000, 5_000],
     ["scale", 1_000_000, 5_000],
     ["enterprise", null, 5_000],
+    ["academic", 10_000, 5_000],
   ]);
   assert.equal(canonicalTier("pro"), "lab");
   assert.deepEqual(limitsFor("pro"), TIER_LIMITS.lab);
@@ -355,6 +358,18 @@ test("a legacy pro key gets Lab's quota, Lab's batch cap and Lab's burst limiter
   assert.deepEqual(env.RL_SCALE.calls, []);
   // And a batch Starter could not send goes through.
   const big = await post(env, "/v1/normalize", { typings: Array(300).fill("A*01:01") }, keyed(PRO_KEY));
+  assert.equal(big.status, 200);
+});
+
+test("an academic key gets Lab's quota, Lab's batch cap and Lab's burst limiter", async () => {
+  const env = baseEnv();
+  const { status, headers } = await allele(env, keyed(ACADEMIC_KEY));
+  assert.equal(status, 200);
+  assert.deepEqual(q(headers), { tier: "academic", limit: "10000", remaining: "9999",
+    reset: nextUtcMidnight().toISOString(), maxTypings: "5000" });
+  assert.deepEqual(env.RL_LAB.calls, [ACADEMIC_KEY], "academic shares lab's 600/min limiter");
+  assert.deepEqual(env.RL_SCALE.calls, []);
+  const big = await post(env, "/v1/normalize", { typings: Array(300).fill("A*01:01") }, keyed(ACADEMIC_KEY));
   assert.equal(big.status, 200);
 });
 

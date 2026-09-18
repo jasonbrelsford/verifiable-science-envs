@@ -97,10 +97,11 @@ const CACHE_RETAIN_S = 24 * 3600;
 const CACHE_URL = "https://pricing.hlaverify.internal/prices";
 
 // Tiers that can be bought. "free" is not sold; "enterprise" is quoted, not
-// listed; "pro" is the legacy alias for "lab" and is accepted in price metadata
-// so a price tagged with the old name still resolves.
+// listed; "academic" is hand-issued and never sold through Stripe at any
+// price (see keys.js); "pro" is the legacy alias for "lab" and is accepted in
+// price metadata so a price tagged with the old name still resolves.
 export const SELLABLE_TIERS = ["starter", "lab", "scale"];
-const KNOWN_TIER = (t) => typeof t === "string" && TIERS.includes(t) && t !== "free" && t !== "enterprise";
+const KNOWN_TIER = (t) => typeof t === "string" && TIERS.includes(t) && t !== "free" && t !== "enterprise" && t !== "academic";
 
 // An in-isolate fallback for `caches`, which exists in Workers but not under
 // plain `node --test`. Module state lives as long as the isolate, so this is a
