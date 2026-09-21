@@ -14,7 +14,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
   doResearchAccess, MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE,
   MAX_INSTITUTION, MAX_RESEARCH_USE_CASE, MAX_EXPECTED_VOLUME } from "./handlers.js";
 import { TIER_LIMITS } from "./keys.js";
-import { getPricing, priceLabel } from "./pricing.js";
+import { getPricing, priceLabel, SELLABLE_TIERS } from "./pricing.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -574,8 +574,12 @@ const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorld
 // `pricing` is pricing.js getPricing()'s return value. The money in `limits`
 // comes from Stripe the same way /pricing's does, so an agent reading `about`
 // and a human reading the pricing page are quoted the same number; the enforced
-// limits either side of it still come from TIER_LIMITS.
-function aboutBody(manifest, pricing) {
+// limits either side of it still come from TIER_LIMITS. `beta`/`beta_key` switch
+// on the same selfServe gate as docs.js's betaKeys/betaSection (a secret key plus
+// a real, live Stripe price) so this tool stops claiming "issued on request" once
+// checkout is actually open.
+export function aboutBody(manifest, pricing) {
+  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
   return {
     name: "HLA-Verify",
     release: manifest.release,
@@ -600,10 +604,18 @@ function aboutBody(manifest, pricing) {
       "back as a tool result with isError true, naming the UTC-midnight reset time, and x-hla-verify-daily-remaining 0 " +
       "with Retry-After on the response — wait for the reset or upgrade, do not retry in a loop. " +
       "about, beta_signup and research_access are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
-    beta: `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
-      `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
-      "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
-    beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
+    beta: selfServe
+      ? `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
+        `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
+        "with higher daily quotas and larger batches are self-serve: pick a tier at https://api.hlaverify.com/pricing " +
+        "and the key is issued automatically when Stripe confirms the subscription. Enterprise: email hello@hlaverify.com."
+      : `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
+        `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
+        "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
+    beta_key: selfServe
+      ? "Paid keys are issued automatically through Stripe checkout now (see beta above); a hand-issued key is still " +
+        "available for Enterprise: email hello@hlaverify.com."
+      : "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
     research: "Academic and nonprofit labs can have free access: apply at https://hlaverify.com/research, POST /v1/research-access, " +
       "or call the research_access tool. Every application is read by a person, so approval is not instant and not guaranteed. " +
