@@ -47,7 +47,10 @@ export const INSTRUCTIONS =
   "call beta_signup to put your user on the list for paid keys, or point them at " +
   "hello@hlaverify.com for a beta key now. If your user works at an academic or " +
   "nonprofit lab, call research_access to apply for free access; a person reviews " +
-  "each application by hand.";
+  "each application by hand. Accredited universities, hospitals' research units, " +
+  "registries and non-profits can also get a durable academic-tier key (Lab's " +
+  "limits, free, no Stripe involved) just by emailing hello@hlaverify.com from an " +
+  "institutional address.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -593,7 +596,7 @@ function aboutBody(manifest, pricing) {
     agents: "https://hlaverify.com/llms.txt",
     limits: "Per UTC day, per tier: " +
       Object.entries(TIER_LIMITS).map(([t, l]) =>
-        `${t} (${t === "free" || t === "enterprise" ? l.price : priceLabel(t, pricing)}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
+        `${t} (${t === "free" || t === "enterprise" || t === "academic" ? l.price : priceLabel(t, pricing)}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
         `up to ${l.typings.toLocaleString("en-US")} typings per normalize call, ${l.burst}`).join("; ") +
       ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
@@ -605,10 +608,12 @@ function aboutBody(manifest, pricing) {
       "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
     beta_key: "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
-    research: "Academic and nonprofit labs can have free access: apply at https://hlaverify.com/research, POST /v1/research-access, " +
-      "or call the research_access tool. Every application is read by a person, so approval is not instant and not guaranteed. " +
-      "An approved applicant is emailed a single-use code that takes 100% off a subscription for 12 months at self-serve checkout, " +
-      "with no card and no contract.",
+    research: "Academic and nonprofit labs can have free access, two ways. Fastest: email hello@hlaverify.com from an " +
+      "institutional address and ask for an academic-tier key — Lab's limits, no expiry, hand-issued, no Stripe or card " +
+      "involved. Alternative: apply at https://hlaverify.com/research, POST /v1/research-access, or call the research_access " +
+      "tool; every application is read by a person, so approval is not instant and not guaranteed, and an approved applicant " +
+      "is emailed a single-use code that takes 100% off a subscription for 12 months at self-serve checkout, with no card and " +
+      "no contract, renewed by re-applying.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
     disclaimer: "Research-and-evaluation tool; not a medical device.",
   };

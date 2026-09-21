@@ -483,7 +483,7 @@ test("outputSchema validation rejects wrong shapes (the check has teeth)", async
 // ------------------------------------------------------------ key grammar
 
 test("parseKeys: key=label:tier grammar", () => {
-  const m = parseKeys("k1=Acme Lab:starter, k2=Big Pharma:pro,k3=Old Key,k4,k5=Weird:notatier");
+  const m = parseKeys("k1=Acme Lab:starter, k2=Big Pharma:pro,k3=Old Key,k4,k5=Weird:notatier,k6=Example University:academic");
   assert.deepEqual(m.get("k1"), { label: "Acme Lab", tier: "starter" });
   assert.deepEqual(m.get("k2"), { label: "Big Pharma", tier: "pro" });
   // legacy "key=label" (no tier) defaults to enterprise, preserving old uncapped keys
@@ -492,6 +492,7 @@ test("parseKeys: key=label:tier grammar", () => {
   assert.deepEqual(m.get("k4"), { label: "key", tier: "enterprise" });
   // trailing ":word" that isn't a real tier is kept as part of the label
   assert.deepEqual(m.get("k5"), { label: "Weird:notatier", tier: "enterprise" });
+  assert.deepEqual(m.get("k6"), { label: "Example University", tier: "academic" });
 });
 
 test("parseKeys: empty/undefined input", () => {

@@ -126,7 +126,9 @@ function parseTierMap(s) {
   }
 }
 
-const SELLABLE_TIERS = TIERS.filter((t) => t !== "free");
+// "academic" is hand-issued only (see keys.js) — excluded here too, so a
+// mis-tagged Stripe price could never mint one through the webhook.
+const SELLABLE_TIERS = TIERS.filter((t) => t !== "free" && t !== "academic");
 const validTier = (t) => typeof t === "string" && SELLABLE_TIERS.includes(t);
 
 function j(body, status = 200) {
