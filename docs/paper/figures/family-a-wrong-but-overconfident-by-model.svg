@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 412" width="700" height="412" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<text x="220" y="20" font-size="13" font-weight="bold">Family A wrong-but-overconfident rate by model (all 550 tasks)</text>
+<text x="214" y="58" text-anchor="end">ollama/llama3.1:8b</text>
+<rect x="220" y="44" width="307.0" height="18" fill="#2563eb" />
+<text x="533.0" y="58">73%</text>
+<text x="214" y="86" text-anchor="end">ollama/mistral:7b</text>
+<rect x="220" y="72" width="260.4" height="18" fill="#2563eb" />
+<text x="486.4" y="86">62%</text>
+<text x="214" y="114" text-anchor="end">ollama/qwen2.5:7b</text>
+<rect x="220" y="100" width="259.6" height="18" fill="#2563eb" />
+<text x="485.6" y="114">62%</text>
+<text x="214" y="142" text-anchor="end">ollama/gemma3:12b</text>
+<rect x="220" y="128" width="258.9" height="18" fill="#2563eb" />
+<text x="484.9" y="142">62%</text>
+<text x="214" y="170" text-anchor="end">ollama/llama3.2:3b</text>
+<rect x="220" y="156" width="257.3" height="18" fill="#2563eb" />
+<text x="483.3" y="170">61%</text>
+<text x="214" y="198" text-anchor="end">baseline-confident-guesser</text>
+<rect x="220" y="184" width="221.5" height="18" fill="#94a3b8" />
+<text x="447.5" y="198">53%</text>
+<text x="214" y="226" text-anchor="end">baseline-naive-string</text>
+<rect x="220" y="212" width="221.5" height="18" fill="#94a3b8" />
+<text x="447.5" y="226">53%</text>
+<text x="214" y="254" text-anchor="end">ollama/phi4-mini</text>
+<rect x="220" y="240" width="192.4" height="18" fill="#2563eb" />
+<text x="418.4" y="254">46%</text>
+<text x="214" y="282" text-anchor="end">ollama/qwen2.5:3b</text>
+<rect x="220" y="268" width="189.4" height="18" fill="#2563eb" />
+<text x="415.4" y="282">45%</text>
+<text x="214" y="310" text-anchor="end">ollama/qwen2.5:14b</text>
+<rect x="220" y="296" width="168.8" height="18" fill="#2563eb" />
+<text x="394.8" y="310">40%</text>
+<text x="214" y="338" text-anchor="end">anthropic/claude-sonnet-4-6</text>
+<rect x="220" y="324" width="15.3" height="18" fill="#2563eb" />
+<text x="241.3" y="338">4%</text>
+<text x="214" y="366" text-anchor="end">oracle-reference</text>
+<rect x="220" y="352" width="0.0" height="18" fill="#6b7280" />
+<text x="226.0" y="366">0%</text>
+<text x="214" y="394" text-anchor="end">baseline-cautious-abstainer</text>
+<rect x="220" y="380" width="0.0" height="18" fill="#94a3b8" />
+<text x="226.0" y="394">0%</text>
+</svg>
