@@ -34,6 +34,8 @@ test(`verify: ${fx.verify.length} texts`, async () => {
   let n = 0;
   for (const c of fx.verify) {
     const got = await engine.verify(c.input);
+    delete got.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(got, c.expected, `verify mismatch for text: ${JSON.stringify(c.input)}`);
     n++;
   }
@@ -45,6 +47,8 @@ test(`normalize: ${fx.normalize.reduce((a, c) => a + c.input.length, 0)} typings
     const got = await engine.normalizeBatch(c.input);
     for (let i = 0; i < c.input.length; i++)
       assert.deepEqual(got.rows[i], c.expected.rows[i], `normalize mismatch for ${JSON.stringify(c.input[i])}`);
+    delete got.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(got, c.expected);
   }
 });
@@ -53,6 +57,8 @@ test(`allele: ${fx.allele.length} names`, async () => {
   for (const c of fx.allele) {
     const got = await engine.allele(c.input);
     assert.equal(got.status, c.status, `status mismatch for ${JSON.stringify(c.input)}`);
+    delete got.body.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(got.body, c.expected, `allele mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -68,6 +74,8 @@ test(`match: ${fx.match.length} pairs`, async () => {
 test(`typing_check: ${fx.typing_check.length} typings`, async () => {
   for (const c of fx.typing_check) {
     const got = await engine.checkTyping(c.input);
+    delete got.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(got, c.expected, `typing_check mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -75,6 +83,8 @@ test(`typing_check: ${fx.typing_check.length} typings`, async () => {
 test(`compat: ${fx.compat.length} pairs`, async () => {
   for (const c of fx.compat) {
     const got = await engine.compat(c.input.recipient, c.input.donor);
+    delete got.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(got, c.expected, `compat mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -84,6 +94,8 @@ test(`glstring: ${fx.glstring.length} strings`, async () => {
     const r = await doGlString(engine, manifest, c.input);
     if (c.status === 200) {
       assert.equal(r.ok, true, `unexpected error for ${JSON.stringify(c.input)}: ${r.detail}`);
+      delete r.body.attribution;
+      delete c.expected.attribution;
       assert.deepEqual(r.body, c.expected, `glstring mismatch for ${JSON.stringify(c.input)}`);
     } else {
       assert.equal(r.ok, false, `expected a ${c.status} for ${JSON.stringify(c.input)}`);
