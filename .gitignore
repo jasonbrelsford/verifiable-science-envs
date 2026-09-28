@@ -19,3 +19,5 @@ edge/public/data/
 edge/public/manifest.json
 edge/.wrangler/
 edge/.dev.vars
+# generated intermediate HTML from scripts/build_preprint_pdf.py (PDF is committed, HTML is not)
+docs/paper/hla-bench-draft.html
