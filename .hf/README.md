@@ -11,8 +11,9 @@ pretty_name: HLA-Bench (public dev splits)
 two-field ambiguity expansion**, the core clinical trap in HLA typing (a 2-field
 name like `A*02:01` denotes 2–389 full-resolution alleles): 0 of 30 tasks for
 every model. Models fabricate allele names at 0.06–0.20 per task across the nine
-models run on the full 550-task suite. The `claude-sonnet-4-6` rate of 0.09 is a
-lower bound, because 187 of its 550 responses were truncated and graded malformed. On donor–recipient matching, naive string
+models run on the full 550-task suite. The `claude-sonnet-4-6` rate is 0.11 per
+task, on all 550 tasks answered — it is the most accurate model tested, and is
+calibrated on only 77% of its answers. On donor–recipient matching, naive string
 manipulation collapses to 0% and open models reach 0–14% — they count matched
 loci instead of chromosomes.
 

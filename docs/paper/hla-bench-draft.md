@@ -23,16 +23,16 @@ data. Because ground truth regenerates deterministically from each quarterly
 database release, a versioned share of tasks is post-training-cutoff by
 construction, giving contamination resistance that static benchmarks cannot offer.
 Across eight open-weight models (3B–14B) and one frontier model, accuracy on
-nomenclature ranged from 15% to 34.7% against a 28% naive string-manipulation
+nomenclature ranged from 15% to 45.5% against a 28% naive string-manipulation
 baseline, and **every model family tested scored 0% on two-field ambiguity
 expansion** (0 of 30 tasks for each of the nine models) — the core clinical trap that a two-field name denotes many
 full-resolution alleles. On matching, string manipulation collapses to 0% and the
 best tested open model reached 13.7%; the dominant errors are counting matched loci
 instead of chromosomes, inventing the denominator, and over-crediting matches, and
 no model ever flagged unresolvable typing. Models fabricated allele
-names at 0.06–0.20 per task on the full 550-task suite; the claude-sonnet-4-6
-rate of 0.09 is a lower bound, because 187 of its 550 responses were truncated
-and graded malformed and so could contribute no fabricated names. A GRPO fine-tune on a disjoint generated split
+names at 0.06–0.20 per task on the full 550-task suite; claude-sonnet-4-6, the
+most accurate model tested, fabricated at 0.11 per task and was calibrated on
+only 77% of its answers. A GRPO fine-tune on a disjoint generated split
 [RESULTS PENDING] demonstrates the suites function as training environments, not
 only evaluations. All generators, graders, and the verification service are open
 source; the scored split remains sealed and regenerates every release.
@@ -152,7 +152,7 @@ a model result); slate = non-LLM baselines; blue = evaluated models.
 | Model | Acc [95% CI] | Fabricated-name tasks | Notes |
 |---|---:|---:|---|
 | oracle | 100% | 0 | validates harness |
-| claude-sonnet-4-6 | 34.7%* | 41* | *600-token truncation on 187 of 550 tasks, graded `malformed_response`; both the accuracy and the 0.09/task fabrication rate are lower bounds; clean 1600-token re-run pending |
+| claude-sonnet-4-6 | 45.5% [41.3–49.6] | 54 | most accurate model tested; 0.11/task fabrication; calibrated on 77% of answers; `wrong_calibrated` is the most common outcome (272/550) |
 | qwen2.5:7b | 31% [27–35] | 47 | perfect null_trap; 0% expand_ambiguity |
 | mistral:7b | 29% [26–33] | 76 | truncation changes digits (B*15:504→B*15:01) |
 | naive-string baseline | 28% | 0 | |
@@ -193,9 +193,9 @@ same script as Figure 1; same coloring.
 
 The ranking does not track model size or accuracy: `llama3.1:8b` is both a
 mid-table accuracy model (21%) and the worst on this metric (73%), while
-`claude-sonnet-4-6` is lowest (4%) largely because its truncated responses are
-graded `malformed_response` rather than `wrong_but_overconfident` (§4.1's
-lower-bound caveat applies here too — a clean re-run may raise this number).
+`claude-sonnet-4-6` is lowest (4%) even in the clean, fully-answered re-run —
+its dominant failure mode is `wrong_calibrated` (272/550), not confident
+wrongness.
 Both non-LLM baselines sit at 53%, which is the number a tested model needs to
 beat to demonstrate real calibration rather than confident guessing;
 `qwen2.5:14b` (40%), `qwen2.5:3b` (45%), `phi4-mini` (46%), and
@@ -280,7 +280,7 @@ scripts/pyard_concordance.py.
 - Limitations: English-only prompts; v0 scope excludes DPB1 TCE permissiveness,
   DQA1/DPA1, and frequency-weighted population realism (data hierarchy in
   available on request); single-turn tasks (agentic multi-step variants are
-  future work); the frontier-model row currently reflects a token-budget floor.
+  future work).
 - Contamination resistance is structural, not assumed: post-cutoff facts did not
   yield the expected advantage-from-memorization pattern (post-cutoff slice
   scored *higher* than deleted-name slice for qwen2.5:7b, consistent with task-
@@ -289,6 +289,10 @@ scripts/pyard_concordance.py.
   representational gap, not a scale problem (identical failure at 3B and 7B and
   in the frontier model), making it a concrete target for environment-driven
   training.
+- Across all tested models, `claude-sonnet-4-6` is now clearly the most
+  accurate on Family A, but higher accuracy does not close the safety gaps: it
+  still scores 0% on `expand_ambiguity`, still fabricates allele names at 0.11
+  per task, and is still calibrated on only 77% of its answers.
 
 ## 6. Data and code availability
 
@@ -308,7 +312,7 @@ benchmark, generators, and graders themselves are released under Apache-2.0.
 
 ## TODO before submission
 
-- [ ] Clean claude-sonnet-4-6 re-run at 1600 tokens (cache v0.2, ~$1)
+- [x] Clean claude-sonnet-4-6 re-run at 1600 tokens (2026-09-28, commit 5248aec; 45.5% [41.3-49.6], 250/550, all tasks answered)
 - [ ] GRPO delta table (Modal A100, ~$10–30, likely within free credits)
 - [x] 14B tier row (qwen2.5:14b, 2026-09-09; further 12–14B families queued on TOWER)
 - [ ] Per-subtype post-cutoff breakdown (contamination supplement)
