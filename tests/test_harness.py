@@ -7,7 +7,7 @@ import pytest
 from sci_envs.reference import ImgtReference
 from sci_envs.families.nomenclature import generate_suite, write_suite
 from sci_envs.harness import models as M
-from sci_envs.harness.run import run_model, load_suite, cache_usable
+from sci_envs.harness.run import run_model, load_suite, cache_usable, ApiErrorRateExceeded
 from sci_envs.harness.report import render
 
 
@@ -77,3 +77,68 @@ def test_ollama_fallback_ladder_on_degenerate_replies(monkeypatch):
     assert calls[1]["num_batch"] == 64 and calls[2]["num_gpu"] == 0
     assert m.last_fallback == '{"num_gpu": 0}'
     assert not cache_usable("<unused57><unused57>")
+
+
+def _fake_task():
+    return {"task_id": "t", "subtype": "expand_ambiguity", "tier": 1, "instructions": "x", "input": {}}
+
+
+def test_anthropic_request_has_no_assistant_prefill(monkeypatch):
+    """Current Claude models reject a request that ends on an assistant turn
+    ('This model does not support assistant message prefill'); the request body
+    must contain no assistant message and must end with a user message."""
+    captured = {}
+
+    def fake_post(url, headers, body, timeout=120, **kw):
+        captured["body"] = body
+        return {"content": [{"type": "text", "text": '{"answer": "A*01:01"}'}]}
+
+    monkeypatch.setattr(M, "_post", fake_post)
+    m = M.AnthropicModel("claude-sonnet-4-6", key="test-key")
+    out = m.answer(_fake_task())
+    messages = captured["body"]["messages"]
+    assert all(msg["role"] != "assistant" for msg in messages)
+    assert messages[-1]["role"] == "user"
+    assert out == '{"answer": "A*01:01"}'
+
+
+def test_anthropic_extracts_json_wrapped_in_prose_or_code_fence(monkeypatch):
+    replies = [
+        'Sure, here is the answer:\n```json\n{"answer": "A*01:01", "confidence": "high"}\n```\n'
+        'Let me know if you need anything else.',
+        'The JSON object is {"answer": "A*01:01"} and that is final.',
+        '{"answer": "A*01:01"}',
+    ]
+
+    def fake_post(url, headers, body, timeout=120, **kw):
+        return {"content": [{"type": "text", "text": replies.pop(0)}]}
+
+    monkeypatch.setattr(M, "_post", fake_post)
+    m = M.AnthropicModel("claude-sonnet-4-6", key="test-key")
+    for _ in range(3):
+        out = m.answer(_fake_task())
+        assert json.loads(out)["answer"] == "A*01:01"
+
+
+def test_extract_json_object_ignores_braces_inside_strings():
+    text = 'prose {"answer": "A*01:01", "reasoning": "looks like {not json}"} trailing'
+    out = M._extract_json_object(text)
+    assert json.loads(out) == {"answer": "A*01:01", "reasoning": "looks like {not json}"}
+
+
+class _AlwaysErrorModel:
+    name = "anthropic/stub-mostly-errors"
+
+    def answer(self, t):
+        raise RuntimeError('400 Bad Request: {"type": "error", "error": {"message": "boom"}}')
+
+
+def test_run_aborts_and_writes_nothing_when_mostly_api_errors(suite_dir):
+    d, ref = suite_dir
+    _, full = load_suite(d, "dev")
+    model = _AlwaysErrorModel()
+    with pytest.raises(ApiErrorRateExceeded):
+        run_model(model, full, ref, d, "dev", verbose=False)
+    safe = model.name.replace("/", "__").replace(":", "_")
+    assert not (d / "results" / f"{safe}.dev.json").exists()
+    assert not (d / "scores" / f"{safe}.dev.json").exists()
