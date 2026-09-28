@@ -32,10 +32,27 @@ curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' 
   -d '{"text": "A*0101, B*15:504:01, DQB1*05:03:26:99"}'
 ```
 
-The hosted API is a Cloudflare Worker (`edge/`) that looks names up in tables exported from the pinned release by this repository's Python engine (`python -m sci_envs.service.edge_export`); a golden test (`edge/test/`) proves the Worker's output is byte-identical to the Python service on thousands of generated inputs. Self-hosted Python service:
+The hosted API is a Cloudflare Worker (`edge/`) that looks names up in tables exported from the pinned release by this repository's Python engine (`python -m sci_envs.service.edge_export`); a golden test (`edge/test/`) proves the Worker's output is byte-identical to the Python service on thousands of generated inputs.
+
+### Self-host
+
+From a checkout:
 
 ```bash
 pip install -e ".[service]" && uvicorn sci_envs.service.app:app
+```
+
+Or build the container image yourself (same reference data fetch, same entrypoint):
+
+```bash
+docker build -t hla-verify -f sci_envs/service/Dockerfile .
+docker run -p 8000:8000 hla-verify
+```
+
+Published images (from a tagged [release](https://github.com/jasonbrelsford/verifiable-science-envs/releases)) are at `ghcr.io/jasonbrelsford/hla-verify` once one exists:
+
+```bash
+docker run -p 8000:8000 ghcr.io/jasonbrelsford/hla-verify:latest
 ```
 
 Live demo (runs entirely in your browser — typing data never leaves your machine): **[hlaverify.com/demo](https://hlaverify.com/demo)** · mirrored on Hugging Face: [Spaces/jason-brelsford/hla-verify](https://huggingface.co/spaces/jason-brelsford/hla-verify)
