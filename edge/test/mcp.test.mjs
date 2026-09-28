@@ -279,7 +279,9 @@ test("about tool switches beta/beta_key to self-serve wording once Stripe is liv
 // runs/hla-bench-a/results/*.json, field hallucination.rate_per_task, over the nine
 // language models on the 550-task `all` split (0.0618 to 0.1964). 0.05-0.14 was
 // published for a year: 0.05 was the qwen2.5:7b *dev*-split rate and 0.14 matched
-// nothing at all. Do not widen or restate this without re-deriving it.
+// nothing at all. The claude-sonnet-4-6 row is now the clean, fully-answered re-run
+// (commit 5248aec, 2026-09-28): rate_per_task 0.1109, no truncation, so it is no
+// longer a qualified lower bound. Do not widen or restate this without re-deriving it.
 test("about tool quotes the benchmark figures the artifacts support", async () => {
   const { json } = await callTool("about", {});
   const why = json.result.structuredContent.why;
@@ -287,7 +289,8 @@ test("about tool quotes the benchmark figures the artifacts support", async () =
   assert.doesNotMatch(why, /0\.05-0\.14/, "the retracted 0.05-0.14 range must not come back");
   assert.match(why, /550 tasks/, "the range must name its denominator");
   assert.match(why, /0% on 2-field ambiguity expansion/);
-  assert.match(why, /lower bound/, "the truncated claude-sonnet-4-6 row must stay qualified");
+  assert.match(why, /0\.11 per task/, "the clean claude-sonnet-4-6 re-run rate must be stated plainly");
+  assert.doesNotMatch(why, /lower bound/, "the clean re-run is no longer a lower bound and must not be re-qualified");
 });
 
 test("INSTRUCTIONS mention the beta in one sentence", () => {

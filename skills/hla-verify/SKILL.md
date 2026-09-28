@@ -8,8 +8,9 @@ description: Verify HLA allele names, typing strings, and donor-recipient match 
 LLMs fabricate HLA allele names at a measured 0.06–0.20 per task and score 0% on
 2-field ambiguity, 0 of 30 tasks, across every model family tested on the full
 550-task suite (see bench/HLA-Bench-A.md in this repository). The
-`claude-sonnet-4-6` rate of 0.09 is a lower bound: 187 of its 550 responses were
-truncated and graded malformed. Never present an HLA allele name, normalized typing, or match
+`claude-sonnet-4-6` rate is 0.11 per task on all 550 tasks answered, and it is
+the most accurate model tested while still calibrated on only 77% of its
+answers. Never present an HLA allele name, normalized typing, or match
 verdict from model memory. Verify it.
 
 ## Setup (once per environment)

@@ -104,15 +104,18 @@ def test_expand_ambiguity_claim_holds_for_every_model():
             assert ea["correct"] == pub["expand_ambiguity_pct"] == 0
 
 
-def test_claude_row_is_a_lower_bound():
+def test_claude_row_is_no_longer_a_lower_bound():
+    # As of the clean re-run (commit 5248aec, 2026-09-28, 1600-token budget, no
+    # assistant prefill), every one of claude-sonnet-4-6's 550 responses was
+    # parseable, so its published rate and accuracy are exact, not lower bounds.
     pub = _literal("PUBLISHED")
     d = json.loads((RESULTS / "anthropic__claude-sonnet-4-6.all.json").read_text())
-    malformed = d["primary_failure_modes"]["malformed_response"]
-    assert malformed == pub["claude_malformed"]
-    assert pub["claude_rate_is_lower_bound"] is True
-    # The grader attributes no fabricated names to a response it cannot parse, so those
-    # tasks dilute the rate while still counting in the denominator.
-    assert malformed > 0
+    malformed = d["primary_failure_modes"].get("malformed_response", 0)
+    assert malformed == pub["claude_malformed"] == 0
+    assert pub["claude_rate_is_lower_bound"] is False
+    # The grader still attributes no fabricated names to a response it cannot parse —
+    # that machinery still matters for other models (e.g. ollama/gemma3:12b) — but it
+    # no longer dilutes claude-sonnet-4-6's rate.
     grader = (ROOT / "sci_envs" / "families" / "nomenclature" / "grade.py").read_text()
     assert "hallucinated_names=[]" in grader
     assert 'primary_failure_mode="malformed_response"' in grader

@@ -4,8 +4,8 @@
 <rect x="220" y="44" width="420.0" height="18" fill="#6b7280" />
 <text x="646.0" y="58">100%</text>
 <text x="214" y="86" text-anchor="end">anthropic/claude-sonnet-4-6</text>
-<rect x="220" y="72" width="147.0" height="18" fill="#2563eb" />
-<text x="373.0" y="86">35%</text>
+<rect x="220" y="72" width="189.0" height="18" fill="#2563eb" />
+<text x="415.0" y="86">45%</text>
 <text x="214" y="114" text-anchor="end">ollama/qwen2.5:7b</text>
 <rect x="220" y="100" width="130.2" height="18" fill="#2563eb" />
 <text x="356.2" y="114">31%</text>
