@@ -183,6 +183,24 @@ repeatedly on consumer hardware and returned empty bodies with HTTP 200 for
 replies, and refuses to cache them, and the reported Gemma row is the clean
 re-run.
 
+**Figure 2.** `wrong_but_overconfident` rate by model — the share of tasks
+where a model states a factually wrong allele name without flagging
+uncertainty, the failure mode with the most direct clinical cost. Generated
+deterministically from `bench/HLA-Bench-A.md`'s failure-modes table by the
+same script as Figure 1; same coloring.
+
+![Family A wrong-but-overconfident rate by model, all 550 tasks](figures/family-a-wrong-but-overconfident-by-model.svg)
+
+The ranking does not track model size or accuracy: `llama3.1:8b` is both a
+mid-table accuracy model (21%) and the worst on this metric (73%), while
+`claude-sonnet-4-6` is lowest (4%) largely because its truncated responses are
+graded `malformed_response` rather than `wrong_but_overconfident` (§4.1's
+lower-bound caveat applies here too — a clean re-run may raise this number).
+Both non-LLM baselines sit at 53%, which is the number a tested model needs to
+beat to demonstrate real calibration rather than confident guessing;
+`qwen2.5:14b` (40%), `qwen2.5:3b` (45%), `phi4-mini` (46%), and
+`claude-sonnet-4-6` (4%) do, the other five tested models do not.
+
 ### 4.2 Family C (all 205)
 
 | Model | Acc [95% CI] |
@@ -296,5 +314,6 @@ benchmark, generators, and graders themselves are released under Apache-2.0.
 - [ ] Per-subtype post-cutoff breakdown (contamination supplement)
 - [ ] Cross-machine bit-identical reproduction check (tower vs tower2)
 - [x] Figure 1: Family A accuracy by model (`figures/family-a-accuracy-by-model.svg`, `scripts/generate_figures.py`)
+- [x] Figure 2: Family A wrong-but-overconfident rate by model (`figures/family-a-wrong-but-overconfident-by-model.svg`, same script); fixed a footnote-marker bug in the parser while adding it, so Figure 1 now includes the previously-dropped claude-sonnet-4-6 row too
 - [ ] Additional figures with provenance (per-subtype / calibration); bioRxiv category: bioinformatics
 - [ ] Decide author list / acknowledgements; ORCID
