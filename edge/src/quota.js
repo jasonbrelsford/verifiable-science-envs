@@ -38,9 +38,9 @@ const SWEEP_AFTER_MS = 36 * 3600 * 1000;
 
 // Billable REST routes: everything that runs the engine. /healthz, /docs,
 // /openapi.json, /pricing, /checkout/success, the OAuth and .well-known routes,
-// /v1/beta-signup, /v1/research-access and the Stripe webhook are not billable
-// and consume nothing. Joining a list, or applying for free access, must never
-// cost a caller one of the calls they have.
+// /v1/beta-signup, /v1/research-access, /v1/usage, /admin/usage and the Stripe
+// webhook are not billable and consume nothing. Joining a list, or applying for
+// free access, must never cost a caller one of the calls they have.
 const BILLABLE_PATHS = new Set(["/v1/verify", "/v1/normalize", "/v1/match", "/v1/typing/check", "/v1/compat", "/v1/glstring"]);
 export function isBillablePath(path) {
   return BILLABLE_PATHS.has(path) || path.startsWith("/v1/allele/");

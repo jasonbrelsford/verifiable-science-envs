@@ -18,6 +18,7 @@ import { getPricing, createCheckoutSession } from "./pricing.js";
 import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
 import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, isBillablePath,
   BILLABLE_TOOLS } from "./quota.js";
+import { handleUsageRequest, handleAdminUsageRequest } from "./usage.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -249,6 +250,27 @@ export default {
       });
     }
 
+    // Operator dashboard: its own secret (ADMIN_TOKEN), never a customer key,
+    // so it is routed before the /v1/* authorize() gate rather than through it.
+    // Rate limited the same way anonymous /v1/* traffic is (env.RL, per IP,
+    // fail open) since it carries no tier of its own to pick a limiter with.
+    if (path === "/admin/usage") {
+      const t0 = Date.now();
+      if (env.RL) {
+        const ip = req.headers.get("cf-connecting-ip") || "unknown";
+        try {
+          const { success } = await env.RL.limit({ key: `admin:${ip}` });
+          if (!success) {
+            meter(env, ctx, { label: "admin", tier: "admin", keyed: true }, "admin:usage", 429, 0, Date.now() - t0);
+            return err(429, "rate limited: 60 requests/minute per IP on /admin/usage");
+          }
+        } catch (_) { /* limiter unavailable: fail open */ }
+      }
+      const resp = await handleAdminUsageRequest(req, env, manifest, { json, err, CORS });
+      meter(env, ctx, { label: "admin", tier: "admin", keyed: true }, "admin:usage", resp.status, 0, Date.now() - t0);
+      return resp;
+    }
+
     if (!path.startsWith("/v1/")) return err(404, "Not Found");
 
     const who = await authorize(req, env);
@@ -275,6 +297,15 @@ export default {
 
     const eng = getEngine(env);
     try {
+      // A keyed caller's own usage (usage.js), scoped to their label; not
+      // billable against the daily quota (checking usage must never cost a
+      // call), but still metered so operator traffic to it shows up.
+      if (path === "/v1/usage") {
+        if (req.method !== "GET") return err(405, "GET /v1/usage", hdrs);
+        const resp = await handleUsageRequest(req, env, who, manifest, { json, err });
+        meter(env, ctx, who, "usage", resp.status, 0, Date.now() - t0);
+        return resp;
+      }
       if (path === "/v1/verify") {
         if (req.method !== "POST") return err(405, "POST {\"text\": ...}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;

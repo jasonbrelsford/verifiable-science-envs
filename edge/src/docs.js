@@ -70,7 +70,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 <p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
 
 <h2>Authentication and limits</h2>
-<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota and larger batches. Per-key usage reporting and a per-key notice before a release moves are on the roadmap, not built yet — see <a href="#release-pinning">Release pinning</a> below. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota and larger batches. Per-key usage reporting is built: see <a href="#usage">Usage</a> below. A per-key notice before a release moves is still on the roadmap, not built yet: see <a href="#release-pinning">Release pinning</a> below. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 <table>
 <tr><th>Tier</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th>Auth</th></tr>
 ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
@@ -149,6 +149,17 @@ ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: appli
 <p><b>How approval works, plainly:</b> a person reads every application. There is no automatic decision, no SLA, and no guarantee. If it is approved you are emailed a single-use promotion code; you then pick a tier at <a href="/pricing">/pricing</a> and enter the code at checkout, which takes 100% off for 12 months. Because the total is then $0, Stripe asks for no card, and your API key is issued by the same webhook that issues a paid one. The code is good for one redemption and expires; commercial labs should buy a tier instead.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/research-access -H 'content-type: application/json' \\
   -d '{"email": "you@lab.example", "institution": "Example University", "use_case": "Retyping QC for a 4,000-donor registry cohort study", "expected_volume": "about 20,000 typings a month", "source": "docs"}'`)}
+
+<h3 id="usage"><span class="pill">GET</span><code>/v1/usage</code> - your own call volume</h3>
+<p>Any keyed caller, any tier, can read back its own usage: calls and units today, over the last 7 days and over the last 30 days, each broken down by endpoint and by response status, plus the tier's published daily quota (<code>keys.js TIER_LIMITS</code>) so a dashboard can show "calls used vs allowed" without separately parsing the <code>x-hla-verify-daily-*</code> headers on every call. Scoped strictly to the presented key's own label; there is no cross-key view here (that is the operator dashboard below, a different secret). Anonymous callers get <code>401</code>: anonymous traffic is counted per IP-day for quota purposes (quota.js), not per caller, so there is no label to report on. Answers are cached for 60 seconds per key, so a dashboard refresh cannot turn into Analytics Engine SQL API traffic. Not billable against the daily quota. <code>503</code> if this deployment has no Analytics Engine read access configured.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/usage -H 'X-API-Key: YOUR_KEY'`)}
+${curl(`{"release":"${m.release}","tier":"lab","daily_quota":10000,"max_typings":5000,
+ "usage":{"today":{"calls":412,"units":890,"by_endpoint":{"verify":300,"normalize":112},"by_status":{"200":405,"429":7}},
+          "7d":{"calls":2801,"units":6110,"by_endpoint":{"…":"…"},"by_status":{"…":"…"}},
+          "30d":{"calls":11402,"units":24980,"by_endpoint":{"…":"…"},"by_status":{"…":"…"}}}}`)}
+
+<h3><span class="pill">GET</span><code>/admin/usage</code> - operator dashboard</h3>
+<p>Deployment-wide usage, protected by a separate <code>ADMIN_TOKEN</code> secret (<code>Authorization: Bearer …</code>); not a customer API key, and never accepted as one. Totals for 24h/7d/30d (calls, unique key labels, anonymous calls), a 30-day daily series, breakdowns by endpoint, by tier and by status class (2xx/4xx/5xx), the top 20 key labels by calls, p50/p95 latency and the overall error rate. JSON by default; add <code>Accept: text/html</code> or <code>?format=html</code> for a small self-contained dashboard page with inline SVG bar charts; no external assets, matching this page's styling. <code>401</code> without a valid admin token, <code>503</code> if this deployment has no admin token or no Analytics Engine read access configured.</p>
 
 <h3><span class="pill">GET</span><code>/healthz</code></h3>
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
@@ -372,7 +383,8 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         `starter ${CALLS("starter")}/${TYPINGS("starter")}, lab ${CALLS("lab")}/${TYPINGS("lab")}, scale ${CALLS("scale")}/${TYPINGS("scale")}, enterprise uncapped/${TYPINGS("enterprise")}, ` +
         `academic ${CALLS("academic")}/${TYPINGS("academic")} (hand-issued to accredited institutions, never sold); ` +
         "'pro' is the legacy name for 'lab'. Quotas reset at UTC midnight and every billable response carries x-hla-verify-daily-limit, -daily-remaining, -daily-reset and -max-typings. " +
-        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout, /v1/beta-signup and /v1/research-access are not billable. " + buying,
+        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout, /v1/beta-signup, /v1/research-access and /v1/usage are not billable. " +
+        "Per-key usage reporting: GET /v1/usage returns the caller's own calls and units for today/7d/30d, by endpoint and by status, plus the tier's daily quota; cached 60s per key; 401 without a key. " + buying,
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
     components: {
@@ -502,6 +514,26 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           422: { description: "invalid email, a missing or empty required field, or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           429: { description: "rate limited (60 req/min per IP; /v1/research-access does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "the application store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/usage": { get: { summary: "The caller's own usage: calls/units today, 7d and 30d, by endpoint and status, plus the tier's daily quota",
+        description: "Scoped strictly to the presented key's own label (index1 in the Analytics Engine dataset); no cross-key view. Requires an API key: " +
+          "anonymous callers are counted per IP-day for quota purposes, not per caller, so there is nothing to report back to them. Answers are cached " +
+          "60 seconds per key so a dashboard refresh cannot turn into Analytics Engine SQL API traffic. Not billable against the daily quota.",
+        security: [{ ApiKey: [] }],
+        responses: { 200: { description: "usage", content: { "application/json": { schema: { type: "object", properties: {
+          release: { type: "string" }, tier: { type: "string" },
+          daily_quota: { oneOf: [{ type: "integer" }, { type: "string", enum: ["unlimited"] }] }, max_typings: { type: "integer" },
+          usage: { type: "object", properties: { today: { type: "object" }, "7d": { type: "object" }, "30d": { type: "object" } } } } } } } },
+          401: { description: "missing or invalid X-API-Key", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "usage reporting not configured on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/admin/usage": { get: { summary: "Operator dashboard: deployment-wide usage, protected by a separate ADMIN_TOKEN secret",
+        description: "Authorization: Bearer <ADMIN_TOKEN>, a secret distinct from every customer API key, never accepted as one. Totals for 24h/7d/30d " +
+          "(calls, unique key labels, anonymous calls), a 30-day daily series, breakdowns by endpoint, tier and status class, the top 20 key labels by " +
+          "calls, p50/p95 latency and the overall error rate. JSON by default; Accept: text/html or ?format=html returns a small self-contained HTML " +
+          "dashboard with inline SVG bar charts, no external assets.",
+        parameters: [{ name: "format", in: "query", required: false, schema: { type: "string", enum: ["html"] } }],
+        responses: { 200: { description: "usage (JSON or, with Accept: text/html or ?format=html, an HTML dashboard)" },
+          401: { description: "missing or invalid admin token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "admin dashboard or usage reporting not configured on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
         description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, research_access, about. " +
           "Every tool call but about, beta_signup and research_access consumes one call of the caller's daily quota, the same one /v1/* spends. donor_compat is decision support only; not a medical device. beta_signup and research_access are the only tools that write. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",

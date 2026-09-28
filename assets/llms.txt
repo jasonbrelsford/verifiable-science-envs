@@ -74,11 +74,14 @@ release; verification is pinned to an exact release version.
   Quotas reset at UTC midnight; every billable response carries x-hla-verify-tier,
   -daily-limit, -daily-remaining, -daily-reset and -max-typings, and an exhausted quota is a
   429 naming the reset time. /v1/verify takes 200,000 characters on every tier. /healthz,
-  /docs, /openapi.json, /pricing, /v1/beta-signup and /v1/research-access are not
-  billable. Paid keys (per-key usage reporting, release-change notices) are
+  /docs, /openapi.json, /pricing, /v1/beta-signup, /v1/research-access and /v1/usage are not
+  billable. Paid keys (a per-key notice before a release moves is still on the roadmap) are
   hand-issued free during the beta and
   self-serve via Stripe checkout at https://api.hlaverify.com/pricing shortly after;
   enterprise keys and commercial licensing by request: hello@hlaverify.com
+- Per-key usage reporting: GET /v1/usage (any tier, needs an API key) returns the caller's
+  own calls and units for today / 7 days / 30 days, broken down by endpoint and by status,
+  plus the tier's daily quota. Scoped to that key alone; cached 60s. 401 with no key.
 - Research and education access (free for academic and nonprofit labs):
   https://hlaverify.com/research, or POST /v1/research-access, or the research_access MCP
   tool. Every application is read by a person, so approval is manual, not instant and not
