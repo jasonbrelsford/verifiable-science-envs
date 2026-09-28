@@ -301,6 +301,8 @@ test(`mcp verify_text matches REST /v1/verify for all ${fx.verify.length} fixtur
   for (const c of fx.verify) {
     const { json } = await callTool("verify_text", { text: c.input });
     assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    delete json.result.structuredContent.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(json.result.structuredContent, c.expected, `verify_text mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -323,6 +325,8 @@ test(`mcp allele_info matches REST /v1/allele for all ${fx.allele.length} fixtur
   for (const c of fx.allele) {
     const { json } = await callTool("allele_info", { name: c.input });
     assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    delete json.result.structuredContent.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(json.result.structuredContent, c.expected, `allele_info mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -340,6 +344,8 @@ test(`mcp check_typing matches REST /v1/typing/check for all ${fx.typing_check.l
   for (const c of fx.typing_check) {
     const { json } = await callTool("check_typing", { typing: c.input });
     assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    delete json.result.structuredContent.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(json.result.structuredContent, c.expected, `check_typing mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -348,6 +354,8 @@ test(`mcp donor_compat matches REST /v1/compat for all ${fx.compat.length} fixtu
   for (const c of fx.compat) {
     const { json } = await callTool("donor_compat", c.input);
     assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+    delete json.result.structuredContent.attribution;
+    delete c.expected.attribution;
     assert.deepEqual(json.result.structuredContent, c.expected, `donor_compat mismatch for ${JSON.stringify(c.input)}`);
   }
 });
@@ -357,6 +365,8 @@ test(`mcp validate_gl_string matches REST /v1/glstring for all ${fx.glstring.len
     const { json } = await callTool("validate_gl_string", { gl: c.input });
     if (c.status === 200) {
       assert.equal(json.result.isError, false, `unexpected error for ${JSON.stringify(c.input)}`);
+      delete json.result.structuredContent.attribution;
+      delete c.expected.attribution;
       assert.deepEqual(json.result.structuredContent, c.expected, `validate_gl_string mismatch for ${JSON.stringify(c.input)}`);
     } else {
       assert.equal(json.result.isError, true, `expected an error for ${JSON.stringify(c.input)}`);

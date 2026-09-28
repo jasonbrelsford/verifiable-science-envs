@@ -172,7 +172,8 @@ def export(tag: str, out: Path) -> dict:
         "rows": n_rows, "shards": len(shards), "keys_skipped": len(skipped),
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "attribution": ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), "
-                        "fetched at runtime from the ANHIG/IMGTHLA mirror under CC-BY-ND."),
+                        "fetched from the ANHIG/IMGTHLA mirror at export time and shipped with "
+                        "this deployment, under CC-BY-ND."),
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     print(f"exported {n_rows} rows in {len(shards)} shards to {out} in {round(time.time() - t0)}s; "
