@@ -1,0 +1,39 @@
+# Publish the self-hosted service image to ghcr.io whenever a GitHub Release is
+# published. Uses the default GITHUB_TOKEN (packages: write) — no extra secret,
+# no external account. Trigger: publish a release (e.g. v0.1.0); or dispatch
+# manually to rebuild the current tag's image.
+name: docker-publish
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=manual-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: sci_envs/service/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/hla-verify:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/hla-verify:latest
