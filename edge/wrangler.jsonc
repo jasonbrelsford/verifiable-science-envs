@@ -72,11 +72,19 @@
     // currency and interval live from Stripe (src/pricing.js), so changing a
     // price in the dashboard changes the published page with no deploy. Only a
     // NEW price id needs this line edited.
-    "STRIPE_TIER_MAP": "{\"price_1UGX9VBgPah7LBLfVLh5b8Xh\": \"starter\", \"price_1UGXT9BgPah7LBLfDRiP0XTs\": \"lab\", \"price_1UGXVWBgPah7LBLfpl5LpTyy\": \"scale\"}"
+    "STRIPE_TIER_MAP": "{\"price_1UGX9VBgPah7LBLfVLh5b8Xh\": \"starter\", \"price_1UGXT9BgPah7LBLfDRiP0XTs\": \"lab\", \"price_1UGXVWBgPah7LBLfpl5LpTyy\": \"scale\"}",
     // STRIPE_API_BASE is deliberately NOT set here. It is a local-testing seam
     // (src/pricing.js) that points the Stripe calls at a stub, and it is honoured
     // only when it addresses the loopback interface, so it cannot send the secret
     // key anywhere else. Set it in edge/.dev.vars for `wrangler dev`, never here.
+    //
+    // Cloudflare account id, for src/usage.js to read the Analytics Engine SQL API
+    // (https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/analytics_engine/sql).
+    // Not a secret: it identifies the account, not a credential, but it must match
+    // the account this Worker (and the USAGE dataset) is deployed to. Paired with the
+    // CF_ANALYTICS_TOKEN secret below; either missing makes GET /v1/usage and
+    // GET /admin/usage answer 503 rather than guess.
+    "CF_ACCOUNT_ID": "8f78271bd18de867a388de1760107bf1"
   }
   // Secrets (wrangler secret put):
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, lab,
@@ -92,4 +100,13 @@
   //     Replacing it resets today's anonymous counters; keyed counters are unaffected.
   //   OAUTH_TOKEN_SECRET = "<64 random hex chars: openssl rand -hex 32>" — set; paired
   //     with the OAUTH_ENABLED var above. Replacing it invalidates every issued token.
+  //   CF_ANALYTICS_TOKEN = "<a Cloudflare API token scoped to Account Analytics:Read
+  //     (Analytics Engine SQL API) for this account only>". Paired with the CF_ACCOUNT_ID
+  //     var above. Read by src/usage.js for both GET /v1/usage and GET /admin/usage.
+  //     Absent (or CF_ACCOUNT_ID absent), both answer 503 {"detail": "usage reporting
+  //     not configured"} rather than fail partway through a query.
+  //   ADMIN_TOKEN = "<a long random secret: openssl rand -hex 32>", guards GET
+  //     /admin/usage only (Authorization: Bearer <ADMIN_TOKEN>); it is not a customer
+  //     API key and is never checked against HLA_VERIFY_API_KEYS or the KEYS namespace.
+  //     Absent, GET /admin/usage answers 503; wrong or missing bearer, 401.
 }
