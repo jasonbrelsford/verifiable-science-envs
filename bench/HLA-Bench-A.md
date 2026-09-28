@@ -1,17 +1,8 @@
 # HLA-Bench-A-v0.1@IMGT-3.65.0
 
-**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** 550 generated tasks, 20 subtypes in 4 tiers, graded by exact match against IPD-IMGT/HLA release 3.65.0 (v3.65.0-alpha). No fuzzy credit. Fabricated allele names are the headline metric: across the nine language models
-run on the full 550-task suite the rate is 0.06 to 0.20 fabricated names per task, and every model
-scores 0% on two-field ambiguity expansion (0 of 30 tasks each). Figures quoted elsewhere must come
-from the `all` split; the `dev` rows below are a 112-task public subset and are not the suite result.
+**Can a model resolve HLA allele names the way a clinical immunogenetics lab must?** 550 generated tasks, 20 subtypes in 4 tiers, graded by exact match against IPD-IMGT/HLA release 3.65.0 (v3.65.0-alpha). No fuzzy credit. Fabricated allele names are the headline metric.
 
 Dev split: 112 tasks (public). Sealed split: 438 tasks (server-side). 33% of Tier 3/4 allele tasks concern names that did not exist at IMGT 3.58.0 (assumed model cutoff). Regenerated every IPD release; this page is versioned.
-
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jasonbrelsford/verifiable-science-envs/blob/main/bench/reproduce.ipynb)
-
-Check these numbers yourself: [`reproduce.ipynb`](reproduce.ipynb) refetches the per-model result
-artifacts from a pinned commit and recomputes every headline figure on this page, with a pass or
-fail per claim. No API key, no local data.
 
 ## Headline
 
@@ -19,7 +10,8 @@ fail per claim. No API key, no local data.
 |---|---|---:|---:|---:|---:|---:|---|
 | `oracle-reference` | all | 550 | 100% <sub>[99–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
 | `oracle-reference` | dev | 112 | 100% <sub>[97–100]</sub> | 0 | 0.00 | 100% | `clean_correct` |
-| `anthropic/claude-sonnet-4-6`\* | all | 550 | 35%\* <sub>[31–39]</sub> | 41\* | 0.09\* | 52% | `malformed_response` |
+| `anthropic/claude-sonnet-4-6` | dev | 112 | 39% <sub>[31–49]</sub> | 9 | 0.10 | 79% | `wrong_calibrated` |
+| `anthropic/claude-sonnet-4-6` | all | 550 | 35% <sub>[31–39]</sub> | 41 | 0.09 | 52% | `malformed_response` |
 | `ollama/qwen2.5:7b` | all | 550 | 31% <sub>[27–35]</sub> | 47 | 0.09 | 31% | `wrong_but_overconfident` |
 | `ollama/qwen2.5:7b` | dev | 112 | 30% <sub>[23–39]</sub> | 6 | 0.05 | 30% | `wrong_but_overconfident` |
 | `ollama/mistral:7b` | all | 550 | 29% <sub>[26–33]</sub> | 76 | 0.19 | 30% | `wrong_but_overconfident` |
@@ -36,19 +28,13 @@ fail per claim. No API key, no local data.
 | `baseline-cautious-abstainer` | all | 550 | 4% <sub>[2–6]</sub> | 0 | 0.00 | 100% | `refused` |
 | `baseline-cautious-abstainer` | dev | 112 | 4% <sub>[1–9]</sub> | 0 | 0.00 | 100% | `refused` |
 
-\* `anthropic/claude-sonnet-4-6` is a **lower bound** on every column. 187 of its 550 responses were
-truncated at the old 600-token budget and graded `malformed_response`; the grader returns no
-fabricated names for a response it cannot parse (`sci_envs/families/nomenclature/grade.py`), so those
-187 tasks contribute 0 to the fabrication count while still counting in the 550-task denominator.
-Over the 363 parseable responses the rate is 0.13 per task. A clean re-run at a 1600-token budget is
-pending; until then this row understates both error and fabrication.
-
 ## By tier
 
 | Model | Split | T1 syntax | T2 groups | T3 history | T4 adversarial |
 |---|---|---:|---:|---:|---:|
 | `oracle-reference` | all | 100% <sub>[97–100]</sub> | 100% <sub>[98–100]</sub> | 100% <sub>[98–100]</sub> | 100% <sub>[96–100]</sub> |
 | `oracle-reference` | dev | 100% <sub>[87–100]</sub> | 100% <sub>[88–100]</sub> | 100% <sub>[92–100]</sub> | 100% <sub>[82–100]</sub> |
+| `anthropic/claude-sonnet-4-6` | dev | 64% <sub>[45–80]</sub> | 32% <sub>[18–51]</sub> | 24% <sub>[13–39]</sub> | 53% <sub>[31–74]</sub> |
 | `anthropic/claude-sonnet-4-6` | all | 56% <sub>[47–64]</sub> | 30% <sub>[23–38]</sub> | 21% <sub>[16–28]</sub> | 41% <sub>[32–51]</sub> |
 | `ollama/qwen2.5:7b` | all | 39% <sub>[31–48]</sub> | 31% <sub>[24–39]</sub> | 26% <sub>[20–33]</sub> | 28% <sub>[20–37]</sub> |
 | `ollama/qwen2.5:7b` | dev | 44% <sub>[27–63]</sub> | 32% <sub>[18–51]</sub> | 24% <sub>[13–39]</sub> | 24% <sub>[10–47]</sub> |
@@ -72,6 +58,7 @@ pending; until then this row understates both error and fabrication.
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `oracle-reference` | all | 100% <sub>[90–100]</sub> | 100% <sub>[98–100]</sub> | 100% <sub>[97–100]</sub> | 100% <sub>[95–100]</sub> | 100% <sub>[96–100]</sub> | 100% <sub>[97–100]</sub> | 100% <sub>[65–100]</sub> | 100% <sub>[80–100]</sub> | 100% <sub>[97–100]</sub> |
 | `oracle-reference` | dev | 100% <sub>[61–100]</sub> | 100% <sub>[93–100]</sub> | 100% <sub>[89–100]</sub> | 100% <sub>[82–100]</sub> | 100% <sub>[85–100]</sub> | 100% <sub>[86–100]</sub> | 100% <sub>[44–100]</sub> | 100% <sub>[21–100]</sub> | 100% <sub>[86–100]</sub> |
+| `anthropic/claude-sonnet-4-6` | dev | 83% <sub>[44–97]</sub> | 42% <sub>[30–56]</sub> | 41% <sub>[26–58]</sub> | 53% <sub>[31–74]</sub> | 10% <sub>[3–29]</sub> | 26% <sub>[13–46]</sub> | 33% <sub>[6–79]</sub> | 100% <sub>[21–100]</sub> | 65% <sub>[45–81]</sub> |
 | `anthropic/claude-sonnet-4-6` | all | 78% <sub>[62–88]</sub> | 37% <sub>[31–43]</sub> | 31% <sub>[24–39]</sub> | 47% <sub>[37–58]</sub> | 11% <sub>[6–19]</sub> | 37% <sub>[30–46]</sub> | 0% <sub>[0–35]</sub> | 53% <sub>[30–75]</sub> | 49% <sub>[40–58]</sub> |
 | `ollama/qwen2.5:7b` | all | 81% <sub>[65–90]</sub> | 46% <sub>[40–53]</sub> | 45% <sub>[37–53]</sub> | 59% <sub>[48–69]</sub> | 8% <sub>[4–15]</sub> | 37% <sub>[30–46]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–20]</sub> | 46% <sub>[37–55]</sub> |
 | `ollama/qwen2.5:7b` | dev | 83% <sub>[44–97]</sub> | 42% <sub>[30–56]</sub> | 34% <sub>[20–52]</sub> | 47% <sub>[26–69]</sub> | 10% <sub>[3–29]</sub> | 30% <sub>[16–51]</sub> | 0% <sub>[0–56]</sub> | 0% <sub>[0–79]</sub> | 39% <sub>[22–59]</sub> |
@@ -91,33 +78,34 @@ pending; until then this row understates both error and fabrication.
 
 ## By subtype
 
-| Subtype | `oracle-reference` (all) | `oracle-reference` (dev) | `anthropic/claude-sonnet-4-6` (all) | `ollama/qwen2.5:7b` (all) | `ollama/qwen2.5:7b` (dev) | `ollama/mistral:7b` (all) | `baseline-confident-guesser` (all) | `baseline-naive-string` (all) | `ollama/gemma3:12b` (all) | `ollama/qwen2.5:3b` (all) | `ollama/qwen2.5:14b` (all) | `baseline-confident-guesser` (dev) | `baseline-naive-string` (dev) | `ollama/phi4-mini` (all) | `ollama/llama3.1:8b` (all) | `ollama/llama3.2:3b` (all) | `baseline-cautious-abstainer` (all) | `baseline-cautious-abstainer` (dev) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `deleted_reason` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 23% <sub>[12–41]</sub> | 10% <sub>[3–26]</sub> | 0% <sub>[0–43]</sub> | 3% <sub>[1–17]</sub> | 40% <sub>[25–58]</sub> | 40% <sub>[25–58]</sub> | 17% <sub>[7–34]</sub> | 3% <sub>[1–17]</sub> | 10% <sub>[3–26]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[23–88]</sub> | 17% <sub>[7–34]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
-| `existed_at` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 60% <sub>[42–75]</sub> | 63% <sub>[46–78]</sub> | 40% <sub>[12–77]</sub> | 67% <sub>[49–81]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 70% <sub>[52–83]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[42–75]</sub> | 63% <sub>[46–78]</sub> | 60% <sub>[42–75]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
-| `expand_ambiguity` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
-| `first_release` | 100% <sub>[89–100]</sub> | 100% <sub>[72–100]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–28]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–28]</sub> | 0% <sub>[0–28]</sub> | 3% <sub>[1–17]</sub> | 7% <sub>[2–21]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–28]</sub> |
-| `g_group` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 20% <sub>[10–37]</sub> | 57% <sub>[39–73]</sub> | 43% <sub>[16–75]</sub> | 57% <sub>[39–73]</sub> | 13% <sub>[5–30]</sub> | 13% <sub>[5–30]</sub> | 27% <sub>[14–44]</sub> | 7% <sub>[2–21]</sub> | 23% <sub>[12–41]</sub> | 14% <sub>[3–51]</sub> | 14% <sub>[3–51]</sub> | 43% <sub>[27–61]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
-| `group_members_count` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 30% <sub>[17–48]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> | 0% <sub>[0–43]</sub> | 0% <sub>[0–11]</sub> | 20% <sub>[10–37]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
-| `locus_field` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[89–100]</sub> | 20% <sub>[10–37]</sub> | 17% <sub>[3–56]</sub> | 33% <sub>[19–51]</sub> | 100% <sub>[89–100]</sub> | 100% <sub>[89–100]</sub> | 93% <sub>[79–98]</sub> | 50% <sub>[33–67]</sub> | 70% <sub>[52–83]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 37% <sub>[22–54]</sub> | 50% <sub>[33–67]</sub> | 57% <sub>[39–73]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
-| `name_at_release` | 100% <sub>[89–100]</sub> | 100% <sub>[68–100]</sub> | 33% <sub>[19–51]</sub> | 60% <sub>[42–75]</sub> | 62% <sub>[31–86]</sub> | 60% <sub>[42–75]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 63% <sub>[46–78]</sub> | 33% <sub>[19–51]</sub> | 67% <sub>[49–81]</sub> | 38% <sub>[14–69]</sub> | 38% <sub>[14–69]</sub> | 7% <sub>[2–21]</sub> | 23% <sub>[12–41]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–32]</sub> |
-| `near_miss` | 100% <sub>[84–100]</sub> | 100% <sub>[51–100]</sub> | 90% <sub>[70–97]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–49]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 5% <sub>[1–24]</sub> | 55% <sub>[34–74]</sub> | 80% <sub>[58–92]</sub> | 0% <sub>[0–49]</sub> | 0% <sub>[0–49]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 100% <sub>[84–100]</sub> | 100% <sub>[51–100]</sub> |
-| `new_in_release` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 17% <sub>[3–56]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 17% <sub>[3–56]</sub> | 17% <sub>[3–56]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
-| `null_trap` | 100% <sub>[84–100]</sub> | 100% <sub>[44–100]</sub> | 95% <sub>[76–99]</sub> | 100% <sub>[84–100]</sub> | 100% <sub>[44–100]</sub> | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 100% <sub>[84–100]</sub> | 90% <sub>[70–97]</sub> | 0% <sub>[0–56]</sub> | 0% <sub>[0–56]</sub> | 85% <sub>[64–95]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–56]</sub> |
-| `p_group` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 33% <sub>[19–51]</sub> | 43% <sub>[27–61]</sub> | 60% <sub>[23–88]</sub> | 50% <sub>[33–67]</sub> | 30% <sub>[17–48]</sub> | 30% <sub>[17–48]</sub> | 3% <sub>[1–17]</sub> | 50% <sub>[33–67]</sub> | 27% <sub>[14–44]</sub> | 20% <sub>[4–62]</sub> | 20% <sub>[4–62]</sub> | 40% <sub>[25–58]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
-| `release_drift` | 100% <sub>[84–100]</sub> | 100% <sub>[34–100]</sub> | 15% <sub>[5–36]</sub> | 40% <sub>[22–61]</sub> | 50% <sub>[9–91]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 50% <sub>[30–70]</sub> | 55% <sub>[34–74]</sub> | 45% <sub>[26–66]</sub> | 0% <sub>[0–66]</sub> | 0% <sub>[0–66]</sub> | 0% <sub>[0–16]</sub> | 20% <sub>[8–42]</sub> | 30% <sub>[15–52]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–66]</sub> |
-| `renamed_to` | 100% <sub>[89–100]</sub> | 100% <sub>[68–100]</sub> | 10% <sub>[3–26]</sub> | 17% <sub>[7–34]</sub> | 25% <sub>[7–59]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 13% <sub>[5–30]</sub> | 13% <sub>[5–30]</sub> | 0% <sub>[0–32]</sub> | 0% <sub>[0–32]</sub> | 17% <sub>[7–34]</sub> | 7% <sub>[2–21]</sub> | 7% <sub>[2–21]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–32]</sub> |
-| `resolve_chain` | 100% <sub>[84–100]</sub> | 100% <sub>[65–100]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> |
-| `same_group` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 33% <sub>[19–51]</sub> | 37% <sub>[22–54]</sub> | 14% <sub>[3–51]</sub> | 67% <sub>[49–81]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 70% <sub>[52–83]</sub> | 80% <sub>[63–90]</sub> | 33% <sub>[19–51]</sub> | 14% <sub>[3–51]</sub> | 14% <sub>[3–51]</sub> | 60% <sub>[42–75]</sub> | 50% <sub>[33–67]</sub> | 67% <sub>[49–81]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
-| `serology` | 100% <sub>[89–100]</sub> | 100% <sub>[51–100]</sub> | 33% <sub>[19–51]</sub> | 20% <sub>[10–37]</sub> | 50% <sub>[15–85]</sub> | 0% <sub>[0–11]</sub> | 50% <sub>[33–67]</sub> | 50% <sub>[33–67]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 17% <sub>[7–34]</sub> | 25% <sub>[5–70]</sub> | 25% <sub>[5–70]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 10% <sub>[3–26]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–49]</sub> |
-| `truncate` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 77% <sub>[59–88]</sub> | 93% <sub>[79–98]</sub> | 100% <sub>[61–100]</sub> | 63% <sub>[46–78]</sub> | 100% <sub>[89–100]</sub> | 100% <sub>[89–100]</sub> | 87% <sub>[70–95]</sub> | 90% <sub>[74–97]</sub> | 37% <sub>[22–54]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 57% <sub>[39–73]</sub> | 90% <sub>[74–97]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
-| `typing_report_normalize` | 100% <sub>[84–100]</sub> | 100% <sub>[21–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–16]</sub> | 30% <sub>[15–52]</sub> | 30% <sub>[15–52]</sub> | 0% <sub>[0–16]</sub> | 5% <sub>[1–24]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–79]</sub> |
-| `valid_name` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 47% <sub>[30–64]</sub> | 43% <sub>[27–61]</sub> | 57% <sub>[25–84]</sub> | 63% <sub>[46–78]</sub> | 53% <sub>[36–70]</sub> | 53% <sub>[36–70]</sub> | 43% <sub>[27–61]</sub> | 37% <sub>[22–54]</sub> | 30% <sub>[17–48]</sub> | 43% <sub>[16–75]</sub> | 43% <sub>[16–75]</sub> | 47% <sub>[30–64]</sub> | 57% <sub>[39–73]</sub> | 33% <sub>[19–51]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
+| Subtype | `oracle-reference` (all) | `oracle-reference` (dev) | `anthropic/claude-sonnet-4-6` (dev) | `anthropic/claude-sonnet-4-6` (all) | `ollama/qwen2.5:7b` (all) | `ollama/qwen2.5:7b` (dev) | `ollama/mistral:7b` (all) | `baseline-confident-guesser` (all) | `baseline-naive-string` (all) | `ollama/gemma3:12b` (all) | `ollama/qwen2.5:3b` (all) | `ollama/qwen2.5:14b` (all) | `baseline-confident-guesser` (dev) | `baseline-naive-string` (dev) | `ollama/phi4-mini` (all) | `ollama/llama3.1:8b` (all) | `ollama/llama3.2:3b` (all) | `baseline-cautious-abstainer` (all) | `baseline-cautious-abstainer` (dev) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `deleted_reason` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 0% <sub>[0–43]</sub> | 23% <sub>[12–41]</sub> | 10% <sub>[3–26]</sub> | 0% <sub>[0–43]</sub> | 3% <sub>[1–17]</sub> | 40% <sub>[25–58]</sub> | 40% <sub>[25–58]</sub> | 17% <sub>[7–34]</sub> | 3% <sub>[1–17]</sub> | 10% <sub>[3–26]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[23–88]</sub> | 17% <sub>[7–34]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
+| `existed_at` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 40% <sub>[12–77]</sub> | 60% <sub>[42–75]</sub> | 63% <sub>[46–78]</sub> | 40% <sub>[12–77]</sub> | 67% <sub>[49–81]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 70% <sub>[52–83]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[23–88]</sub> | 60% <sub>[42–75]</sub> | 63% <sub>[46–78]</sub> | 60% <sub>[42–75]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
+| `expand_ambiguity` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
+| `first_release` | 100% <sub>[89–100]</sub> | 100% <sub>[72–100]</sub> | 0% <sub>[0–28]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–28]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–28]</sub> | 0% <sub>[0–28]</sub> | 3% <sub>[1–17]</sub> | 7% <sub>[2–21]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–28]</sub> |
+| `g_group` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 29% <sub>[8–64]</sub> | 20% <sub>[10–37]</sub> | 57% <sub>[39–73]</sub> | 43% <sub>[16–75]</sub> | 57% <sub>[39–73]</sub> | 13% <sub>[5–30]</sub> | 13% <sub>[5–30]</sub> | 27% <sub>[14–44]</sub> | 7% <sub>[2–21]</sub> | 23% <sub>[12–41]</sub> | 14% <sub>[3–51]</sub> | 14% <sub>[3–51]</sub> | 43% <sub>[27–61]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
+| `group_members_count` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 20% <sub>[4–62]</sub> | 30% <sub>[17–48]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> | 0% <sub>[0–43]</sub> | 0% <sub>[0–11]</sub> | 20% <sub>[10–37]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
+| `locus_field` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[89–100]</sub> | 20% <sub>[10–37]</sub> | 17% <sub>[3–56]</sub> | 33% <sub>[19–51]</sub> | 100% <sub>[89–100]</sub> | 100% <sub>[89–100]</sub> | 93% <sub>[79–98]</sub> | 50% <sub>[33–67]</sub> | 70% <sub>[52–83]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 37% <sub>[22–54]</sub> | 50% <sub>[33–67]</sub> | 57% <sub>[39–73]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
+| `name_at_release` | 100% <sub>[89–100]</sub> | 100% <sub>[68–100]</sub> | 75% <sub>[41–93]</sub> | 33% <sub>[19–51]</sub> | 60% <sub>[42–75]</sub> | 62% <sub>[31–86]</sub> | 60% <sub>[42–75]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 63% <sub>[46–78]</sub> | 33% <sub>[19–51]</sub> | 67% <sub>[49–81]</sub> | 38% <sub>[14–69]</sub> | 38% <sub>[14–69]</sub> | 7% <sub>[2–21]</sub> | 23% <sub>[12–41]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–32]</sub> |
+| `near_miss` | 100% <sub>[84–100]</sub> | 100% <sub>[51–100]</sub> | 100% <sub>[51–100]</sub> | 90% <sub>[70–97]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–49]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 5% <sub>[1–24]</sub> | 55% <sub>[34–74]</sub> | 80% <sub>[58–92]</sub> | 0% <sub>[0–49]</sub> | 0% <sub>[0–49]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 100% <sub>[84–100]</sub> | 100% <sub>[51–100]</sub> |
+| `new_in_release` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 0% <sub>[0–39]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 17% <sub>[3–56]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 17% <sub>[3–56]</sub> | 17% <sub>[3–56]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
+| `null_trap` | 100% <sub>[84–100]</sub> | 100% <sub>[44–100]</sub> | 100% <sub>[44–100]</sub> | 95% <sub>[76–99]</sub> | 100% <sub>[84–100]</sub> | 100% <sub>[44–100]</sub> | 100% <sub>[84–100]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 100% <sub>[84–100]</sub> | 90% <sub>[70–97]</sub> | 0% <sub>[0–56]</sub> | 0% <sub>[0–56]</sub> | 85% <sub>[64–95]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–56]</sub> |
+| `p_group` | 100% <sub>[89–100]</sub> | 100% <sub>[57–100]</sub> | 20% <sub>[4–62]</sub> | 33% <sub>[19–51]</sub> | 43% <sub>[27–61]</sub> | 60% <sub>[23–88]</sub> | 50% <sub>[33–67]</sub> | 30% <sub>[17–48]</sub> | 30% <sub>[17–48]</sub> | 3% <sub>[1–17]</sub> | 50% <sub>[33–67]</sub> | 27% <sub>[14–44]</sub> | 20% <sub>[4–62]</sub> | 20% <sub>[4–62]</sub> | 40% <sub>[25–58]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–43]</sub> |
+| `release_drift` | 100% <sub>[84–100]</sub> | 100% <sub>[34–100]</sub> | 100% <sub>[34–100]</sub> | 15% <sub>[5–36]</sub> | 40% <sub>[22–61]</sub> | 50% <sub>[9–91]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 50% <sub>[30–70]</sub> | 55% <sub>[34–74]</sub> | 45% <sub>[26–66]</sub> | 0% <sub>[0–66]</sub> | 0% <sub>[0–66]</sub> | 0% <sub>[0–16]</sub> | 20% <sub>[8–42]</sub> | 30% <sub>[15–52]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–66]</sub> |
+| `renamed_to` | 100% <sub>[89–100]</sub> | 100% <sub>[68–100]</sub> | 25% <sub>[7–59]</sub> | 10% <sub>[3–26]</sub> | 17% <sub>[7–34]</sub> | 25% <sub>[7–59]</sub> | 3% <sub>[1–17]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 3% <sub>[1–17]</sub> | 13% <sub>[5–30]</sub> | 13% <sub>[5–30]</sub> | 0% <sub>[0–32]</sub> | 0% <sub>[0–32]</sub> | 17% <sub>[7–34]</sub> | 7% <sub>[2–21]</sub> | 7% <sub>[2–21]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–32]</sub> |
+| `resolve_chain` | 100% <sub>[84–100]</sub> | 100% <sub>[65–100]</sub> | 0% <sub>[0–35]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–35]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–35]</sub> |
+| `same_group` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 57% <sub>[25–84]</sub> | 33% <sub>[19–51]</sub> | 37% <sub>[22–54]</sub> | 14% <sub>[3–51]</sub> | 67% <sub>[49–81]</sub> | 37% <sub>[22–54]</sub> | 37% <sub>[22–54]</sub> | 70% <sub>[52–83]</sub> | 80% <sub>[63–90]</sub> | 33% <sub>[19–51]</sub> | 14% <sub>[3–51]</sub> | 14% <sub>[3–51]</sub> | 60% <sub>[42–75]</sub> | 50% <sub>[33–67]</sub> | 67% <sub>[49–81]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
+| `serology` | 100% <sub>[89–100]</sub> | 100% <sub>[51–100]</sub> | 25% <sub>[5–70]</sub> | 33% <sub>[19–51]</sub> | 20% <sub>[10–37]</sub> | 50% <sub>[15–85]</sub> | 0% <sub>[0–11]</sub> | 50% <sub>[33–67]</sub> | 50% <sub>[33–67]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 17% <sub>[7–34]</sub> | 25% <sub>[5–70]</sub> | 25% <sub>[5–70]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 10% <sub>[3–26]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–49]</sub> |
+| `truncate` | 100% <sub>[89–100]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 77% <sub>[59–88]</sub> | 93% <sub>[79–98]</sub> | 100% <sub>[61–100]</sub> | 63% <sub>[46–78]</sub> | 100% <sub>[89–100]</sub> | 100% <sub>[89–100]</sub> | 87% <sub>[70–95]</sub> | 90% <sub>[74–97]</sub> | 37% <sub>[22–54]</sub> | 100% <sub>[61–100]</sub> | 100% <sub>[61–100]</sub> | 57% <sub>[39–73]</sub> | 90% <sub>[74–97]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–39]</sub> |
+| `typing_report_normalize` | 100% <sub>[84–100]</sub> | 100% <sub>[21–100]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–16]</sub> | 30% <sub>[15–52]</sub> | 30% <sub>[15–52]</sub> | 0% <sub>[0–16]</sub> | 5% <sub>[1–24]</sub> | 5% <sub>[1–24]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–79]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–16]</sub> | 0% <sub>[0–79]</sub> |
+| `valid_name` | 100% <sub>[89–100]</sub> | 100% <sub>[65–100]</sub> | 57% <sub>[25–84]</sub> | 47% <sub>[30–64]</sub> | 43% <sub>[27–61]</sub> | 57% <sub>[25–84]</sub> | 63% <sub>[46–78]</sub> | 53% <sub>[36–70]</sub> | 53% <sub>[36–70]</sub> | 43% <sub>[27–61]</sub> | 37% <sub>[22–54]</sub> | 30% <sub>[17–48]</sub> | 43% <sub>[16–75]</sub> | 43% <sub>[16–75]</sub> | 47% <sub>[30–64]</sub> | 57% <sub>[39–73]</sub> | 33% <sub>[19–51]</sub> | 0% <sub>[0–11]</sub> | 0% <sub>[0–35]</sub> |
 
 ## Fabricated names (top 10 per model)
 
 - `oracle-reference` (all): none
 - `oracle-reference` (dev): none
+- `anthropic/claude-sonnet-4-6` (dev): `B*1487`×1, `DRB4*01:01:01:02N`×1, `A*01:34`×1, `C*14:01`×1, `C*14:01:01:01`×1, `DQB1*05:03:26:99`×1, `DRB4*01:03:15:99`×1, `DRB3*01:75:99`×1, `A*33:02`×1, `B*4001`×1
 - `anthropic/claude-sonnet-4-6` (all): `C*16:05`×2, `C*04:02`×2, `DPB1*1858010101`×1, `DPB1*185:01:01:01`×1, `DRB1*11:605`×1, `DRB5*0212`×1, `A*03:200`×1, `A*29:110:99`×1, `DPA1*01240`×1, `B*1487`×1
 - `ollama/qwen2.5:7b` (all): `B*18:16`×3, `DRB1*11:605`×1, `DRB5*0212`×1, `A*29:110:99`×1, `DPA1*01240`×1, `B*1487`×1, `P*1801`×1, `P*55:02`×1, `P*24:02`×1, `B*1501:05`×1
 - `ollama/qwen2.5:7b` (dev): `B*1487`×1, `DQB1*05:03:26:99`×1, `DRB4*01:03:15:99`×1, `DRB3*01:75:99`×1, `A*33:02`×1, `DPB1*56:06`×1
@@ -137,26 +125,27 @@ pending; until then this row understates both error and fabrication.
 
 ## Failure modes (primary, per task)
 
-| Model | Split | `clean_correct` | `correct_but_overconfident` | `correct_with_hallucinated_reasoning` | `fabricated_group` | `hallucinated_answer` | `malformed_response` | `refused` | `resolution_mismatch` | `wrong_but_overconfident` | `wrong_calibrated` | `legacy_nomenclature` |
+| Model | Split | `clean_correct` | `correct_but_overconfident` | `correct_with_hallucinated_reasoning` | `fabricated_group` | `hallucinated_answer` | `refused` | `wrong_but_overconfident` | `wrong_calibrated` | `malformed_response` | `resolution_mismatch` | `legacy_nomenclature` |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `oracle-reference` | all | 550 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `oracle-reference` | dev | 112 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `anthropic/claude-sonnet-4-6` | all | 67 | 59 | 23 | 18 | 6 | 187 | 14 | 3 | 20 | 153 | 0 |
-| `ollama/qwen2.5:7b` | all | 25 | 124 | 5 | 0 | 22 | 0 | 10 | 5 | 340 | 19 | 0 |
-| `ollama/qwen2.5:7b` | dev | 4 | 24 | 1 | 0 | 2 | 0 | 3 | 0 | 73 | 5 | 0 |
-| `ollama/mistral:7b` | all | 15 | 117 | 6 | 0 | 34 | 0 | 1 | 5 | 341 | 30 | 1 |
-| `baseline-confident-guesser` | all | 39 | 117 | 0 | 71 | 8 | 0 | 0 | 21 | 290 | 0 | 4 |
-| `baseline-naive-string` | all | 39 | 117 | 0 | 71 | 8 | 0 | 0 | 21 | 290 | 0 | 4 |
-| `ollama/gemma3:12b` | all | 37 | 115 | 0 | 0 | 27 | 20 | 0 | 7 | 339 | 3 | 2 |
-| `ollama/qwen2.5:3b` | all | 21 | 96 | 2 | 0 | 9 | 0 | 62 | 28 | 248 | 82 | 2 |
-| `ollama/qwen2.5:14b` | all | 16 | 77 | 17 | 0 | 8 | 0 | 120 | 32 | 221 | 58 | 1 |
-| `baseline-confident-guesser` | dev | 8 | 21 | 0 | 16 | 3 | 0 | 0 | 2 | 61 | 0 | 1 |
-| `baseline-naive-string` | dev | 8 | 21 | 0 | 16 | 3 | 0 | 0 | 2 | 61 | 0 | 1 |
-| `ollama/phi4-mini` | all | 14 | 88 | 1 | 0 | 20 | 1 | 85 | 33 | 252 | 50 | 6 |
-| `ollama/llama3.1:8b` | all | 20 | 89 | 3 | 0 | 20 | 0 | 0 | 5 | 402 | 4 | 7 |
-| `ollama/llama3.2:3b` | all | 13 | 42 | 3 | 0 | 23 | 2 | 29 | 39 | 337 | 52 | 10 |
-| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 0 | 0 | 0 | 490 | 40 | 0 | 20 | 0 |
-| `baseline-cautious-abstainer` | dev | 0 | 0 | 0 | 0 | 0 | 0 | 100 | 8 | 0 | 4 | 0 |
+| `anthropic/claude-sonnet-4-6` | dev | 16 | 16 | 4 | 8 | 2 | 2 | 3 | 61 | 0 | 0 | 0 |
+| `anthropic/claude-sonnet-4-6` | all | 67 | 59 | 23 | 18 | 6 | 14 | 20 | 153 | 187 | 3 | 0 |
+| `ollama/qwen2.5:7b` | all | 25 | 124 | 5 | 0 | 22 | 10 | 340 | 19 | 0 | 5 | 0 |
+| `ollama/qwen2.5:7b` | dev | 4 | 24 | 1 | 0 | 2 | 3 | 73 | 5 | 0 | 0 | 0 |
+| `ollama/mistral:7b` | all | 15 | 117 | 6 | 0 | 34 | 1 | 341 | 30 | 0 | 5 | 1 |
+| `baseline-confident-guesser` | all | 39 | 117 | 0 | 71 | 8 | 0 | 290 | 0 | 0 | 21 | 4 |
+| `baseline-naive-string` | all | 39 | 117 | 0 | 71 | 8 | 0 | 290 | 0 | 0 | 21 | 4 |
+| `ollama/gemma3:12b` | all | 37 | 115 | 0 | 0 | 27 | 0 | 339 | 3 | 20 | 7 | 2 |
+| `ollama/qwen2.5:3b` | all | 21 | 96 | 2 | 0 | 9 | 62 | 248 | 82 | 0 | 28 | 2 |
+| `ollama/qwen2.5:14b` | all | 16 | 77 | 17 | 0 | 8 | 120 | 221 | 58 | 0 | 32 | 1 |
+| `baseline-confident-guesser` | dev | 8 | 21 | 0 | 16 | 3 | 0 | 61 | 0 | 0 | 2 | 1 |
+| `baseline-naive-string` | dev | 8 | 21 | 0 | 16 | 3 | 0 | 61 | 0 | 0 | 2 | 1 |
+| `ollama/phi4-mini` | all | 14 | 88 | 1 | 0 | 20 | 85 | 252 | 50 | 1 | 33 | 6 |
+| `ollama/llama3.1:8b` | all | 20 | 89 | 3 | 0 | 20 | 0 | 402 | 4 | 0 | 5 | 7 |
+| `ollama/llama3.2:3b` | all | 13 | 42 | 3 | 0 | 23 | 29 | 337 | 52 | 2 | 39 | 10 |
+| `baseline-cautious-abstainer` | all | 0 | 0 | 0 | 0 | 0 | 490 | 0 | 20 | 0 | 40 | 0 |
+| `baseline-cautious-abstainer` | dev | 0 | 0 | 0 | 0 | 0 | 100 | 0 | 4 | 0 | 8 | 0 |
 
 ## Method
 
