@@ -9,6 +9,9 @@ IP memos live in the private portfolio hub, `jasonbrelsford/ventures`, under
 repository is readable by anyone, including the organisations they discuss. Do not add
 them back. See `docs/README.md`.
 
+Start with [`HANDOFF.md`](HANDOFF.md): what is live, what is not finished, and the traps
+that have already cost time.
+
 ## Read the private context first
 
 If you have access to `jasonbrelsford/ventures`, read these before changing anything:
