@@ -58,6 +58,41 @@ def _prompt(task: dict) -> str:
     return f"{task['instructions']}\n\nINPUT:\n{json.dumps(task['input'], indent=2)}"
 
 
+def _extract_json_object(text: str) -> str:
+    """Return the first balanced ``{...}`` object in ``text``, tolerating markdown
+    code fences and leading/trailing prose (a model given no assistant-turn prefill
+    occasionally still wraps its JSON that way despite SYSTEM_STRICT). Brace-depth
+    scanning is used rather than a greedy regex so a brace inside a quoted string
+    value cannot close the object early. Falls back to the stripped input if no
+    balanced object is found, so a genuinely non-JSON reply still surfaces as-is for
+    the grader/caller to report as malformed rather than being silently swallowed."""
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+        start = text.find("{", start + 1)
+    return text.strip()
+
+
 # --------------------------------------------------------------------------- baselines
 
 class NaiveStringBaseline:
@@ -184,14 +219,17 @@ class AnthropicModel:
         self.name = f"anthropic/{model}"
 
     def answer(self, t: dict) -> str:
-        # Prefilled '{' assistant turn: the model must continue the JSON object,
-        # so it cannot open with prose or a code fence. We prepend it back.
+        # No assistant-turn prefill: current Claude models reject a request whose
+        # conversation does not end on a user message (400 "This model does not
+        # support assistant message prefill"). SYSTEM_STRICT already tells the model
+        # to emit bare JSON; _extract_json_object below is the safety net for the
+        # prose/code-fence wrapping a hosted model still occasionally adds.
         r = _post("https://api.anthropic.com/v1/messages",
                   {"x-api-key": self.key, "anthropic-version": "2023-06-01"},
                   {"model": self.model, "max_tokens": self.max_tokens, "system": SYSTEM_STRICT,
-                   "messages": [{"role": "user", "content": _prompt(t)},
-                                {"role": "assistant", "content": "{"}]})
-        return "{" + "".join(b.get("text", "") for b in r.get("content", []))
+                   "messages": [{"role": "user", "content": _prompt(t)}]})
+        text = "".join(b.get("text", "") for b in r.get("content", []))
+        return _extract_json_object(text)
 
 
 class OpenAIModel:

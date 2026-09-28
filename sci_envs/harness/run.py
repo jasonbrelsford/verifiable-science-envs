@@ -38,6 +38,20 @@ def _agent_view(t: dict) -> dict:
     return {k: v for k, v in t.items() if k not in ("answer", "scorer_notes")}
 
 
+# A run this broken is a backend/API problem, not a model-quality signal, and the
+# grader currently has no choice but to record each one as malformed_response —
+# indistinguishable in the committed summary from a model that actually replied with
+# garbage. Refuse to write results/scores at all past this fraction so a transient
+# API outage never lands as a scored row in bench/HLA-Bench-A.md.
+API_ERROR_FRACTION_LIMIT = 0.2
+
+
+class ApiErrorRateExceeded(RuntimeError):
+    """Raised by run_model when more than API_ERROR_FRACTION_LIMIT of a run's raw
+    responses are transport/API errors (raw starting with "ERROR:"). No scores/
+    results/logs are written for that model's run when this is raised."""
+
+
 def cache_usable(raw: str) -> bool:
     """A cached response is reused only if it is a real model reply. Empty bodies and
     transport errors (recorded as 'ERROR: ...') are backend failures and are re-asked
@@ -55,6 +69,8 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
     scores: list[Score] = []
     ids = list(full)[:limit] if limit else list(full)
     t0 = time.time()
+    api_errors = 0
+    first_error: Optional[str] = None
     for i, tid in enumerate(ids, 1):
         t = full[tid]
         rfile = rdir / f"{tid}.json"
@@ -70,11 +86,20 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
             if getattr(model, "last_fallback", None):
                 rec["backend_fallback"] = model.last_fallback   # which ladder rung produced the reply
             rfile.write_text(dumps(rec))
+        if isinstance(raw, str) and raw.startswith("ERROR:"):
+            api_errors += 1
+            first_error = first_error or raw
         s = grade(t, raw, ref)
         scores.append(s)
         if verbose and (i % 25 == 0 or i == len(ids)):
             acc = sum(x.correct for x in scores) / len(scores)
             print(f"  {model.name}: {i}/{len(ids)} acc={acc:.3f} halluc={sum(bool(x.hallucinated_names) for x in scores)} ({time.time()-t0:.0f}s)", file=sys.stderr)
+    if ids and api_errors / len(ids) > API_ERROR_FRACTION_LIMIT:
+        raise ApiErrorRateExceeded(
+            f"{model.name}: {api_errors}/{len(ids)} responses ({api_errors / len(ids):.0%}) were API "
+            f"errors, over the {API_ERROR_FRACTION_LIMIT:.0%} limit — refusing to write scores/results "
+            f"for this run. Sample error: {first_error}"
+        )
     summary = summarize(scores)
     summary.update({"model": model.name, "split": split, "benchmark": json.loads((suite_dir / "manifest.json").read_text())["benchmark"],
                     "n_tasks": len(ids), "run_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -144,7 +169,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"running: {specs}", file=sys.stderr)
     for spec in specs:
         model = M.resolve(spec, full)
-        scores, summary = run_model(model, full, ref, suite_dir, args.split, args.limit)
+        try:
+            scores, summary = run_model(model, full, ref, suite_dir, args.split, args.limit)
+        except ApiErrorRateExceeded as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         o = summary["overall"]
         print(f"{model.name:40s} split={args.split:4s} n={o['n']:3d} acc={o['acc']:.3f} "
               f"halluc_tasks={summary['hallucination']['tasks_with_hallucinated_names']} calibrated={summary['calibration']['calibrated_fraction']:.2f}")
