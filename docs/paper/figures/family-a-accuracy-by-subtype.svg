@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 608" width="700" height="608" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<text x="220" y="20" font-size="13" font-weight="bold">Family A accuracy by subtype (anthropic/claude-sonnet-4-6, all 550 tasks)</text>
+<text x="214" y="58" text-anchor="end">locus_field</text>
+<rect x="220" y="44" width="420.0" height="18" fill="#2563eb" />
+<text x="646.0" y="58">100%</text>
+<text x="214" y="86" text-anchor="end">null_trap</text>
+<rect x="220" y="72" width="420.0" height="18" fill="#2563eb" />
+<text x="646.0" y="86">100%</text>
+<text x="214" y="114" text-anchor="end">truncate</text>
+<rect x="220" y="100" width="407.4" height="18" fill="#2563eb" />
+<text x="633.4" y="114">97%</text>
+<text x="214" y="142" text-anchor="end">near_miss</text>
+<rect x="220" y="128" width="336.0" height="18" fill="#2563eb" />
+<text x="562.0" y="142">80%</text>
+<text x="214" y="170" text-anchor="end">release_drift</text>
+<rect x="220" y="156" width="315.0" height="18" fill="#2563eb" />
+<text x="541.0" y="170">75%</text>
+<text x="214" y="198" text-anchor="end">name_at_release</text>
+<rect x="220" y="184" width="281.4" height="18" fill="#2563eb" />
+<text x="507.4" y="198">67%</text>
+<text x="214" y="226" text-anchor="end">existed_at</text>
+<rect x="220" y="212" width="264.6" height="18" fill="#2563eb" />
+<text x="490.6" y="226">63%</text>
+<text x="214" y="254" text-anchor="end">serology</text>
+<rect x="220" y="240" width="239.4" height="18" fill="#2563eb" />
+<text x="465.4" y="254">57%</text>
+<text x="214" y="282" text-anchor="end">same_group</text>
+<rect x="220" y="268" width="222.6" height="18" fill="#2563eb" />
+<text x="448.6" y="282">53%</text>
+<text x="214" y="310" text-anchor="end">p_group</text>
+<rect x="220" y="296" width="210.0" height="18" fill="#2563eb" />
+<text x="436.0" y="310">50%</text>
+<text x="214" y="338" text-anchor="end">valid_name</text>
+<rect x="220" y="324" width="210.0" height="18" fill="#2563eb" />
+<text x="436.0" y="338">50%</text>
+<text x="214" y="366" text-anchor="end">group_members_count</text>
+<rect x="220" y="352" width="155.4" height="18" fill="#2563eb" />
+<text x="381.4" y="366">37%</text>
+<text x="214" y="394" text-anchor="end">g_group</text>
+<rect x="220" y="380" width="138.6" height="18" fill="#2563eb" />
+<text x="364.6" y="394">33%</text>
+<text x="214" y="422" text-anchor="end">deleted_reason</text>
+<rect x="220" y="408" width="126.0" height="18" fill="#2563eb" />
+<text x="352.0" y="422">30%</text>
+<text x="214" y="450" text-anchor="end">typing_report_normalize</text>
+<rect x="220" y="436" width="126.0" height="18" fill="#2563eb" />
+<text x="352.0" y="450">30%</text>
+<text x="214" y="478" text-anchor="end">renamed_to</text>
+<rect x="220" y="464" width="29.4" height="18" fill="#2563eb" />
+<text x="255.4" y="478">7%</text>
+<text x="214" y="506" text-anchor="end">expand_ambiguity</text>
+<rect x="220" y="492" width="0.0" height="18" fill="#2563eb" />
+<text x="226.0" y="506">0%</text>
+<text x="214" y="534" text-anchor="end">first_release</text>
+<rect x="220" y="520" width="0.0" height="18" fill="#2563eb" />
+<text x="226.0" y="534">0%</text>
+<text x="214" y="562" text-anchor="end">new_in_release</text>
+<rect x="220" y="548" width="0.0" height="18" fill="#2563eb" />
+<text x="226.0" y="562">0%</text>
+<text x="214" y="590" text-anchor="end">resolve_chain</text>
+<rect x="220" y="576" width="0.0" height="18" fill="#2563eb" />
+<text x="226.0" y="590">0%</text>
+</svg>
