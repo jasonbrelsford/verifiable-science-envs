@@ -85,6 +85,43 @@ def parse_wrong_but_overconfident_rate(text: str, n_by_model: dict[str, int]) ->
     return rows
 
 
+def parse_by_subtype(text: str, model: str) -> list[dict]:
+    """Per-subtype accuracy (`all` split) for one model's column in the
+    'By subtype' table."""
+    rows = []
+    in_section = False
+    header_cells: list[str] | None = None
+    col_idx: int | None = None
+    target = f"`{model}` (all)"
+    for line in text.splitlines():
+        if line.startswith("## By subtype"):
+            in_section = True
+            continue
+        if in_section and line.startswith("## "):
+            break
+        if not in_section or not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if header_cells is None:
+            header_cells = cells
+            for i, cell in enumerate(cells):
+                if cell == target:
+                    col_idx = i
+                    break
+            continue
+        if set(cells[0]) <= {"-", " ", ":"}:
+            continue  # the `|---|---:|` separator row
+        if col_idx is None:
+            continue
+        subtype_match = re.match(r"`([^`]+)`", cells[0])
+        value_match = re.match(r"([\d.]+)%", cells[col_idx])
+        if not subtype_match or not value_match:
+            continue
+        rows.append({"model": subtype_match.group(1), "accuracy": float(value_match.group(1))})
+    rows.sort(key=lambda r: r["accuracy"], reverse=True)
+    return rows
+
+
 def bar_color(model: str) -> str:
     if model.startswith(ORACLE_PREFIX):
         return "#6b7280"  # neutral gray: validates the harness, not a model result
@@ -158,6 +195,25 @@ def main() -> None:
     print(
         f"wrote {out_dir / 'family-a-wrong-but-overconfident-by-model.svg'} "
         f"({len(overconfident_rows)} models)"
+    )
+
+    best_model = next(
+        r["model"]
+        for r in headline_rows
+        if not r["model"].startswith(ORACLE_PREFIX) and not r["model"].startswith(BASELINE_PREFIX)
+    )
+    by_subtype_rows = parse_by_subtype(text, best_model)
+    if not by_subtype_rows:
+        raise SystemExit(f"no '{best_model}' (all) column parsed from {args.bench}'s By subtype table")
+    by_subtype_svg = render_svg(
+        by_subtype_rows,
+        f"Family A accuracy by subtype ({best_model}, all 550 tasks)",
+        "accuracy",
+    )
+    (out_dir / "family-a-accuracy-by-subtype.svg").write_text(by_subtype_svg + "\n")
+    print(
+        f"wrote {out_dir / 'family-a-accuracy-by-subtype.svg'} "
+        f"({len(by_subtype_rows)} subtypes, {best_model})"
     )
 
 
