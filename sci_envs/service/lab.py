@@ -21,7 +21,7 @@ import re
 from typing import Optional
 
 from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele
-from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _members
+from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _members, name_parts
 from sci_envs.families.matching.rules import antigen_of
 from sci_envs.service.protein import ProteinFacts
 
@@ -85,7 +85,7 @@ def ligands(ref: ImgtReference, pf: ProteinFacts, name: str) -> Optional[dict]:
     """Ligand facts for one reported name (§2). None when the name does not
     split as a class I (A/B/C) allele name, or has no members."""
     try:
-        locus, fields, suffix = split_allele(name)
+        locus, fields, suffix = name_parts(name)   # allele, prefix, or G/P group name
     except ImgtError:
         return None
     if locus not in ("A", "B", "C"):
@@ -243,8 +243,12 @@ def _check(ref: ImgtReference, pf: ProteinFacts, typing: dict):
                 row["ligands"] = ligs
             rows.append(row)
 
-            string_locus = split_allele(name)[0] if name is not None else _regex_locus(s.strip())
-            if status == "unresolvable":
+            string_locus = name_parts(name)[0] if name is not None else _regex_locus(s.strip())
+            if status == "unresolvable" and "mac_code" in flags:
+                issues.append(_issue("error", key, "mac_code",
+                                      f"'{s}' is an NMDP multiple allele code; this service does not expand MAC codes "
+                                      f"— report the allele list it stands for"))
+            elif status == "unresolvable":
                 issues.append(_issue("error", key, "unresolvable", f"'{s}' is not a name in release {release}"))
             if status == "renamed":
                 issues.append(_issue("warning", key, "deprecated_name",
@@ -380,7 +384,7 @@ def _drb1_family(row: dict) -> str:
     if name == "UNRESOLVABLE":
         return "unknown"
     try:
-        first_field = split_allele(name)[1][0]
+        first_field = name_parts(name)[1][0]
     except ImgtError:
         return "unknown"
     return _DRB1_FAMILY.get(first_field, "unknown")
@@ -511,6 +515,7 @@ def _process_token(ref: ImgtReference, release: str, raw_tok: str, issues: list[
     t = raw_tok.strip()
     base = t[4:] if t.startswith("HLA-") else t
 
+    flags: set[str] = set()
     if any(c.isspace() for c in t):
         status = "unresolvable"
         current_name = None
@@ -529,13 +534,17 @@ def _process_token(ref: ImgtReference, release: str, raw_tok: str, issues: list[
         elif "deprecated_name" in flags:
             status = "renamed"
             current_name = name
-            locus = split_allele(name)[0]
+            locus = name_parts(name)[0]
         else:
             status = "valid"
             current_name = name
-            locus = split_allele(name)[0]
+            locus = name_parts(name)[0]
 
-    if status == "unresolvable":
+    if status == "unresolvable" and "mac_code" in flags:
+        issues.append({"severity": "error", "code": "mac_code",
+                       "detail": f"'{t}' is an NMDP multiple allele code; this service does not expand MAC codes "
+                                 f"— write the allele list it stands for"})
+    elif status == "unresolvable":
         issues.append({"severity": "error", "code": "unresolvable_allele", "detail": f"'{t}' is not a name in release {release}"})
     elif status == "renamed":
         issues.append({"severity": "warning", "code": "renamed_allele", "detail": f"'{t}' is outdated; current name is {current_name}"})

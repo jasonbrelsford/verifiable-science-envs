@@ -92,27 +92,27 @@ ${selfServeKeysSection}
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
-<p>Send HLA typing report text or a model's answer about HLA, with patient identifiers removed first. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, or <code>hallucinated</code>. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group.</p>
+<p>Send HLA typing report text or a model's answer about HLA, with patient identifiers removed first. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, <code>hallucinated</code>, or <code>mac_code</code> (an NMDP multiple allele code such as <code>A*02:AB</code> — reporting shorthand this service does not expand, surfaced so it is never silently skipped). Two-field <code>A*02:01g</code> and the XX code <code>A*02:XX</code> are checked by the name they abbreviate. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group; check <code>counts.mac_code</code> separately.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \\
   -d '{"text": "Reported typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G)."}'`)}
 ${curl(`{"release":"${m.release}","clean":false,
- "counts":{"valid":2,"deleted":1,"group":1,"fabricated_group":0,"hallucinated":1},
+ "counts":{"valid":2,"deleted":1,"group":1,"fabricated_group":0,"hallucinated":1,"mac_code":0},
  "tokens":[{"token":"A*0101","status":"deleted","successor":"A*01:01:01:01","current_2field":"A*01:01",
             "g_group":"AMBIGUOUS","flags":["deprecated_name"],"note":"was assigned once, no longer current — see successor"},
            {"token":"DQB1*05:03:26:99","status":"hallucinated","note":"no such name in any release back to 1.05.0 — fabricated"}, …],
  "attribution":"Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), …"}`)}
 
 <h3><span class="pill">POST</span><code>/v1/normalize</code> — bring reported typings to the current release</h3>
-<p>Any era: colon-less 1990s strings (<code>A*0101</code>, <code>Cw*0702</code>), deleted names, lower-resolution prefixes. Returns the current name, the comparable 2-field name (keeping an expression suffix only when every full-resolution allele shares it), the G group (<code>NONE</code> / <code>AMBIGUOUS</code>), and flags such as <code>deprecated_name</code>, <code>null_allele</code>, <code>nonexistent_allele</code>.</p>
+<p>Any era and any reporting shorthand: colon-less 1990s strings (<code>A*0101</code>, <code>Cw*0702</code>), deleted names, lower-resolution prefixes, G and P group names (<code>A*02:01:01G</code>, <code>DPB1*04:01P</code>), the XX code (<code>A*02:XX</code>), two-field <code>A*02:01g</code>, and an optional <code>HLA-</code> prefix. Returns the current name, the comparable 2-field name (keeping an expression suffix only when every full-resolution allele shares it), the G group (<code>NONE</code> / <code>AMBIGUOUS</code>), and flags such as <code>deprecated_name</code>, <code>null_allele</code>, <code>nonexistent_allele</code>, <code>g_group_name</code>, <code>p_group_name</code>, <code>xx_code</code>, <code>lg_notation</code>. NMDP multiple allele codes (<code>A*02:AB</code>) are not expanded: they return <code>UNRESOLVABLE</code> with the flag <code>mac_code</code>.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/normalize -H 'content-type: application/json' \\
   -d '{"typings": ["A*0101", "A*01:34N", "DRB1*1406", "A*24:09N", "B*9999"]}'`)}
 
 <h3><span class="pill">GET</span><code>/v1/allele/{name}</code> — the facts for one name</h3>
-<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), or <code>deleted</code> (successor). 404 for anything not in the release. Class I (A/B/C) names carry a trailing <code>ligands</code> object: expression, the -21 leader residue (<code>leader_21</code>: M/T, Petersdorf 2020), Bw4/Bw6 (<code>bw</code>), the C1/C2 epitope (<code>c_group</code>), and the aggregate <code>kir_ligand</code> class, each aggregated over the name's members with an <code>ambiguities</code> map when they disagree.</p>
+<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), <code>group</code> (a G or P group name: type, member count and sample), or <code>deleted</code> (successor). 404 for anything not in the release. Class I (A/B/C) names carry a trailing <code>ligands</code> object: expression, the -21 leader residue (<code>leader_21</code>: M/T, Petersdorf 2020), Bw4/Bw6 (<code>bw</code>), the C1/C2 epitope (<code>c_group</code>), and the aggregate <code>kir_ligand</code> class, each aggregated over the name's members with an <code>ambiguities</code> map when they disagree.</p>
 ${curl(`curl -s 'https://api.hlaverify.com/v1/allele/A*24:09N'`)}
 
 <h3><span class="pill">POST</span><code>/v1/match</code> — donor–recipient match verdict</h3>
-<p>Two reported alleles per locus, any nomenclature era. Frameworks <code>6/6</code>, <code>8/8</code>, <code>10/10</code>, <code>12/12</code>, <code>antigen</code>. Counts per <em>chromosome</em>, not per locus; GvH and HvG mismatches reported separately; a locus whose typing is too coarse to call is <code>potential</code> and excluded from the denominator with <code>resolution_insufficient</code> — a confident count over unresolvable typing is itself the error. Null alleles hiding inside serologic matches (the A*24:09N trap) raise <code>null_allele_mismatch</code>. Rules R1–R6 are published in <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/sci_envs/families/matching/rules.py">rules.py</a> for lab audit.</p>
+<p>Two reported alleles per locus, any nomenclature era, G/P group names included (a typing reported at G-group resolution matches by the 2-field name it is written under). Frameworks <code>6/6</code>, <code>8/8</code>, <code>10/10</code>, <code>12/12</code>, <code>antigen</code>. Counts per <em>chromosome</em>, not per locus; GvH and HvG mismatches reported separately; a locus whose typing is too coarse to call is <code>potential</code> and excluded from the denominator with <code>resolution_insufficient</code> — a confident count over unresolvable typing is itself the error. Null alleles hiding inside serologic matches (the A*24:09N trap) raise <code>null_allele_mismatch</code>. Rules R1–R6 are published in <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/sci_envs/families/matching/rules.py">rules.py</a> for lab audit.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/match -H 'content-type: application/json' -d '{
   "framework": "8/8",
   "recipient": {"A": ["A*02:01", "A*24:02"], "B": ["B*07:02", "B*44:02"], "C": ["C*07:02", "C*05:01"], "DRB1": ["DRB1*15:01", "DRB1*04:01"]},
@@ -414,7 +414,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           release: { type: "string" }, clean: { type: "boolean" },
           counts: { type: "object", additionalProperties: { type: "integer" } },
           tokens: { type: "array", items: { type: "object", properties: { token: { type: "string" },
-            status: { type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated"] },
+            status: { type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code"] },
             note: { type: "string" }, successor: { type: "string" }, current_2field: { type: "string" },
             g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } },
           attribution } } } } }, 422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
