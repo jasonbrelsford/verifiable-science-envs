@@ -7,8 +7,11 @@
 // https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/
 //
 // SCHEMA (index.js meter()): indexes[0] = key label (index1); blobs = [label,
-// endpoint, release, status, "keyed"|"anon", tier] (blob1..blob6); doubles =
-// [units, ms] (double1, double2).
+// endpoint, release, status, "keyed"|"anon", tier, caller bucket, unmet value]
+// (blob1..blob8); doubles = [units, ms, one count per unmet class]
+// (double1, double2, double3..). The unmet columns are defined in unmet.js
+// (UNMET_CLASSES, DOUBLE_OFFSET, BUCKET_BLOB, VALUE_BLOB) and read back by the
+// three buildAdminUnmet*SQL queries below.
 //
 // SAMPLING. Analytics Engine may sample writes, so count() undercounts. Every
 // row carries `_sample_interval`; the documented fix is sum(_sample_interval)
@@ -34,6 +37,7 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { limitsFor } from "./keys.js";
+import { UNMET_CLASSES, classColumn, BUCKET_BLOB, VALUE_BLOB, aggregateUnmet } from "./unmet.js";
 
 const DATASET = "hlaverify_usage";
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -245,13 +249,46 @@ export function buildAdminLatencySQL() {
     `  max(double2) AS max_ms\nFROM ${DATASET}\nWHERE timestamp > now() - INTERVAL '30' DAY`;
 }
 
+// ---------------------------------------------------- unmet requests (unmet.js)
+// Three queries over the per-class counters. Column names c<i>/o<i> are what
+// unmet.js aggregateUnmet() reads: c = requests in which class i fired (any
+// count > 0), o = occurrences (the counts summed). Every aggregate is
+// sample-corrected the same way the rest of this file is.
+const BUCKET = `blob${BUCKET_BLOB}`, VALUE = `blob${VALUE_BLOB}`;
+const anyClass = () => UNMET_CLASSES.map((_, i) => `${classColumn(i)} > 0`).join(" OR ");
+
+// One row per (caller bucket, keyed, tier, UTC day): what aggregateUnmet() turns
+// into distinct, paid and repeat callers per class. Bounded, so caller counts
+// are exact up to the bound; request totals come from the endpoint query below.
+export function buildAdminUnmetCallersSQL() {
+  const cols = UNMET_CLASSES.map((_, i) => `sumIf(_sample_interval, ${classColumn(i)} > 0) AS c${i}`).join(",\n  ");
+  return `SELECT ${BUCKET} AS caller, blob5 AS keyed, blob6 AS tier, toStartOfDay(timestamp) AS caller_day,\n  ${cols}\n` +
+    `FROM ${DATASET}\nWHERE timestamp > now() - INTERVAL '30' DAY AND ${BUCKET} <> '' AND (${anyClass()})\n` +
+    `GROUP BY caller, keyed, tier, caller_day\nORDER BY caller_day\nLIMIT 10000`;
+}
+
+// One row per endpoint: requests (c) and occurrences (o) per class.
+export function buildAdminUnmetEndpointsSQL() {
+  const cols = UNMET_CLASSES.map((_, i) =>
+    `sumIf(_sample_interval, ${classColumn(i)} > 0) AS c${i},\n  sum(_sample_interval * ${classColumn(i)}) AS o${i}`).join(",\n  ");
+  return `SELECT blob2 AS unmet_endpoint,\n  ${cols}\nFROM ${DATASET}\n` +
+    `WHERE timestamp > now() - INTERVAL '30' DAY AND (${anyClass()})\nGROUP BY unmet_endpoint\nORDER BY unmet_endpoint`;
+}
+
+// The categorical values: which framework was asked for, which locus, which
+// tool name — each with how many requests and how many distinct callers.
+export function buildAdminUnmetValuesSQL() {
+  return `SELECT ${VALUE} AS value, sum(_sample_interval) AS requests, count(DISTINCT ${BUCKET}) AS callers\nFROM ${DATASET}\n` +
+    `WHERE timestamp > now() - INTERVAL '30' DAY AND ${VALUE} <> ''\nGROUP BY value\nORDER BY requests DESC\nLIMIT 100`;
+}
+
 const statusClass = (status) => {
   const c = String(status || "")[0];
   return c === "2" ? "2xx" : c === "4" ? "4xx" : c === "5" ? "5xx" : "other";
 };
 
 export async function getAdminUsage(env) {
-  const [totalsRows, uniq24, uniq7, uniq30, daily, breakdown, top, latencyRows] = await Promise.all([
+  const [totalsRows, uniq24, uniq7, uniq30, daily, breakdown, top, latencyRows, unmetCallers, unmetEndpoints, unmetValues] = await Promise.all([
     queryAE(env, buildAdminTotalsSQL()),
     queryAE(env, buildAdminUniqueLabelsSQL("1")),
     queryAE(env, buildAdminUniqueLabelsSQL("7")),
@@ -260,6 +297,9 @@ export async function getAdminUsage(env) {
     queryAE(env, buildAdminBreakdownSQL()),
     queryAE(env, buildAdminTopLabelsSQL()),
     queryAE(env, buildAdminLatencySQL()),
+    queryAE(env, buildAdminUnmetCallersSQL()),
+    queryAE(env, buildAdminUnmetEndpointsSQL()),
+    queryAE(env, buildAdminUnmetValuesSQL()),
   ]);
 
   const t = totalsRows[0] || {};
@@ -295,6 +335,7 @@ export async function getAdminUsage(env) {
     top_labels,
     latency_ms: { p50: numOrNull(lat.p50_ms), p95: numOrNull(lat.p95_ms), avg: numOrNull(lat.avg_ms), max: numOrNull(lat.max_ms) },
     error_rate: total30 > 0 ? Math.round((nonOk / total30) * 10000) / 10000 : 0,
+    unmet: aggregateUnmet(unmetCallers, unmetEndpoints, unmetValues, { anonBuckets: env.UNMET_ANON_BUCKETS === "1" }),
   };
 }
 
@@ -332,6 +373,29 @@ function svgBars(items, { width = 640, barHeight = 16, gap = 5, color = "#2F5D3A
 }
 
 const sortedEntries = (obj) => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+
+// The unmet-requests table: one row per class, ranked by score, with the
+// components the score is made of shown beside it so the ranking can be
+// argued with. Classes nobody hit in the window are listed last, greyed, so
+// the absence of a signal is visible too.
+function unmetTable(unmet) {
+  if (!unmet || !Array.isArray(unmet.classes)) return `<p class="mut">No unmet-request data.</p>`;
+  const rows = unmet.classes.map((c) => {
+    const top = sortedEntries(c.by_endpoint).slice(0, 3).map(([k, v]) => `${esc(k)} ${fmt(v)}`).join(", ") || "—";
+    const values = c.values.slice(0, 5).map((v) => `${esc(v.value)} ×${fmt(v.requests)}`).join(", ");
+    const quiet = c.requests ? "" : ` class="quiet"`;
+    return `<tr${quiet}><td><b>${esc(c.title)}</b><br><span class="mut">${esc(c.seen)}${values ? ` · seen: ${values}` : ""}</span></td>` +
+      `<td class="num">${fmt(c.requests)}<br><span class="mut">${fmt(c.occurrences)} occ.</span></td>` +
+      `<td class="num">${fmt(c.callers)}<br><span class="mut">${fmt(c.paid_callers)} paid · ${fmt(c.repeat_callers)} repeat</span></td>` +
+      `<td>${top}</td><td class="num">${c.score}</td><td><span class="v v-${esc(c.verdict)}">${esc(c.verdict)}</span></td>` +
+      `<td class="mut">${esc(c.would_take)}</td></tr>`;
+  }).join("\n");
+  return `<div class="card"><table>
+<thead><tr><th>What callers asked for that the service does not do</th><th class="num">Requests</th><th class="num">Callers</th><th>Where</th><th class="num">Score</th><th>Verdict</th><th>What it would take</th></tr></thead>
+<tbody>${rows}</tbody></table></div>
+<p class="mut">${esc(unmet.note)}</p>`;
+}
 
 export function renderAdminHTML(manifest, data) {
   const t = data.totals;
@@ -358,13 +422,18 @@ h1{font-family:Georgia,serif;font-size:1.8rem;margin:.2em 0}h2{font-family:Georg
 .tile{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:200px}
 .big{font-size:1.6rem;font-weight:700;color:var(--green)}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.num{text-align:right;white-space:nowrap}tr.quiet{opacity:.55}td:first-child{min-width:240px}
+.v{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.8rem;border:1px solid var(--line)}
+.v-build{background:#DFF0E3;color:var(--green)}.v-investigate{background:#FFF4D6}.v-watch{background:#F3F1EA}.v-pricing{background:#E6ECF7}.v-none{color:var(--mut)}
 </style></head><body><div class="wrap">
 <h1>HLA-Verify operator usage</h1>
 <p class="mut">Release ${esc(manifest.release)}. Counts are sample-corrected (sum of _sample_interval); Analytics Engine may sample writes under load.</p>
 <h2>Totals</h2>
 <div class="tiles">${statTiles}</div>
 <p class="mut">Error rate (30d, non-2xx / total): ${(data.error_rate * 100).toFixed(2)}%. Latency p50 ${lat.p50 ?? "n/a"} ms, p95 ${lat.p95 ?? "n/a"} ms, avg ${lat.avg ?? "n/a"} ms, max ${lat.max ?? "n/a"} ms.</p>
+<h2>Unmet requests (30 days)</h2>
+${unmetTable(data.unmet)}
 <h2>Daily calls (30 days)</h2>
 <div class="card">${svgBars(dailyItems, { width: 820 })}</div>
 <h2>By endpoint (30 days)</h2>

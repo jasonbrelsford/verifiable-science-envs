@@ -15,6 +15,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
   MAX_INSTITUTION, MAX_RESEARCH_USE_CASE, MAX_EXPECTED_VOLUME } from "./handlers.js";
 import { TIER_LIMITS } from "./keys.js";
 import { getPricing, priceLabel, SELLABLE_TIERS } from "./pricing.js";
+import { summarizeUnmet, rejectionUnmet, EMPTY as NO_UNMET } from "./unmet.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -642,9 +643,34 @@ export function aboutBody(manifest, pricing) {
 function okResult(structured, units) {
   return { isError: false, content: [{ type: "text", text: JSON.stringify(structured) }], structuredContent: structured, units };
 }
-function errResult(detail) {
-  return { isError: true, content: [{ type: "text", text: detail }], units: 0 };
+// `unmet` ({code, value?}) is the refusal's product signal, when it has one
+// (handlers.js bad(); the unknown-tool case below), for runTool's metering hook.
+function errResult(detail, unmet = null) {
+  return { isError: true, content: [{ type: "text", text: detail }], units: 0, ...(unmet ? { unmet } : {}) };
 }
+
+// The REST endpoint each lookup tool mirrors, and the input shape index.js hands
+// summarizeUnmet() for it, so a tool call is classified exactly as the same
+// request over /v1/* would be. Tools absent here (about, the write tools) are
+// never classified.
+const ENDPOINT_OF = {
+  verify_text: "verify", normalize_allele: "normalize", allele_info: "allele", match_score: "match",
+  check_typing: "typing/check", donor_compat: "compat", validate_gl_string: "glstring",
+};
+function unmetInput(name, args) {
+  switch (name) {
+    case "verify_text": return { text: args.text };
+    case "normalize_allele": return { typings: [args.name] };
+    case "allele_info": return { name: args.name };
+    case "match_score": return { framework: args.framework, recipient: args.recipient, donor: args.donor };
+    case "check_typing": return { typing: args.typing };
+    case "donor_compat": return { recipient: args.recipient, donor: args.donor };
+    case "validate_gl_string": return { gl: args.gl };
+    default: return null;
+  }
+}
+// normalize_allele answers with the single row, not the batch body /v1/normalize returns.
+const unmetResult = (name, structured) => (name === "normalize_allele" ? { rows: [structured] } : structured);
 
 // `beta` is the write paths' context: {env, country} from handleMcp, so the
 // beta_signup and research_access tools reach the same KV namespace and the same
@@ -657,34 +683,34 @@ async function callTool(name, args, eng, manifest, beta) {
   switch (name) {
     case "verify_text": {
       const r = await doVerify(eng, manifest, args.text);
-      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
     case "normalize_allele": {
       if (typeof args.name !== "string") return errResult("name must be a string");
       const r = await doNormalize(eng, manifest, [args.name]);
-      return r.ok ? okResult(r.body.rows[0], 1) : errResult(r.detail);
+      return r.ok ? okResult(r.body.rows[0], 1) : errResult(r.detail, r.unmet);
     }
     case "allele_info": {
       if (typeof args.name !== "string") return errResult("name must be a string");
       const r = await doAllele(eng, manifest, args.name);
-      return r.ok ? okResult(r.body, 1) : errResult(r.detail);
+      return r.ok ? okResult(r.body, 1) : errResult(r.detail, r.unmet);
     }
     case "match_score": {
       const r = await doMatch(eng, manifest, args.framework, args.recipient, args.donor);
-      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
     case "check_typing": {
       const r = await doTypingCheck(eng, manifest, args.typing);
-      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
     case "donor_compat": {
       const r = await doCompat(eng, manifest, args.recipient, args.donor);
-      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
     case "validate_gl_string": {
       if (typeof args.gl !== "string") return errResult("gl must be a string");
       const r = await doGlString(eng, manifest, args.gl);
-      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
     case "beta_signup": {
       const r = await doBetaSignup(beta && beta.env, manifest, args, beta && beta.country);
@@ -697,7 +723,10 @@ async function callTool(name, args, eng, manifest, beta) {
     case "about":
       return okResult(aboutBody(manifest, await getPricing(beta && beta.env)), 0);
     default:
-      return errResult(`unknown tool: ${name}`);
+      // The name an agent asked for is the signal: it is what the agent's model
+      // thought this server ought to do. unmet.js records it only if it is a
+      // plain tool-name token (sanitizeTool), never free text.
+      return errResult(`unknown tool: ${name}`, { code: "mcp_unknown_tool", value: name });
   }
 }
 
@@ -713,10 +742,12 @@ function jsonResponse(obj, status = 200) {
 }
 
 // handleMcp(request, engine, who, manifest, onCall?, env?, spend?) -> Response
-// onCall(toolName, httpishStatus, units) is an optional metering hook invoked
-// once per tools/call so the caller (index.js) can record usage the same way
-// it meters REST calls; it is a no-op by default so this module works standalone
-// (as it does in the golden tests, which call it directly with a synthetic Request).
+// onCall(toolName, httpishStatus, units, unmet) is an optional metering hook
+// invoked once per tools/call so the caller (index.js) can record usage the same
+// way it meters REST calls — `unmet` is unmet.js's {counts, value} summary of
+// what the call asked for that the service could not fully serve; it is a no-op
+// by default so this module works standalone (as it does in the golden tests,
+// which call it directly with a synthetic Request).
 // env is the Worker environment, needed only by beta_signup (the KEYS binding);
 // omitted, that one tool reports the beta list as unavailable and every other
 // tool behaves identically.
@@ -784,11 +815,21 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
 async function runTool(name, args, engine, manifest, onCall, beta, spend = null) {
   const refusal = spend ? await spend(name) : null;
   if (refusal) {
-    onCall(name, 429, 0);
+    onCall(name, 429, 0, rejectionUnmet("quota_exceeded"));
     return { out: { content: [{ type: "text", text: refusal }], isError: true }, overQuota: true };
   }
   const result = await callTool(name, args, engine, manifest, beta);
-  onCall(name, result.isError ? 422 : 200, result.units ?? 0);
+  // What this call asked for that the service could not fully serve (unmet.js):
+  // a refusal's own reason, or a summary of the verdict against its input, done
+  // exactly as index.js does for the mirrored /v1/* route. Never throws.
+  let unmet = NO_UNMET;
+  if (result.isError) {
+    if (result.unmet) unmet = rejectionUnmet(result.unmet.code, result.unmet.value);
+  } else if (ENDPOINT_OF[name]) {
+    const safeArgs = args && typeof args === "object" && !Array.isArray(args) ? args : {};
+    unmet = await summarizeUnmet(engine, manifest, ENDPOINT_OF[name], unmetInput(name, safeArgs), unmetResult(name, result.structuredContent));
+  }
+  onCall(name, result.isError ? 422 : 200, result.units ?? 0, unmet);
   const out = { content: result.content, isError: result.isError };
   if (!result.isError) out.structuredContent = result.structuredContent;
   return { out, overQuota: false };

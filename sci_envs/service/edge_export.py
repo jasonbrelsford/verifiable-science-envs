@@ -177,6 +177,10 @@ def export(tag: str, out: Path) -> dict:
     manifest = {
         "release": r.release, "tag": tag, "alleles": len(r.alleles()),
         "rows": n_rows, "shards": len(shards), "keys_skipped": len(skipped),
+        # Every locus with an assigned allele in this release. The Worker uses it to
+        # tell "a well-formed name at a locus we know" from "a gene outside this
+        # database" when it counts unmet request shapes (edge/src/unmet.js).
+        "loci": sorted({split_allele(a)[0] for a in r.alleles()}),
         "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "attribution": ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), "
                         "fetched from the ANHIG/IMGTHLA mirror at export time and shipped with "

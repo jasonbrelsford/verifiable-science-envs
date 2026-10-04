@@ -2,10 +2,13 @@
 // Deterministic, no LLM: every verdict is a lookup into tables precomputed from
 // the pinned IPD-IMGT/HLA release by the HLA-Bench grader engine (see engine.js).
 // Stores nothing: request bodies are processed in memory and discarded; usage
-// metering records counts per key label, never content.
+// metering records counts per key label, never content — including the counts
+// of request SHAPES the service could not fully serve (unmet.js), which are
+// small integers per class, never the strings that produced them.
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { createEngine, FRAMEWORKS } from "./engine.js";
+import { summarizeUnmet, rejectionUnmet, callerBucket, EMPTY as NO_UNMET } from "./unmet.js";
 import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
@@ -132,13 +135,23 @@ async function authorizeKey(presented, env) {
   return err(401, "missing or invalid X-API-Key");
 }
 
-function meter(env, ctx, who, endpoint, status, units, ms) {
+// One Analytics Engine data point per request. Schema (read back by usage.js):
+//   index1            key label
+//   blob1..blob6      label, endpoint, release, status, "keyed"|"anon", tier
+//   blob7             caller bucket (unmet.js callerBucket: the label, or a per-day
+//                     salted digest for anonymous callers — never an address)
+//   blob8             "class=value" for the one unmet class that carries a value
+//                     (a locus prefix, a framework spec, a tool name), or ""
+//   double1, double2  units, ms
+//   double3..         one small integer per unmet class (unmet.js UNMET_CLASSES)
+function meter(env, ctx, who, endpoint, status, units, ms, unmet = NO_UNMET) {
   if (!env.USAGE) return;
   try {
     env.USAGE.writeDataPoint({
       indexes: [who.label],
-      blobs: [who.label, endpoint, manifest.release, String(status), who.keyed ? "keyed" : "anon", who.tier],
-      doubles: [units, ms],
+      blobs: [who.label, endpoint, manifest.release, String(status), who.keyed ? "keyed" : "anon", who.tier,
+        who.bucket || "", unmet.value || ""],
+      doubles: [units, ms, ...unmet.counts],
     });
   } catch (_) { /* metering must never break a verdict */ }
 }
@@ -222,6 +235,7 @@ export default {
       const oauth = oauthConfig(env);
       const who = oauth ? await authorizeMcp(req, env, oauth, url, { authorize, authorizeKey, err }) : await authorize(req, env);
       if (who instanceof Response) return who;
+      who.bucket = await callerBucket(who, req, env);
       const t0 = Date.now();
       const eng = getEngine(env);
       // The daily quota is charged per billable tools/call, not per POST, so an
@@ -236,7 +250,7 @@ export default {
         return q.ok ? null : quotaDetail(q);
       };
       const resp = await handleMcp(req, eng, who, manifest,
-        (tool, status, units) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0), env, spend);
+        (tool, status, units, unmet) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0, unmet), env, spend);
       const body = await resp.text();
       return new Response(body || null, {
         status: resp.status,
@@ -275,6 +289,7 @@ export default {
 
     const who = await authorize(req, env);
     if (who instanceof Response) return who;
+    who.bucket = await callerBucket(who, req, env);
     const t0 = Date.now();
 
     // Daily quota. Charged once per request to a billable route, before the
@@ -289,13 +304,32 @@ export default {
       q = await spendQuota(env, who, req);
       if (!q.ok) {
         const headers = { ...quotaHeaders(q), "retry-after": String(retryAfterSeconds(q)) };
-        meter(env, ctx, who, endpoint, 429, 0, Date.now() - t0);
+        meter(env, ctx, who, endpoint, 429, 0, Date.now() - t0, rejectionUnmet("quota_exceeded"));
         return err(429, quotaDetail(q), headers);
       }
     }
     const hdrs = q ? quotaHeaders(q) : tierHeader(who);
 
     const eng = getEngine(env);
+
+    // Renders a handler result (handlers.js) and meters it. A refusal is metered
+    // with the reason it carries, if it is a product signal (r.unmet). A verdict
+    // is metered with a summary of what the request asked for that the service
+    // could not fully serve (unmet.js) — computed from the result and, for the
+    // strings that did not resolve, the input; after the response has gone out
+    // where the runtime allows it, so classification never adds to latency.
+    const finish = async (ep, r, input) => {
+      const ms = Date.now() - t0;
+      if (!r.ok) {
+        meter(env, ctx, who, ep, r.status, 0, ms, r.unmet ? rejectionUnmet(r.unmet.code, r.unmet.value) : NO_UNMET);
+        return err(r.status, r.detail, hdrs);
+      }
+      const status = r.status ?? 200;
+      const record = summarizeUnmet(eng, manifest, ep, input, r.body)
+        .then((unmet) => meter(env, ctx, who, ep, status, r.units, ms, unmet));
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(record); else await record;
+      return json(r.body, status, hdrs);
+    };
     try {
       // A keyed caller's own usage (usage.js), scoped to their label; not
       // billable against the daily quota (checking usage must never cost a
@@ -309,59 +343,41 @@ export default {
       if (path === "/v1/verify") {
         if (req.method !== "POST") return err(405, "POST {\"text\": ...}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doVerify(eng, manifest, body.text);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "verify", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("verify", await doVerify(eng, manifest, body.text), { text: body.text });
       }
       if (path === "/v1/normalize") {
         if (req.method !== "POST") return err(405, "POST {\"typings\": [...]}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doNormalize(eng, manifest, body.typings, { tier: who.tier, cap: q.maxTypings });
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "normalize", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("normalize", await doNormalize(eng, manifest, body.typings, { tier: who.tier, cap: q.maxTypings }),
+          { typings: body.typings });
       }
       if (path.startsWith("/v1/allele/")) {
         if (req.method !== "GET") return err(405, "GET /v1/allele/{name}", hdrs);
         let name;
         try { name = decodeURIComponent(url.pathname.slice("/v1/allele/".length)); } catch (_) { return err(400, "bad name encoding", hdrs); }
-        const r = await doAllele(eng, manifest, name);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "allele", r.status, r.units, Date.now() - t0);
-        return json(r.body, r.status, hdrs);
+        return finish("allele", await doAllele(eng, manifest, name), { name });
       }
       if (path === "/v1/match") {
         if (req.method !== "POST") return err(405, "POST {\"framework\": \"8/8\", \"recipient\": {...}, \"donor\": {...}}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doMatch(eng, manifest, body.framework, body.recipient, body.donor);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "match", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("match", await doMatch(eng, manifest, body.framework, body.recipient, body.donor),
+          { framework: body.framework, recipient: body.recipient, donor: body.donor });
       }
       if (path === "/v1/typing/check") {
         if (req.method !== "POST") return err(405, "POST {\"typing\": {...}}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doTypingCheck(eng, manifest, body.typing);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "typing/check", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("typing/check", await doTypingCheck(eng, manifest, body.typing), { typing: body.typing });
       }
       if (path === "/v1/compat") {
         if (req.method !== "POST") return err(405, "POST {\"recipient\": {...}, \"donor\": {...}}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doCompat(eng, manifest, body.recipient, body.donor);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "compat", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("compat", await doCompat(eng, manifest, body.recipient, body.donor),
+          { recipient: body.recipient, donor: body.donor });
       }
       if (path === "/v1/glstring") {
         if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doGlString(eng, manifest, body.gl);
-        if (!r.ok) return err(r.status, r.detail, hdrs);
-        meter(env, ctx, who, "glstring", 200, r.units, Date.now() - t0);
-        return json(r.body, 200, hdrs);
+        return finish("glstring", await doGlString(eng, manifest, body.gl), { gl: body.gl });
       }
       // Starts a Stripe Checkout Session for a paid tier and hands back the
       // hosted url. Not billable — buying a bigger quota must not cost a call

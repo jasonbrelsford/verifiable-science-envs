@@ -26,8 +26,10 @@ import path from "node:path";
 import worker from "../src/index.js";
 import { isValidLabel, sqlString, buildCallerUsageSQL, buildAdminTotalsSQL, buildAdminUniqueLabelsSQL,
   buildAdminDailySeriesSQL, buildAdminBreakdownSQL, buildAdminTopLabelsSQL, buildAdminLatencySQL,
+  buildAdminUnmetCallersSQL, buildAdminUnmetEndpointsSQL, buildAdminUnmetValuesSQL,
   handleUsageRequest, handleAdminUsageRequest, _resetUsageCache } from "../src/usage.js";
 import { isBillablePath } from "../src/quota.js";
+import { UNMET_CLASSES, CLASS_INDEX } from "../src/unmet.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, "..", "public");
@@ -54,7 +56,8 @@ function withFetch(mockFn, run) {
 // Routes a stubbed SQL API call to a canned answer based on which query shape
 // it recognizes in the request body, a small fake of Analytics Engine, not a
 // real one, but it lets every code path be exercised without a network call.
-function fakeAE({ callerRows, totalsRow, uniqueN = 3, dailyRows = [], breakdownRows = [], topRows = [], latencyRow = {} } = {}) {
+function fakeAE({ callerRows, totalsRow, uniqueN = 3, dailyRows = [], breakdownRows = [], topRows = [], latencyRow = {},
+  unmetCallerRows = [], unmetEndpointRows = [], unmetValueRows = [] } = {}) {
   const calls = [];
   const fn = async (url, opts) => {
     const sql = String(opts.body);
@@ -62,6 +65,9 @@ function fakeAE({ callerRows, totalsRow, uniqueN = 3, dailyRows = [], breakdownR
     let data;
     if (sql.includes("count(DISTINCT blob1)")) data = [{ n: uniqueN }];
     else if (sql.includes("calls_24h")) data = totalsRow ? [totalsRow] : [];
+    else if (sql.includes("AS caller_day")) data = unmetCallerRows;
+    else if (sql.includes("AS unmet_endpoint")) data = unmetEndpointRows;
+    else if (sql.includes("blob8 AS value")) data = unmetValueRows;
     else if (sql.includes("toStartOfDay(timestamp) AS day")) data = dailyRows;
     else if (sql.includes("GROUP BY endpoint, tier, status")) data = breakdownRows;
     else if (sql.includes("quantileExactWeighted")) data = [latencyRow];
@@ -336,4 +342,78 @@ test("admin SQL builders name the expected windows and shapes", () => {
   assert.match(buildAdminTopLabelsSQL(), /LIMIT 20/);
   assert.match(buildAdminLatencySQL(), /quantileExactWeighted\(0\.5\)\(double2, _sample_interval\)/);
   assert.match(buildAdminLatencySQL(), /quantileExactWeighted\(0\.95\)\(double2, _sample_interval\)/);
+});
+
+// ------------------------------------------------------- unmet requests section
+
+test("unmet SQL builders read the unmet.js columns, one per class, sample-corrected, over 30 days", () => {
+  const callers = buildAdminUnmetCallersSQL();
+  assert.match(callers, /blob7 AS caller, blob5 AS keyed, blob6 AS tier, toStartOfDay\(timestamp\) AS caller_day/);
+  assert.match(callers, /sumIf\(_sample_interval, double3 > 0\) AS c0/);
+  assert.match(callers, new RegExp(`double${2 + UNMET_CLASSES.length} > 0\\) AS c${UNMET_CLASSES.length - 1}`));
+  assert.match(callers, /blob7 <> ''/);
+  assert.match(callers, /INTERVAL '30' DAY/);
+  assert.match(callers, /LIMIT 10000/);
+  const endpoints = buildAdminUnmetEndpointsSQL();
+  assert.match(endpoints, /blob2 AS unmet_endpoint/);
+  assert.match(endpoints, /sum\(_sample_interval \* double3\) AS o0/);
+  assert.match(endpoints, /GROUP BY unmet_endpoint/);
+  const values = buildAdminUnmetValuesSQL();
+  assert.match(values, /blob8 AS value/);
+  assert.match(values, /count\(DISTINCT blob7\) AS callers/);
+  assert.match(values, /blob8 <> ''/);
+  // nothing in any of them reaches for a raw column that could hold content
+  for (const sql of [callers, endpoints, values]) assert.doesNotMatch(sql, /blob1[^0-9]|index1/);
+});
+
+const i = CLASS_INDEX;
+const unmetCallerRows = [
+  { caller: "k:customer-a", keyed: "keyed", tier: "lab", caller_day: "2026-09-01T00:00:00Z", [`c${i.mac_code}`]: 3 },
+  { caller: "k:customer-a", keyed: "keyed", tier: "lab", caller_day: "2026-09-04T00:00:00Z", [`c${i.mac_code}`]: 1 },
+  { caller: "a:00ff00ff00ff00ff", keyed: "anon", tier: "free", caller_day: "2026-09-02T00:00:00Z", [`c${i.mac_code}`]: 2, [`c${i.framework_unsupported}`]: 1 },
+];
+const unmetEndpointRows = [
+  { unmet_endpoint: "normalize", [`c${i.mac_code}`]: 4, [`o${i.mac_code}`]: 9 },
+  { unmet_endpoint: "mcp:check_typing", [`c${i.mac_code}`]: 2, [`o${i.mac_code}`]: 2, [`c${i.framework_unsupported}`]: 1, [`o${i.framework_unsupported}`]: 1 },
+];
+const unmetValueRows = [{ value: "framework_unsupported=9/10", requests: 1, callers: 1 }];
+
+test("GET /admin/usage: JSON carries the unmet-requests report, ranked, with the score components", async () => {
+  const env = { ADMIN_TOKEN: "secret-admin-token", CF_ACCOUNT_ID: "acct1", CF_ANALYTICS_TOKEN: "tok1", ASSETS };
+  const fetchStub = fakeAE({ totalsRow, dailyRows, breakdownRows, topRows, latencyRow, unmetCallerRows, unmetEndpointRows, unmetValueRows });
+  const body = await withFetch(fetchStub, async () => {
+    const req = new Request("https://assets.local/admin/usage", { method: "GET", headers: { authorization: "Bearer secret-admin-token" } });
+    return (await worker.fetch(req, env, {})).json();
+  });
+  assert.equal(fetchStub.calls.length, 11, "eight existing queries plus three unmet queries");
+  assert.equal(body.unmet.window, "30d");
+  assert.equal(body.unmet.classes.length, UNMET_CLASSES.length);
+  const mac = body.unmet.classes.find((c) => c.id === "mac_code");
+  assert.equal(mac.requests, 6);
+  assert.equal(mac.occurrences, 11);
+  assert.equal(mac.callers, 2);
+  assert.equal(mac.paid_callers, 1);
+  assert.equal(mac.repeat_callers, 1);
+  assert.deepEqual(mac.by_endpoint, { normalize: 4, "mcp:check_typing": 2 });
+  assert.ok(mac.score > 0);
+  assert.equal(mac.verdict, "investigate");
+  const fw = body.unmet.classes.find((c) => c.id === "framework_unsupported");
+  assert.deepEqual(fw.values, [{ value: "9/10", requests: 1, callers: 1 }]);
+  assert.equal(body.unmet.classes[0].id, "mac_code", "ranked by score");
+  assert.equal(body.unmet.classes.find((c) => c.id === "serology").verdict, "none");
+  assert.match(body.unmet.note, /never request content/);
+});
+
+test("GET /admin/usage: the HTML render has the unmet-requests table with titles, values and verdicts", async () => {
+  const env = { ADMIN_TOKEN: "secret-admin-token", CF_ACCOUNT_ID: "acct1", CF_ANALYTICS_TOKEN: "tok1", ASSETS };
+  const html = await withFetch(fakeAE({ totalsRow, dailyRows, breakdownRows, topRows, latencyRow, unmetCallerRows, unmetEndpointRows, unmetValueRows }), async () => {
+    const req = new Request("https://assets.local/admin/usage?format=html", { method: "GET", headers: { authorization: "Bearer secret-admin-token" } });
+    return (await worker.fetch(req, env, {})).text();
+  });
+  assert.match(html, /Unmet requests \(30 days\)/);
+  assert.match(html, /NMDP multiple allele codes/);
+  assert.match(html, /9\/10 ×1/);
+  assert.match(html, /v-investigate/);
+  assert.match(html, /What it would take/);
+  assert.ok(!html.includes("a:00ff00ff00ff00ff"), "caller buckets are counted, not listed");
 });
