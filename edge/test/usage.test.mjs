@@ -404,6 +404,27 @@ test("GET /admin/usage: JSON carries the unmet-requests report, ranked, with the
   assert.match(body.unmet.note, /never request content/);
 });
 
+test("GET /admin/usage: a failing unmet-request query empties that section and names the error, never a 502", async () => {
+  const env = { ADMIN_TOKEN: "secret-admin-token", CF_ACCOUNT_ID: "acct1", CF_ANALYTICS_TOKEN: "tok1", ASSETS };
+  const inner = fakeAE({ totalsRow, dailyRows, breakdownRows, topRows, latencyRow });
+  const flaky = async (url, opts) => {
+    if (String(opts.body).includes("AS caller_day")) return new Response(JSON.stringify({ errors: [{ message: "unknown column double15" }] }), { status: 400 });
+    return inner(url, opts);
+  };
+  const [body, html] = await withFetch(flaky, async () => {
+    const h = { authorization: "Bearer secret-admin-token" };
+    const r1 = await worker.fetch(new Request("https://assets.local/admin/usage", { method: "GET", headers: h }), env, {});
+    assert.equal(r1.status, 200);
+    const r2 = await worker.fetch(new Request("https://assets.local/admin/usage?format=html", { method: "GET", headers: h }), env, {});
+    assert.equal(r2.status, 200);
+    return [await r1.json(), await r2.text()];
+  });
+  assert.equal(body.totals["24h"].calls, 100, "the rest of the dashboard is intact");
+  assert.match(body.unmet.error, /unmet-request queries failed/);
+  assert.equal(body.unmet.classes.every((c) => c.requests === 0), true);
+  assert.match(html, /Unmet-request section unavailable/);
+});
+
 test("GET /admin/usage: the HTML render has the unmet-requests table with titles, values and verdicts", async () => {
   const env = { ADMIN_TOKEN: "secret-admin-token", CF_ACCOUNT_ID: "acct1", CF_ANALYTICS_TOKEN: "tok1", ASSETS };
   const html = await withFetch(fakeAE({ totalsRow, dailyRows, breakdownRows, topRows, latencyRow, unmetCallerRows, unmetEndpointRows, unmetValueRows }), async () => {

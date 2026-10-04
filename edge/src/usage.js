@@ -288,6 +288,12 @@ const statusClass = (status) => {
 };
 
 export async function getAdminUsage(env) {
+  // The unmet-request queries read columns that only exist on rows written since
+  // they shipped, and lean harder on the SQL dialect (conditional aggregates over
+  // many columns, LIMIT). They must never take the rest of the dashboard down:
+  // a failure there yields an empty section with the error named, not a 502.
+  let unmetError = null;
+  const unmetQuery = (sql) => queryAE(env, sql).catch((e) => { unmetError = unmetError || String(e && e.message || e); return []; });
   const [totalsRows, uniq24, uniq7, uniq30, daily, breakdown, top, latencyRows, unmetCallers, unmetEndpoints, unmetValues] = await Promise.all([
     queryAE(env, buildAdminTotalsSQL()),
     queryAE(env, buildAdminUniqueLabelsSQL("1")),
@@ -297,9 +303,9 @@ export async function getAdminUsage(env) {
     queryAE(env, buildAdminBreakdownSQL()),
     queryAE(env, buildAdminTopLabelsSQL()),
     queryAE(env, buildAdminLatencySQL()),
-    queryAE(env, buildAdminUnmetCallersSQL()),
-    queryAE(env, buildAdminUnmetEndpointsSQL()),
-    queryAE(env, buildAdminUnmetValuesSQL()),
+    unmetQuery(buildAdminUnmetCallersSQL()),
+    unmetQuery(buildAdminUnmetEndpointsSQL()),
+    unmetQuery(buildAdminUnmetValuesSQL()),
   ]);
 
   const t = totalsRows[0] || {};
@@ -335,7 +341,8 @@ export async function getAdminUsage(env) {
     top_labels,
     latency_ms: { p50: numOrNull(lat.p50_ms), p95: numOrNull(lat.p95_ms), avg: numOrNull(lat.avg_ms), max: numOrNull(lat.max_ms) },
     error_rate: total30 > 0 ? Math.round((nonOk / total30) * 10000) / 10000 : 0,
-    unmet: aggregateUnmet(unmetCallers, unmetEndpoints, unmetValues, { anonBuckets: env.UNMET_ANON_BUCKETS === "1" }),
+    unmet: { ...aggregateUnmet(unmetCallers, unmetEndpoints, unmetValues, { anonBuckets: env.UNMET_ANON_BUCKETS === "1" }),
+      ...(unmetError ? { error: `unmet-request queries failed: ${unmetError}` } : {}) },
   };
 }
 
@@ -381,6 +388,7 @@ const fmt = (n) => Number(n || 0).toLocaleString("en-US");
 // the absence of a signal is visible too.
 function unmetTable(unmet) {
   if (!unmet || !Array.isArray(unmet.classes)) return `<p class="mut">No unmet-request data.</p>`;
+  if (unmet.error) return `<p class="mut">Unmet-request section unavailable: ${esc(unmet.error)}</p>`;
   const rows = unmet.classes.map((c) => {
     const top = sortedEntries(c.by_endpoint).slice(0, 3).map(([k, v]) => `${esc(k)} ${fmt(v)}`).join(", ") || "—";
     const values = c.values.slice(0, 5).map((v) => `${esc(v.value)} ×${fmt(v.requests)}`).join(", ");
