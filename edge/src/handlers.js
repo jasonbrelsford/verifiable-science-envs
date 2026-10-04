@@ -28,7 +28,11 @@ export function validateTyping(obj, side) {
   return null;
 }
 
-const bad = (status, detail) => ({ ok: false, status, detail });
+// `unmet` ({code, value?}) names the kind of request a refusal turned away, for
+// the unmet-request counters (unmet.js rejectionUnmet). Only the two refusals
+// that are a product signal carry one: a batch over the tier's cap, and a match
+// framework this service does not offer. Malformed input is not a signal.
+const bad = (status, detail, unmet = null) => (unmet ? { ok: false, status, detail, unmet } : { ok: false, status, detail });
 const good = (body, units = 0) => ({ ok: true, body, units });
 
 export async function doVerify(eng, manifest, text) {
@@ -44,7 +48,7 @@ export async function doNormalize(eng, manifest, typings, { tier = "enterprise",
   if (!Array.isArray(typings) || !typings.every((s) => typeof s === "string"))
     return bad(422, "typings must be a list of strings");
   const limit = Math.min(cap, MAX_TYPINGS);
-  if (typings.length > limit) return bad(422, batchDetail(tier, limit, typings.length));
+  if (typings.length > limit) return bad(422, batchDetail(tier, limit, typings.length), { code: "batch_over_cap" });
   const body = await eng.normalizeBatch(typings);
   return good(body, typings.length);
 }
@@ -59,7 +63,8 @@ export async function doAllele(eng, manifest, rawName) {
 export async function doMatch(eng, manifest, framework, recipient, donor) {
   const fw = framework ?? "8/8";
   if (typeof fw !== "string" || !Object.prototype.hasOwnProperty.call(FRAMEWORKS, fw))
-    return bad(422, `framework must be one of ${Object.keys(FRAMEWORKS).sort().join(", ")}`);
+    return bad(422, `framework must be one of ${Object.keys(FRAMEWORKS).sort().join(", ")}`,
+      { code: "framework_unsupported", value: fw });
   const v = validateTyping(recipient, "recipient") || validateTyping(donor, "donor");
   if (v) return bad(422, v);
   const body = await eng.match(fw, recipient, donor);

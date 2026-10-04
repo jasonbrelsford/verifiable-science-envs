@@ -85,6 +85,16 @@
     // CF_ANALYTICS_TOKEN secret below; either missing makes GET /v1/usage and
     // GET /admin/usage answer 503 rather than guess.
     "CF_ACCOUNT_ID": "8f78271bd18de867a388de1760107bf1"
+    // UNMET_ANON_BUCKETS is deliberately NOT set. The unmet-request counters
+    // (src/unmet.js, the "Unmet requests" section of GET /admin/usage) count how
+    // many distinct callers hit each gap. Keyed callers are counted by label. By
+    // default every anonymous request counts as ONE caller, so the metering row
+    // stays what hlaverify.com/privacy says it is. Setting "UNMET_ANON_BUCKETS": "1"
+    // here makes each anonymous caller a per-UTC-day digest of the day, the
+    // QUOTA_IP_SALT secret and the address (the construction the daily quota
+    // already uses; never the address itself), which turns "how many different
+    // people hit this" into a number — and needs one sentence added to the
+    // privacy page first. Owner's call; flip it there, then here.
   }
   // Secrets (wrangler secret put):
   //   HLA_VERIFY_API_KEYS = "key=label:tier,key2=label2:tier2" (tiers: starter, lab,

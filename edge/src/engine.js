@@ -63,8 +63,8 @@ const DRB1_FAMILY = {
   "01": "none", "08": "none", "10": "none",
 };
 
-function canonicalLocus(key) {
-  let k = key.trim();
+export function canonicalLocus(key) {
+  let k = String(key).trim();
   if (k.startsWith("HLA-")) k = k.slice(4);
   return k === "Cw" ? "C" : k;
 }
