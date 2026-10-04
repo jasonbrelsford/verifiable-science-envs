@@ -62,9 +62,34 @@ SEROLOGY_LOCUS = {
 ALLELE_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,3})([NLSCAQ]?)$")
 # Legacy 4-digit style without colons (A*0101, A*020120, Cw*0702)
 LEGACY_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$")
-# Loose grammar used for hallucination extraction from free text (GRADER_SPEC §3.4)
-ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGP]?(?![\w:])")
+# Loose grammar used for hallucination extraction from free text (GRADER_SPEC §3.4).
+# A trailing lowercase ``g`` is the two-field "lg" notation (A*02:01g) that labs and
+# py-ard emit for the G-group-equivalent 2-field name; without it the token would be
+# dropped silently because ``g`` is a word character.
+ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\w:])")
+# NMDP multiple allele codes (A*02:AB, DRB1*04:BNDC) and the XX code (A*02:XX): a first
+# field followed by a colon and 2-5 capital letters.  Matched separately so that a report
+# full of MAC codes is never reported "clean" with those tokens silently unchecked.
+MAC_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\w:])")
 GROUP_RE = re.compile(r"^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$")
+# Reported-typing shorthands accepted as INPUT (never produced as output):
+MAC_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):([A-Z]{2,5})$")          # A*02:AB
+XX_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):XX$")                      # A*02:XX
+LG_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):(\d{2,})g$")               # A*02:01g
+
+
+def strip_prefix(name: str) -> str:
+    """'HLA-A*02:01' -> 'A*02:01'. Names in the release files carry no 'HLA-' prefix."""
+    n = name.strip()
+    return n[4:] if n.startswith("HLA-") else n
+
+
+def group_parts(name: str) -> tuple[str, list[str], str]:
+    """'A*02:01:01G' -> ('A', ['02','01','01'], 'G'). Raises on anything else."""
+    m = GROUP_RE.match(strip_prefix(name))
+    if not m:
+        raise ImgtError(f"not a G/P group name: {name!r}")
+    return m.group(1), m.group(2).split(":"), m.group(3)
 
 _SUCCESSOR_RE = re.compile(
     r"(?:identical to|renamed(?: as| to)?|renamed and extended to|is identical to|becoming)\s+([A-Z]+[0-9]*\*[0-9:]+[NLSCAQ]?)"
@@ -650,11 +675,21 @@ class ImgtReference:
     # ------------------------------------------------------------ hallucination
     def classify_tokens(self, text: str) -> dict[str, list[str]]:
         """Split every allele-like token in free text into valid / deleted /
-        group / hallucinated, per GRADER_SPEC §3.4."""
-        seen = {"valid": [], "deleted": [], "group": [], "fabricated_group": [], "hallucinated": []}
+        group / fabricated_group / hallucinated / mac_code, per GRADER_SPEC §3.4.
+
+        ``mac_code`` holds NMDP multiple allele codes (A*02:AB): real reporting
+        shorthand that this engine does not expand, so it is surfaced rather than
+        silently skipped.  The XX code (A*02:XX) is the first-field prefix and is
+        classified like one; a trailing lowercase ``g`` (A*02:01g, the two-field
+        "lg" notation) is classified by the two-field name it abbreviates."""
+        seen = {"valid": [], "deleted": [], "group": [], "fabricated_group": [], "hallucinated": [],
+                "mac_code": []}
         for tok in set(ALLELE_TOKEN_RE.findall(text)):
             t = tok[4:] if tok.startswith("HLA-") else tok
-            if self.exists(t):
+            if t.endswith("g"):
+                base = t[:-1]
+                seen["valid" if (self.exists(base) or self._valid_prefix(base)) else "hallucinated"].append(t)
+            elif self.exists(t):
                 seen["valid"].append(t)
             elif self.is_group_name(t):
                 seen["group"].append(t)
@@ -666,6 +701,13 @@ class ImgtReference:
                 seen["deleted"].append(t)
             else:
                 seen["hallucinated"].append(t)
+        for tok in set(MAC_TOKEN_RE.findall(text)):
+            t = tok[4:] if tok.startswith("HLA-") else tok
+            m = XX_RE.match(t)
+            if m:
+                seen["valid" if self._valid_prefix(f"{m.group(1)}*{m.group(2)}") else "hallucinated"].append(t)
+            else:
+                seen["mac_code"].append(t)
         for k in seen:
             seen[k].sort()
         return seen

@@ -102,7 +102,7 @@ const NORMALIZE_OUT = {
     current_name: { type: "string", description: "Current full name in the pinned release, or UNRESOLVABLE." },
     allele_2field: { type: "string", description: "Current 2-field form, or UNRESOLVABLE. Never present an UNRESOLVABLE name as an allele." },
     g_group: { type: "string", description: "G group; NONE (no group), AMBIGUOUS (members differ) or UNRESOLVABLE." },
-    flags: { type: "array", items: STR, description: "e.g. deprecated_name, nonexistent_allele, null_allele." },
+    flags: { type: "array", items: STR, description: "e.g. deprecated_name, nonexistent_allele, null_allele, g_group_name, p_group_name, xx_code, lg_notation, mac_code." },
   },
 };
 
@@ -113,15 +113,16 @@ const VERIFY_OUT = {
     release: RELEASE,
     clean: {
       type: "boolean",
-      description: "The guardrail: true only when no token is hallucinated, fabricated_group or deleted. Gate on this before presenting the text.",
+      description: "The guardrail: true only when no token is hallucinated, fabricated_group or deleted. Gate on this before presenting the text. NMDP multiple allele codes (counts.mac_code) are not checked — treat them as unverified.",
     },
     counts: {
       type: "object",
       description: "Number of distinct tokens per status.",
-      required: ["valid", "deleted", "group", "fabricated_group", "hallucinated"],
+      required: ["valid", "deleted", "group", "fabricated_group", "hallucinated", "mac_code"],
       properties: {
         valid: { type: "integer" }, deleted: { type: "integer" }, group: { type: "integer" },
         fabricated_group: { type: "integer" }, hallucinated: { type: "integer" },
+        mac_code: { type: "integer", description: "NMDP multiple allele codes (A*02:AB) seen but not expanded." },
       },
     },
     tokens: {
@@ -133,9 +134,11 @@ const VERIFY_OUT = {
         properties: {
           token: { type: "string", description: "The token without any HLA- prefix." },
           status: {
-            type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated"],
-            description: "valid: assigned (or a valid prefix); group: a real G/P group; deleted: no longer current (see successor); " +
-              "fabricated_group: G/P-shaped but no such group; hallucinated: never existed in any release.",
+            type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code"],
+            description: "valid: assigned (or a valid prefix; A*02:XX and two-field A*02:01g are checked by the name they abbreviate); " +
+              "group: a real G/P group; deleted: no longer current (see successor); " +
+              "fabricated_group: G/P-shaped but no such group; hallucinated: never existed in any release; " +
+              "mac_code: an NMDP multiple allele code, reporting shorthand this service does not expand.",
           },
           note: { type: "string", description: "Human-readable meaning of status." },
           successor: { type: "string", description: "deleted: the name it was renamed to, when known." },
@@ -157,8 +160,8 @@ const ALLELE_OUT = {
     release: RELEASE,
     name: STR,
     status: {
-      type: "string", enum: ["assigned", "valid_prefix", "deleted"],
-      description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; deleted: withdrawn or renamed (see successor).",
+      type: "string", enum: ["assigned", "valid_prefix", "group", "deleted"],
+      description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; group: a G or P group name (see group_type); deleted: withdrawn or renamed (see successor).",
     },
     successor: { type: ["string", "null"], description: "deleted: the current name, or null if none." },
     g_group: { type: ["string", "null"], description: "assigned: G group, or null." },
@@ -172,8 +175,9 @@ const ALLELE_OUT = {
     },
     null_allele: { type: "boolean", description: "assigned: true for an N (null, not expressed) allele." },
     ligands: LIGANDS,
-    members_count: { type: "integer", description: "valid_prefix: number of assigned alleles under the prefix." },
-    members_sample: { type: "array", items: STR, description: "valid_prefix: up to 10 member alleles." },
+    group_type: { type: "string", enum: ["G", "P"], description: "group: whether the name is a G group (identical exons 2+3 / exon 2) or a P group (identical peptide-binding domain)." },
+    members_count: { type: "integer", description: "valid_prefix / group: number of assigned alleles under the prefix or in the group." },
+    members_sample: { type: "array", items: STR, description: "valid_prefix / group: up to 10 member alleles." },
     attribution: ATTRIBUTION,
   },
 };
@@ -387,8 +391,8 @@ function toolDefs() {
       name: "verify_text",
       description:
         "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
-        "classify each one: valid / legacy (with modern form) / deleted (with successor) / " +
-        "fabricated. Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
+        "classify each one: valid / legacy (with modern form) / G-P group / deleted (with successor) / " +
+        "fabricated / NMDP MAC code (seen, not expanded). Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
         "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
         "HLA. Send the HLA content only, with patient identifiers removed first.",
       inputSchema: {
@@ -406,8 +410,10 @@ function toolDefs() {
     {
       name: "normalize_allele",
       description:
-        "Normalize one reported HLA allele name (any era) to current 2-field form, " +
-        "with G group, P group, serologic equivalent, and flags.",
+        "Normalize one reported HLA allele name (any era or reporting shorthand: legacy A*0101, " +
+        "G/P group names, A*02:XX, two-field A*02:01g, optional HLA- prefix) to current 2-field form, " +
+        "with G group, P group, serologic equivalent, and flags. NMDP MAC codes (A*02:AB) are " +
+        "recognised but not expanded (flag mac_code).",
       inputSchema: {
         type: "object",
         required: ["name"],
@@ -422,8 +428,8 @@ function toolDefs() {
       description:
         "Look up one exact name in the pinned release and return what it is: " +
         "assigned (G/P group, first release, confirmed status, WMDA serology, null flag), " +
-        "valid_prefix (member count and sample), or deleted (successor). Not found if the " +
-        "name has never existed in any release.",
+        "valid_prefix (member count and sample), group (a G or P group name: member count and sample), " +
+        "or deleted (successor). Not found if the name has never existed in any release.",
       inputSchema: {
         type: "object",
         required: ["name"],
@@ -439,7 +445,8 @@ function toolDefs() {
         "Count a donor-recipient HLA match by the published counting rules (R1-R6): allele " +
         "arithmetic over chromosomes, not a donor recommendation. " +
         'recipient/donor: {"A": ["A*01:01","A*02:01"], "B": [...], ...} (two reported ' +
-        "alleles per locus, any nomenclature era; allele strings only, no patient identifiers). " +
+        "alleles per locus, any nomenclature era including G/P group names such as A*02:01:01G; " +
+        "allele strings only, no patient identifiers). " +
         "framework: 6/6, 8/8, 10/10, 12/12, " +
         "or antigen. Returns count, per-locus verdicts, GvH/HvG mismatch counts, and " +
         "flags; unresolvable typing yields 'potential', never a confident count.",
@@ -462,7 +469,8 @@ function toolDefs() {
         "too-many/single/homozygous per locus, computes the B-leader (-21 M/T) and " +
         'KIR-ligand (C1/C2/Bw4) profile, and DRB3/4/5 expected-vs-reported. Nomenclature and ' +
         "internal-consistency checking of the report, not clinical interpretation. typing: " +
-        '{"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era; ' +
+        '{"A": ["A*01:01", "A*02:01"], "B": [...], "DRB1": [...], ...} (any nomenclature era, ' +
+        "G/P group names, A*02:XX and two-field A*02:01g included; NMDP MAC codes are flagged, not expanded; " +
         "allele strings only, no patient identifiers).",
       inputSchema: {
         type: "object",

@@ -6,9 +6,16 @@
 
 export const ALLELE_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,3})([NLSCAQ]?)$/;
 export const LEGACY_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$/;
-// Python \w is Unicode-aware; mirror it with \p{L}\p{N}_ under the u flag.
-export const ALLELE_TOKEN_RE = /(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGP]?(?![\p{L}\p{N}_:])/gu;
+// Python \w is Unicode-aware; mirror it with \p{L}\p{N}_ under the u flag. A trailing
+// lowercase g is the two-field "lg" notation (A*02:01g) — see imgt.ALLELE_TOKEN_RE.
+export const ALLELE_TOKEN_RE = /(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\p{L}\p{N}_:])/gu;
+// NMDP multiple allele codes (A*02:AB) and the XX code (A*02:XX) — imgt.MAC_TOKEN_RE.
+export const MAC_TOKEN_RE = /(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\p{L}\p{N}_:])/gu;
 export const GROUP_RE = /^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$/;
+// Reported-typing shorthands accepted as input — imgt.MAC_RE / XX_RE / LG_RE.
+export const MAC_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):([A-Z]{2,5})$/;
+export const XX_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):XX$/;
+export const LG_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):(\d{2,})g$/;
 const SHARD_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{2})/;
 
 export const STATUS_HELP = {
@@ -17,7 +24,14 @@ export const STATUS_HELP = {
   deleted: "was assigned once, no longer current — see successor",
   fabricated_group: "shaped like a G/P group but no such group exists",
   hallucinated: "no such name in any release back to 1.05.0 — fabricated",
+  mac_code: "an NMDP multiple allele code (reporting shorthand for an allele list) — not expanded or checked here",
 };
+
+// imgt.strip_prefix(): names in the release files carry no 'HLA-'.
+export function stripPrefix(name) {
+  const n = name.trim();
+  return n.startsWith("HLA-") ? n.slice(4) : n;
+}
 const CLS = { v: "valid", g: "group", d: "deleted" };
 
 export const FRAMEWORKS = {
@@ -59,9 +73,15 @@ function regexLocus(s) {
   if (!m) return null;
   return m[1] === "Cw" ? "C" : m[1];
 }
+// normalize.name_parts()[0]: locus of an allele name, a prefix, or a G/P group name.
 function localeOf(name) {
-  const m = ALLELE_RE.exec(name);
+  const m = ALLELE_RE.exec(name) ?? GROUP_RE.exec(name);
   return m ? m[1] : null;
+}
+// normalize.name_parts()[1][0]: first field of an allele name or a G/P group name.
+function firstFieldOf(name) {
+  const m = ALLELE_RE.exec(name) ?? GROUP_RE.exec(name);
+  return m ? m[2].split(":")[0] : null;
 }
 function issue(severity, locus, code, detail) {
   return { severity, locus, code, detail };
@@ -122,10 +142,26 @@ export function createEngine({ loadShard, manifest }) {
     return hasOwn(rows, name) ? rows[name] : null;
   }
 
-  // normalize.resolve_name(): is_deleted -> legacy -> exists/prefix -> nonexistent.
-  // A row's rn/rf were computed by resolve_name() on that exact key, so any hit is final.
+  // normalize.resolve_name(): strip 'HLA-' -> MAC -> XX -> lg -> row (allele, prefix,
+  // deleted, G/P group) -> legacy -> nonexistent. A row's rn/rf were computed by
+  // resolve_name() on that exact key, so any hit is final. The shorthand conversions
+  // return the row of the name they stand for plus the flag resolve_name() adds.
+  function shorthand(s) {
+    if (MAC_RE.test(s) && !XX_RE.test(s)) return { kind: "mac_code", cand: null };
+    let m = XX_RE.exec(s);
+    if (m) return { kind: "xx_code", cand: `${m[1]}*${m[2]}` };
+    m = LG_RE.exec(s);
+    if (m) return { kind: "lg_notation", cand: `${m[1]}*${m[2]}:${m[3]}` };
+    return null;
+  }
   async function resolveName(reported) {
-    const s = reported.trim();
+    const s = stripPrefix(reported);
+    const sh = shorthand(s);
+    if (sh) {                    // the name the shorthand stands for, resolved like any reported name
+      if (!sh.cand) return [null, ["mac_code"], null];
+      const [rn, rf, crow] = await resolveName(sh.cand);
+      return [rn, sortedUnique([sh.kind, ...rf]), crow];
+    }
     const row = await lookup(s);
     if (row) return [row.rn ?? null, row.rf ?? [], row];
     if (isLegacy(s)) {
@@ -139,7 +175,13 @@ export function createEngine({ loadShard, manifest }) {
 
   // normalize.normalize(): {allele_2field, g_group, flags[]}
   async function normalizeOne(reported) {
-    const s = reported.trim();
+    const s = stripPrefix(reported);
+    const sh = shorthand(s);
+    if (sh) {
+      if (!sh.cand) return { allele_2field: "UNRESOLVABLE", g_group: "UNRESOLVABLE", flags: ["mac_code"] };
+      const n = await normalizeOne(sh.cand);
+      return { ...n, flags: sortedUnique([sh.kind, ...n.flags]) };
+    }
     const row = await lookup(s);
     if (row) return { allele_2field: row.n2, g_group: row.ng, flags: row.nf ?? [] };
     if (isLegacy(s)) {
@@ -159,28 +201,51 @@ export function createEngine({ loadShard, manifest }) {
   }
 
   // ---------------------------------------------------------------- /v1/verify
+  // imgt.classify_tokens() + app.verify(): allele-shaped tokens, then MAC/XX-shaped ones.
   async function verify(text) {
     const toks = new Set(text.match(ALLELE_TOKEN_RE) ?? []);
-    const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [] };
-    const rowsByTok = new Map();
+    const macToks = new Set(text.match(MAC_TOKEN_RE) ?? []);
+    const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [], mac_code: [] };
+    const rowsByTok = new Map();   // token -> {row, flag}: the row that answers for it
     for (const tok of toks) {
-      const t = tok.startsWith("HLA-") ? tok.slice(4) : tok;
-      const row = await lookup(t);
-      const status = row ? CLS[row.s] : (GROUP_RE.test(t) ? "fabricated_group" : "hallucinated");
+      const t = stripPrefix(tok);
+      let row, status, flag = null;
+      if (t.endsWith("g")) {       // lg notation: classified by the two-field name it abbreviates
+        row = await lookup(t.slice(0, -1));
+        status = row && row.s === "v" ? "valid" : "hallucinated";
+        flag = "lg_notation";
+      } else {
+        row = await lookup(t);
+        status = row ? CLS[row.s] : (GROUP_RE.test(t) ? "fabricated_group" : "hallucinated");
+      }
       seen[status].push(t);
-      rowsByTok.set(t, row);
+      rowsByTok.set(t, { row, flag });
+    }
+    for (const tok of macToks) {
+      const t = stripPrefix(tok);
+      const m = XX_RE.exec(t);
+      if (m) {                     // XX code: the first-field prefix
+        const row = await lookup(`${m[1]}*${m[2]}`);
+        const status = row && row.s === "v" ? "valid" : "hallucinated";
+        seen[status].push(t);
+        rowsByTok.set(t, { row, flag: "xx_code" });
+      } else {
+        seen.mac_code.push(t);
+        rowsByTok.set(t, { row: null, flag: null });
+      }
     }
     for (const k in seen) seen[k].sort();
     const tokens = [];
     for (const status of Object.keys(seen)) {
       for (const t of seen[status]) {
         const out = { token: t, status, note: STATUS_HELP[status] };
-        const row = rowsByTok.get(t);
+        const { row, flag } = rowsByTok.get(t);
         if (status === "deleted" && row?.succ) out.successor = row.succ;
         if ((status === "valid" || status === "deleted") && row.n2 !== "UNRESOLVABLE") {
           out.current_2field = row.n2;
           out.g_group = row.ng;
-          if (row.nf?.length) out.flags = row.nf;
+          const flags = flag ? sortedUnique([flag, ...(row.nf ?? [])]) : (row.nf ?? []);
+          if (flags.length) out.flags = flags;
         }
         tokens.push(out);
       }
@@ -214,6 +279,12 @@ export function createEngine({ loadShard, manifest }) {
     const base = { release: manifest.release, name };
     if (row?.dl)
       return { status: 200, body: { ...base, status: "deleted", successor: row.succ ?? null, attribution: manifest.attribution } };
+    if (row?.s === "g") {
+      const out = { ...base, status: "group", group_type: name.endsWith("G") ? "G" : "P",
+        members_count: row.mc ?? 0, members_sample: row.ms ?? [], attribution: manifest.attribution };
+      if (row.lg !== undefined) out.ligands = row.lg;
+      return { status: 200, body: out };
+    }
     if (row?.ex) {
       const out = { ...base, status: "assigned", attribution: manifest.attribution,
         g_group: row.g ?? null, p_group: row.p ?? null, first_release: row.fr ?? null, confirmed: !!row.c };
@@ -327,9 +398,8 @@ export function createEngine({ loadShard, manifest }) {
 
   function drb1Family(row) {
     if (row.current_name === "UNRESOLVABLE") return "unknown";
-    const m = ALLELE_RE.exec(row.current_name);
-    if (!m) return "unknown";
-    const firstField = m[2].split(":")[0];
+    const firstField = firstFieldOf(row.current_name);
+    if (firstField == null) return "unknown";
     return DRB1_FAMILY[firstField] ?? "unknown";
   }
   function buildDrb345(typing, rowLookup, canonicalLookup, issues) {
@@ -378,7 +448,10 @@ export function createEngine({ loadShard, manifest }) {
         const name = row.current_name === "UNRESOLVABLE" ? null : row.current_name;
         const stringLocus = name != null ? localeOf(name) : regexLocus(s.trim());
 
-        if (row.status === "unresolvable")
+        if (row.status === "unresolvable" && row.flags.includes("mac_code"))
+          issues.push(issue("error", key, "mac_code",
+            `'${s}' is an NMDP multiple allele code; this service does not expand MAC codes — report the allele list it stands for`));
+        else if (row.status === "unresolvable")
           issues.push(issue("error", key, "unresolvable", `'${s}' is not a name in release ${release}`));
         if (row.status === "renamed")
           issues.push(issue("warning", key, "deprecated_name", `'${s}' is an outdated name; current name is ${row.current_name}`));
@@ -483,7 +556,7 @@ export function createEngine({ loadShard, manifest }) {
   async function processToken(release, rawTok, issues, allelesByText, orderList) {
     const t = rawTok.trim();
     const base = t.startsWith("HLA-") ? t.slice(4) : t;
-    let status, currentName, locus;
+    let status, currentName, locus, flags = [];
 
     if ([...t].some((c) => /\s/.test(c))) {
       status = "unresolvable";
@@ -495,13 +568,17 @@ export function createEngine({ loadShard, manifest }) {
       currentName = base;
       locus = base.split("*")[0];
     } else {
-      const [name, flags] = await resolveName(base);
+      const [name, fl] = await resolveName(base);
+      flags = fl;
       if (name == null) { status = "unresolvable"; currentName = null; locus = regexLocus(base); }
       else if (flags.includes("deprecated_name")) { status = "renamed"; currentName = name; locus = localeOf(name); }
       else { status = "valid"; currentName = name; locus = localeOf(name); }
     }
 
-    if (status === "unresolvable")
+    if (status === "unresolvable" && flags.includes("mac_code"))
+      issues.push({ severity: "error", code: "mac_code",
+        detail: `'${t}' is an NMDP multiple allele code; this service does not expand MAC codes — write the allele list it stands for` });
+    else if (status === "unresolvable")
       issues.push({ severity: "error", code: "unresolvable_allele", detail: `'${t}' is not a name in release ${release}` });
     else if (status === "renamed")
       issues.push({ severity: "warning", code: "renamed_allele", detail: `'${t}' is outdated; current name is ${currentName}` });
@@ -608,6 +685,12 @@ export function createEngine({ loadShard, manifest }) {
       if (level === "allele") {
         const n = await normalizeOne(reported);
         if (n.allele_2field === "UNRESOLVABLE") return null;
+        // rules.two_field(): a first-field-only typing (A*02, A*02:XX) cannot be compared at
+        // allele level unless that one-field name is itself an assigned allele (MICA*008)
+        if (!n.allele_2field.split("*", 2)[1].includes(":")) {
+          const row = await lookup(n.allele_2field);
+          if (!row?.ex) return null;
+        }
         out.push(n.allele_2field);
       } else {
         const t = await antigenOf(reported);

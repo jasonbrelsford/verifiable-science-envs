@@ -11,6 +11,11 @@ R1. Names are normalized with the family-A normalizer first: deleted names are
     chased to successors, legacy strings converted; comparison happens at the
     2-field level, keeping an expression suffix only when all full-resolution
     alleles under the name share it (so A*24:09N never collapses into A*24:09).
+    A G/P group name (A*02:01:01G, DPB1*04:01P), the XX code (A*02:XX) and the
+    two-field "lg" notation (A*02:01g) are accepted as reported typings: a group
+    compares by the 2-field name it is written under and its antigen is taken
+    from its members; XX is the first-field prefix (resolution_insufficient at
+    allele level); an NMDP MAC code (A*02:AB) is not expanded and is unresolvable.
 R2. Allele-level match at a locus = equality of those 2-field names, counted
     per chromosome: matched = size of the multiset intersection of the two
     pairs; bidirectional mismatches at the locus = 2 - matched.
@@ -42,7 +47,8 @@ R5. Frameworks: 6/6 = A, B at antigen level + DRB1 at allele level;
     'antigen' = A, B, C, DRB1, DQB1 at antigen level. DQA1/DPA1 and DPB1 TCE
     permissiveness are deliberately out of scope in v0.
 R6. If any typing at a scored locus cannot be resolved to 2-field resolution
-    (unresolvable name, or antigen UNCERTAIN at an antigen-level locus), that
+    (unresolvable name, a first-field-only typing such as A*02 or A*02:XX at an
+    allele-level locus, or antigen UNCERTAIN at an antigen-level locus), that
     locus's verdict is `potential`, the `resolution_insufficient` flag is set,
     and the locus is EXCLUDED from the numeric count's denominator — a
     confident count over unresolvable typing is exactly the error we grade
@@ -54,7 +60,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from sci_envs.reference.imgt import ImgtReference, split_allele
-from sci_envs.families.nomenclature.normalize import normalize, resolve_name
+from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _members
 
 FRAMEWORKS: dict[str, list[tuple[str, str]]] = {
     "6/6": [("A", "antigen"), ("B", "antigen"), ("DRB1", "allele")],
@@ -80,9 +86,17 @@ class LocusVerdict:
 
 
 def two_field(ref: ImgtReference, reported: str) -> Optional[str]:
-    """Family-A normalization to the comparable 2-field name (R1). None = unresolvable."""
+    """Family-A normalization to the comparable 2-field name (R1). None = unresolvable,
+    which includes a first-field-only typing (A*02, A*02:XX): it names a family, not a
+    2-field allele, so it cannot be compared at allele level (R6). A one-field name that is
+    itself an assigned allele (MICA*008) stays comparable."""
     n = normalize(ref, reported)
-    return None if n["allele_2field"] == "UNRESOLVABLE" else n["allele_2field"]
+    if n["allele_2field"] == "UNRESOLVABLE":
+        return None
+    two = n["allele_2field"]
+    if ":" not in two.split("*", 1)[1] and not ref.exists(two):
+        return None
+    return two
 
 
 def antigen_of(ref: ImgtReference, reported: str) -> str:
@@ -90,15 +104,19 @@ def antigen_of(ref: ImgtReference, reported: str) -> str:
     name, _ = resolve_name(ref, reported)
     if name is None:
         return UNCERTAIN
-    locus, fields, suffix = split_allele(name)
-    if suffix == "N":
-        return NULL
-    if ref.exists(name):
-        members = [name]
-    else:                                 # lower-resolution prefix, possibly with a shared suffix
-        members = ref.expand(f"{locus}*{':'.join(fields)}")
-        if suffix:
-            members = [m for m in members if split_allele(m)[2] == suffix]
+    if ref.is_group_name(name):           # G/P group typing: its members speak for it
+        locus = name.split("*", 1)[0]
+        members = _members(ref, name)
+    else:
+        locus, fields, suffix = split_allele(name)
+        if suffix == "N":
+            return NULL
+        if ref.exists(name):
+            members = [name]
+        else:                             # lower-resolution prefix, possibly with a shared suffix
+            members = ref.expand(f"{locus}*{':'.join(fields)}")
+            if suffix:
+                members = [m for m in members if split_allele(m)[2] == suffix]
     if not members:
         return UNCERTAIN
     antigens = set()
@@ -143,7 +161,7 @@ def locus_verdict(ref: ImgtReference, locus: str, level: str,
     flags = []
     for reported in recipient + donor:
         name, fl = resolve_name(ref, reported)
-        if name and split_allele(name)[2] == "N":
+        if name and not ref.is_group_name(name) and split_allele(name)[2] == "N":
             flags.append("null_allele")
     r = _pair_tokens(ref, recipient, level)
     d = _pair_tokens(ref, donor, level)

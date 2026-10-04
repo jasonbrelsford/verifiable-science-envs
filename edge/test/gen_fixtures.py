@@ -73,6 +73,18 @@ def pool() -> list[str]:
     p += ["HLA-" + a for a in rng.sample(alleles, 60)]
     p += ["HLA-" + prefixes(a, 2) for a in rng.sample(alleles, 30)]
     p += [f"DPB1*{n:04d}" for n in rng.sample(range(1000, 1100), 15)]
+    # reported-typing shorthands: XX codes, two-field lg notation, NMDP MAC codes, HLA- on 4 fields
+    p += [prefixes(a, 1) + ":XX" for a in rng.sample(alleles, 40)]
+    p += [prefixes(a, 2) + "g" for a in rng.sample(alleles, 60)]
+    p += [prefixes(a, 2) + "g" for a in rng.sample(nulls, 10)]                 # A*24:09g over a null
+    p += [f"{prefixes(a, 1)}:{''.join(rng.choice('ABCDEFGHJKMNPRSTUVWXYZ') for _ in range(rng.choice([2, 3, 4, 5])))}"
+          for a in rng.sample(alleles, 40)]                                      # MAC-shaped
+    p += ["HLA-" + a for a in rng.sample([x for x in alleles if len(split_allele(x)[1]) == 4], 40)]
+    p += ["HLA-" + g for g in rng.sample(r.g_groups(), 10)] + ["HLA-" + prefixes(a, 1) + ":XX" for a in rng.sample(alleles, 5)]
+    p += ["HLA-" + prefixes(a, 2) + "g" for a in rng.sample(alleles, 5)]
+    p += ["A*99:XX", "A*99:01g", "A*02:AB", "DRB1*04:BNDC", "B*15:ABCDE", "DQB1*06:XX", "A*02:XXX", "A*02:A",
+          "A2", "B44", "DR4", "Cw7", "HLA-A2", "A*2", "A*02:001", "HLA A*02:01", "DQB1*06:02g", "DPB1*04:01P",
+          "A*02:01:01G", "HLA-A*02:01:01:01", "HLA-DRB1*15:01:01G", "A*24:09g", "C*04:09g"]
     p += ["notanallele", "A*1", "A*01:0", "a*01:01", "A*01:01:", "A*01:01:01:01:01", "B*99:99", "DQB1*99:99",
           "DQB1*05:03:26:99", "DQB1*05:03:01G", "A*01:34N", "A*0101", "DRB1*1406", "B*9999", "A*24:09N",
           "A*02:01", " A*02:01 ", "A*02:01\t", "HLA-DRB1*14:06", "C*07", "Cw*0702", "Cw*07", "MICA*091",
@@ -100,6 +112,10 @@ def verify_texts(p: list[str]) -> list[str]:
             s = s.rstrip() + rng.choice([".", ")", "!", "é", "_x", "1", ":"])
         texts.append(s)
     texts += [
+        "Patient: A*02:AB, A*24:XX; B*44:02/B*44:27; C*07:01g; DRB1*04:BNDC; DQB1*03:01P; HLA-E*01:01; A*99:01g",
+        "Registry record A*02:AB+A*03:01 and DRB1*04:BNDC — HLA-A*02:XX / HLA-A*02:01g / HLA-A*02:AB",
+        "A*02:01:01G and A*24:02:01G with DPB1*04:01P; A*02:01G is not a group, nor is A*02:01:01:01G",
+        "MAC-shaped but odd: A*02:A, A*02:ABCDEF, A*02:ab, A*02:XXX, a*02:AB",
         "A*0101 and B*15:504:01 are fine; DQB1*05:03:26:99 and DQB1*99:99 are not; DQB1*05:03:01G is a group.",
         "old name A*01:34N in a report", "HLA-A*01:01 with DRB1*14:06",
         "Patient typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G).",
@@ -130,6 +146,15 @@ def typing_pool(locus: str) -> list[str]:
         out.append(rng.choice(hist[:400]))
     out.append(fabricated(rng.choice(al)))
     out.append(prefixes(rng.choice(al), 1))
+    # shorthands labs and registries actually report
+    groups = [g for g in r.g_groups(locus)] + [g for g in r.p_groups(locus)]
+    if groups:
+        out.append(rng.choice(groups))
+        out.append(rng.choice(groups))
+    out.append(prefixes(rng.choice(al), 1) + ":XX")
+    out.append(prefixes(rng.choice(al), 2) + "g")
+    out.append(f"{prefixes(rng.choice(al), 1)}:{''.join(rng.choice('ABCDEFGHJKMNPRSTUVWXYZ') for _ in range(rng.choice([2, 3, 4])))}")
+    out.append("HLA-" + rng.choice(al))
     return out
 
 

@@ -7,10 +7,25 @@ Rules (also stated in harbor/hla-typing-report-normalize/instruction.md):
 4. Otherwise it is unresolvable.
 Then: members = the full alleles the name identifies; allele_2field = 2-field name + the expression
 suffix all members share (if any); g_group = the single shared G group, NONE if none, AMBIGUOUS if mixed.
+
+Reported-typing shorthands accepted as input (each leaves a flag so nothing is converted silently):
+- An ``HLA-`` prefix is dropped: the release files carry none, and ``HLA-A*02:01:01:01`` must
+  resolve exactly like ``A*02:01:01:01``.
+- G and P group names (``A*02:01:01G``, ``DPB1*04:01P``) resolve to themselves with
+  ``g_group_name`` / ``p_group_name``; their members are the group's members. NGS reports are
+  routinely issued at G-group resolution, so a typing made of G groups must check and match.
+- ``A*02:XX`` (the XX code: any allele in the first-field family) resolves to the first-field
+  prefix with ``xx_code``.
+- ``A*02:01g`` (two-field "lg" notation, py-ard ``lg``) resolves to the two-field prefix with
+  ``lg_notation``.
+- NMDP multiple allele codes (``A*02:AB``) are recognised but NOT expanded: they need the NMDP
+  MAC table, which this build does not load. They return unresolvable with ``mac_code`` so a
+  caller can tell "we could not check this" from "this name does not exist".
 """
 from __future__ import annotations
 
-from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele, is_legacy_name, LEGACY_RE
+from sci_envs.reference.imgt import (ImgtReference, ImgtError, split_allele, is_legacy_name, LEGACY_RE,
+                                     MAC_RE, XX_RE, LG_RE, group_parts, strip_prefix)
 
 SUFFIXES = "NLSCAQ"
 
@@ -26,9 +41,19 @@ def legacy_to_colon(s: str):
     return f"{loc}*{':'.join(digits[i:i + 2] for i in range(0, len(digits), 2))}{suf}"
 
 
+def name_parts(name: str) -> tuple[str, list[str], str]:
+    """(locus, fields, suffix-or-group-letter) for an allele name, a prefix, or a G/P group name."""
+    try:
+        return split_allele(name)
+    except ImgtError:
+        return group_parts(name)
+
+
 def _members(ref: ImgtReference, name: str) -> list[str]:
     if ref.exists(name):
         return [name]
+    if ref.is_group_name(name):
+        return ref.g_members(name) or ref.p_members(name)
     locus, fields, suffix = split_allele(name)
     base = f"{locus}*{':'.join(fields)}"
     m = ref.expand(base)
@@ -37,10 +62,29 @@ def _members(ref: ImgtReference, name: str) -> list[str]:
     return m
 
 
+def _ok(ref: ImgtReference, cand) -> bool:
+    try:
+        return bool(cand) and (ref.exists(cand) or ref._valid_prefix(cand))
+    except ImgtError:
+        return False
+
+
 def resolve_name(ref: ImgtReference, reported: str):
     """-> (name_or_None, flags:set)"""
-    s = reported.strip()
+    s = strip_prefix(reported)
     flags: set[str] = set()
+    if MAC_RE.match(s) and not XX_RE.match(s):
+        return None, {"mac_code"}
+    m = XX_RE.match(s)
+    if m:                                    # the first-field prefix, resolved like any reported name
+        name, fl = resolve_name(ref, f"{m.group(1)}*{m.group(2)}")
+        return name, fl | {"xx_code"}
+    m = LG_RE.match(s)
+    if m:                                    # the two-field name, resolved like any reported name
+        name, fl = resolve_name(ref, f"{m.group(1)}*{m.group(2)}:{m.group(3)}")
+        return name, fl | {"lg_notation"}
+    if ref.is_group_name(s):
+        return s, {"g_group_name" if s.endswith("G") else "p_group_name"}
     if ref.is_deleted(s):
         flags.add("deprecated_name")
         succ = ref.renamed_to(s)
@@ -48,16 +92,9 @@ def resolve_name(ref: ImgtReference, reported: str):
     if is_legacy_name(s):
         flags.add("deprecated_name")
         cand = legacy_to_colon(s)
-        try:
-            ok = cand and (ref.exists(cand) or ref._valid_prefix(cand))
-        except ImgtError:
-            ok = False
-        return (cand, flags) if ok else (None, flags | {"nonexistent_allele"})
-    try:
-        if ref.exists(s) or ref._valid_prefix(s):
-            return s, flags
-    except ImgtError:
-        pass
+        return (cand, flags) if _ok(ref, cand) else (None, flags | {"nonexistent_allele"})
+    if _ok(ref, s):
+        return s, flags
     return None, flags | {"nonexistent_allele"}
 
 
@@ -68,7 +105,7 @@ def normalize(ref: ImgtReference, reported: str) -> dict:
     members = _members(ref, name)
     if not members:
         return {"allele_2field": "UNRESOLVABLE", "g_group": "UNRESOLVABLE", "flags": ";".join(sorted(flags | {"nonexistent_allele"}))}
-    locus, fields, _ = split_allele(name)
+    locus, fields, _ = name_parts(name)
     base2 = f"{locus}*{':'.join(fields[:2])}"
     under2 = ref.expand(base2)
     sufs = {split_allele(x)[2] for x in under2}

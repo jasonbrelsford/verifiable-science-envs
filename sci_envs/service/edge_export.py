@@ -19,10 +19,14 @@ Row schema (compact keys; absent = null/false):
   fr   first release the exact name appeared
   c    confirmed
   se   serology columns {unambiguous,possible,assumed,expert}
-  mc/ms members_count / first 10 members for a valid prefix
-  lg   ligands(ref, pf, key) (sci_envs/service/lab.py §2) for s=="v" rows whose
-       key is a class I (A/B/C) name; absent otherwise. Row facts only (leader/
+  mc/ms members_count / first 10 members for a valid prefix or a G/P group (s=="g")
+  lg   ligands(ref, pf, key) (sci_envs/service/lab.py §2) for s=="v" and s=="g" rows
+       whose key is a class I (A/B/C) name; absent otherwise. Row facts only (leader/
        Bw/C-group/KIR-ligand labels), never a protein sequence.
+  Keys are allele names, lower-resolution prefixes, deleted/historical names, G/P group
+  names, and each of those with an 'HLA-' prefix. Reported shorthands with no row of their
+  own (A*02:XX, A*02:01g, A*02:AB) are converted or classified by the Worker (engine.js)
+  exactly as normalize.resolve_name() does.
 """
 from __future__ import annotations
 
@@ -35,8 +39,8 @@ import re
 import time
 from pathlib import Path
 
-from sci_envs.reference.imgt import ImgtReference, ImgtError, GROUP_RE, split_allele
-from sci_envs.families.nomenclature.normalize import normalize, resolve_name
+from sci_envs.reference.imgt import ImgtReference, ImgtError, GROUP_RE, split_allele, strip_prefix
+from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _members
 from sci_envs.families.matching.rules import antigen_of
 from sci_envs.service import lab
 
@@ -51,6 +55,7 @@ def shard_of(name: str) -> str | None:
 
 def _classify_one(r: ImgtReference, t: str) -> str | None:
     """The classify_tokens() branch order for one token; None = hallucinated."""
+    t = strip_prefix(t)   # exported keys include 'HLA-' forms; the release files carry no prefix
     if r.exists(t):
         return "v"
     if r.is_group_name(t):
@@ -69,10 +74,11 @@ def _row(r: ImgtReference, pf, key: str) -> dict | None:
     if s is None:
         return None
     row: dict = {"s": s}
-    if r.is_deleted(key):
+    bare = strip_prefix(key)
+    if r.is_deleted(bare):
         row["dl"] = True
     if s == "d" or row.get("dl"):   # a deleted name can also be a valid prefix of its successor
-        succ = r.renamed_to(key)
+        succ = r.renamed_to(bare)
         if succ:
             row["succ"] = succ
     rn, rf = resolve_name(r, key)
@@ -85,26 +91,27 @@ def _row(r: ImgtReference, pf, key: str) -> dict | None:
         row["nf"] = n["flags"].split(";")
     row["ag"] = antigen_of(r, key)
     if s == "v":
-        if r.exists(key):
+        if r.exists(bare):
             row["ex"] = True
-            row["g"], row["p"] = r.g_group(key), r.p_group(key)
-            row["fr"], row["c"] = r.first_release(key), r.confirmed(key)
-            sero = r.serology(key)
+            row["g"], row["p"] = r.g_group(bare), r.p_group(bare)
+            row["fr"], row["c"] = r.first_release(bare), r.confirmed(bare)
+            sero = r.serology(bare)
             if sero is not None:
                 d = dataclasses.asdict(sero)
                 row["se"] = {k: list(v) for k, v in d.items() if k != "allele" and v}  # {} is real
         else:
-            members = r.expand(key if not split_allele(key)[2] else
-                               f"{split_allele(key)[0]}*{':'.join(split_allele(key)[1])}")
-            if split_allele(key)[2]:
-                members = [m for m in members if split_allele(m)[2] == split_allele(key)[2]]
+            members = r.expand(bare if not split_allele(bare)[2] else
+                               f"{split_allele(bare)[0]}*{':'.join(split_allele(bare)[1])}")
+            if split_allele(bare)[2]:
+                members = [m for m in members if split_allele(m)[2] == split_allele(bare)[2]]
             row["mc"], row["ms"] = len(members), members[:10]
-        try:
-            locus = split_allele(key)[0]
-        except ImgtError:
-            locus = None
+    elif s == "g":                     # G/P group names: member count/sample for /v1/allele
+        members = _members(r, bare)
+        row["mc"], row["ms"] = len(members), members[:10]
+    if s in ("v", "g"):
+        locus = bare.split("*", 1)[0]
         if locus in ("A", "B", "C"):
-            lg = lab.ligands(r, pf, key)
+            lg = lab.ligands(r, pf, bare)
             if lg is not None:
                 row["lg"] = lg
     return {k: v for k, v in row.items() if v is not None and v is not False}

@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele
+from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele, strip_prefix
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name
 from sci_envs.families.matching.rules import FRAMEWORKS, score
 from sci_envs.service import lab
@@ -81,6 +81,7 @@ STATUS_HELP = {
     "deleted": "was assigned once, no longer current — see successor",
     "fabricated_group": "shaped like a G/P group but no such group exists",
     "hallucinated": "no such name in any release back to 1.05.0 — fabricated",
+    "mac_code": "an NMDP multiple allele code (reporting shorthand for an allele list) — not expanded or checked here",
 }
 
 
@@ -153,12 +154,22 @@ def allele(name: str, _: None = Depends(_auth)):
     r = ref()
     _stats["requests"] += 1
     name = name.strip()
-    if r.is_deleted(name):
-        succ = r.renamed_to(name)
+    bare = strip_prefix(name)   # looked up without the optional 'HLA-'; echoed back as given
+    if r.is_deleted(bare):
+        succ = r.renamed_to(bare)
         return {"release": r.release, "name": name, "status": "deleted", "successor": succ, "attribution": ATTRIBUTION}
+    if r.is_group_name(bare):
+        members = r.g_members(bare) or r.p_members(bare)
+        out = {"release": r.release, "name": name, "status": "group",
+               "group_type": "G" if bare.endswith("G") else "P",
+               "members_count": len(members), "members_sample": members[:10], "attribution": ATTRIBUTION}
+        ligs = lab.ligands(r, pf(), bare)
+        if ligs is not None:
+            out["ligands"] = ligs
+        return out
     try:
-        exists = r.exists(name)
-        prefix = (not exists) and r._valid_prefix(name)
+        exists = r.exists(bare)
+        prefix = (not exists) and r._valid_prefix(bare)
     except ImgtError:
         raise HTTPException(404, f"{name!r} is not a parseable HLA allele name")
     if not exists and not prefix:
@@ -166,23 +177,23 @@ def allele(name: str, _: None = Depends(_auth)):
     out = {"release": r.release, "name": name, "status": "assigned" if exists else "valid_prefix",
            "attribution": ATTRIBUTION}
     if exists:
-        out.update({"g_group": r.g_group(name) or None, "p_group": r.p_group(name) or None,
-                    "first_release": r.first_release(name), "confirmed": r.confirmed(name)})
-        sero = r.serology(name)
+        out.update({"g_group": r.g_group(bare) or None, "p_group": r.p_group(bare) or None,
+                    "first_release": r.first_release(bare), "confirmed": r.confirmed(bare)})
+        sero = r.serology(bare)
         if sero is not None:
             import dataclasses
             d = dataclasses.asdict(sero)
             out["serology"] = {k: list(v) for k, v in d.items() if k != "allele" and v}
-        if split_allele(name)[2] == "N":
+        if split_allele(bare)[2] == "N":
             out["null_allele"] = True
     else:
-        locus, fields, suffix = split_allele(name)
+        locus, fields, suffix = split_allele(bare)
         members = r.expand(f"{locus}*{':'.join(fields)}")
         if suffix:  # a prefix carrying a suffix names only the members that share it
             members = [m for m in members if split_allele(m)[2] == suffix]
         out["members_count"] = len(members)
         out["members_sample"] = members[:10]
-    ligs = lab.ligands(r, pf(), name)
+    ligs = lab.ligands(r, pf(), bare)
     if ligs is not None:
         out["ligands"] = ligs
     return out
@@ -247,7 +258,7 @@ body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0
 textarea{width:100%;min-height:110px;font:13px/1.5 ui-monospace,monospace;padding:.6rem;border:1px solid #c9c5ba;border-radius:8px;box-sizing:border-box}
 button{background:#2f5d3a;color:#fff;border:0;border-radius:8px;padding:.55rem 1.2rem;font-size:14px;cursor:pointer;margin-top:.5rem}
 .tok{display:inline-block;margin:.15rem;padding:.2rem .55rem;border-radius:6px;font:12px ui-monospace,monospace}
-.valid{background:#dcefdc}.group{background:#dbe7f6}.deleted{background:#fdeece}.hallucinated,.fabricated_group{background:#f8d7d7}
+.valid{background:#dcefdc}.group{background:#dbe7f6}.deleted{background:#fdeece}.hallucinated,.fabricated_group{background:#f8d7d7}.mac_code{background:#ece6f7}
 small{color:#6b6a64}#out{margin-top:1rem}h1{font-size:1.4rem}code{background:#eeece6;padding:.1rem .3rem;border-radius:4px}</style></head><body>
 <h1>HLA-Verify</h1>
 <p>Paste anything — a typing report, an AI answer, a note. Every allele-shaped token is checked
@@ -263,8 +274,9 @@ async function go(){
     body:JSON.stringify({text:document.getElementById('t').value})});
   const d = await r.json(); const o = document.getElementById('out'); o.innerHTML='';
   const v = document.createElement('p');
-  v.innerHTML = d.clean ? '✅ <b>Clean</b> — every name is real and current.'
-    : '⚠️ <b>Problems found</b> — ' + (d.counts.hallucinated+d.counts.fabricated_group) + ' fabricated, ' + d.counts.deleted + ' outdated.';
+  v.innerHTML = (d.clean ? '✅ <b>Clean</b> — every name is real and current.'
+    : '⚠️ <b>Problems found</b> — ' + (d.counts.hallucinated+d.counts.fabricated_group) + ' fabricated, ' + d.counts.deleted + ' outdated.')
+    + (d.counts.mac_code ? ' ' + d.counts.mac_code + ' NMDP code(s) not checked.' : '');
   o.appendChild(v);
   for (const t of d.tokens){
     const s = document.createElement('span'); s.className = 'tok ' + t.status;
