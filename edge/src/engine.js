@@ -7,10 +7,14 @@
 export const ALLELE_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,3})([NLSCAQ]?)$/;
 export const LEGACY_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$/;
 // Python \w is Unicode-aware; mirror it with \p{L}\p{N}_ under the u flag. A trailing
-// lowercase g is the two-field "lg" notation (A*02:01g) — see imgt.ALLELE_TOKEN_RE.
-export const ALLELE_TOKEN_RE = /(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\p{L}\p{N}_:])/gu;
+// lowercase g is the two-field "lg" notation (A*02:01g) — see imgt.ALLELE_TOKEN_RE. The
+// leading boundary stops a match starting inside another word (KIR3DL1*001 → "DL1*001").
+export const ALLELE_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\p{L}\p{N}_:])/gu;
 // NMDP multiple allele codes (A*02:AB) and the XX code (A*02:XX) — imgt.MAC_TOKEN_RE.
-export const MAC_TOKEN_RE = /(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\p{L}\p{N}_:])/gu;
+export const MAC_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\p{L}\p{N}_:])/gu;
+// KIR allele names (KIR2DL1*0010101, 3DL1*001): outside IPD-IMGT/HLA, reported as
+// out_of_scope rather than checked — imgt.KIR_TOKEN_RE.
+export const KIR_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:KIR)?[23]D[LSP]\d[A-Z]?\*\d+(?::\d+)*(?![\p{L}\p{N}_:])/gu;
 export const GROUP_RE = /^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$/;
 // Reported-typing shorthands accepted as input — imgt.MAC_RE / XX_RE / LG_RE.
 export const MAC_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):([A-Z]{2,5})$/;
@@ -25,6 +29,7 @@ export const STATUS_HELP = {
   fabricated_group: "shaped like a G/P group but no such group exists",
   hallucinated: "no such name in any release back to 1.05.0 — fabricated",
   mac_code: "an NMDP multiple allele code (reporting shorthand for an allele list) — not expanded or checked here",
+  out_of_scope: "a KIR allele name (IPD-KIR) — a gene family outside IPD-IMGT/HLA, not checked here",
 };
 
 // imgt.strip_prefix(): names in the release files carry no 'HLA-'.
@@ -201,11 +206,13 @@ export function createEngine({ loadShard, manifest }) {
   }
 
   // ---------------------------------------------------------------- /v1/verify
-  // imgt.classify_tokens() + app.verify(): allele-shaped tokens, then MAC/XX-shaped ones.
+  // imgt.classify_tokens() + app.verify(): allele-shaped tokens, then MAC/XX-shaped ones,
+  // then KIR-shaped ones (surfaced as out_of_scope, never looked up).
   async function verify(text) {
     const toks = new Set(text.match(ALLELE_TOKEN_RE) ?? []);
     const macToks = new Set(text.match(MAC_TOKEN_RE) ?? []);
-    const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [], mac_code: [] };
+    const kirToks = new Set(text.match(KIR_TOKEN_RE) ?? []);
+    const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [], mac_code: [], out_of_scope: [] };
     const rowsByTok = new Map();   // token -> {row, flag}: the row that answers for it
     for (const tok of toks) {
       const t = stripPrefix(tok);
@@ -233,6 +240,10 @@ export function createEngine({ loadShard, manifest }) {
         seen.mac_code.push(t);
         rowsByTok.set(t, { row: null, flag: null });
       }
+    }
+    for (const t of kirToks) {
+      seen.out_of_scope.push(t);
+      rowsByTok.set(t, { row: null, flag: null });
     }
     for (const k in seen) seen[k].sort();
     const tokens = [];

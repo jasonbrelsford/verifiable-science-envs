@@ -195,7 +195,9 @@ test("verify: fabricated tokens split by locus; MAC codes counted; a clean repor
   const body = await eng.verify(text);
   const u = await summarizeUnmet(eng, manifest, "verify", { text }, body);
   assert.deepEqual(hits(u), { mac_code: 1, unknown_locus: 2, unknown_allele: 2 });
-  assert.equal(u.value, "unknown_locus=KIR", "the tokenizer's DL1*001 fragment is still read as KIR");
+  assert.equal(u.value, "unknown_locus=KIR", "an out_of_scope KIR token is still counted as the KIR gap");
+  assert.deepEqual(body.tokens.filter((t) => t.status === "out_of_scope").map((t) => t.token), ["KIR2DL1*001"]);
+  assert.equal(body.tokens.some((t) => t.token === "DL1*001"), false, "no fragment of a KIR name is read as an HLA name");
   const clean = await eng.verify("A*02:01 and B*44:02 and DRB1*04:01:01G");
   assert.deepEqual(hits(await summarizeUnmet(eng, manifest, "verify", {}, clean)), {});
 });
