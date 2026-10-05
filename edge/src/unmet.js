@@ -141,10 +141,10 @@ export const sanitizeTool = (v) => {
 
 // ------------------------------------------------------------- shape tests
 // KIR gene names, with or without the KIR prefix, with or without an allele part.
-// The second alternative has no leading digit because the free-text tokenizer
-// (engine.js ALLELE_TOKEN_RE) cannot start a token inside "KIR2DL1*001" and hands
-// back "DL1*001"; with an allele part that shape is still a KIR name and nothing
-// else (without one, "DP1" is the serologic antigen and must stay that).
+// The second alternative (no leading digit) covers the "DL1*001" fragment a caller
+// may still send to /v1/allele or /v1/normalize; with an allele part that shape is
+// a KIR name and nothing else (without one, "DP1" is the serologic antigen and must
+// stay that). /v1/verify itself now reports whole KIR names as out_of_scope.
 const KIR_RE = /^(?:HLA-)?(?:(?:KIR)?[23]D[LSP]\d[A-Z]?(?:\*\d+)?|D[LSP]\d[A-Z]?\*\d+)$/i;
 // Serologic antigen names: A2, B44, Cw6, DR4, DQ2, DP1, Bw4, DR53, and the 3-4
 // digit splits (A203, B2708). A leading zero is allele digits with the '*'
@@ -330,6 +330,7 @@ export async function summarizeUnmet(eng, manifest, endpoint, input, result) {
       case "verify":
         for (const t of (result && result.tokens) || []) {
           if (t.status === "mac_code") acc.add("mac_code");
+          else if (t.status === "out_of_scope") acc.add("unknown_locus", "KIR");
           else if (t.status === "hallucinated" || t.status === "fabricated_group")
             await classifyUnresolved(eng, manifest, acc, t.token, { tryCleanup: false });
         }

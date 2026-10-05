@@ -90,6 +90,9 @@ def pool() -> list[str]:
           "A*02:01", " A*02:01 ", "A*02:01\t", "HLA-DRB1*14:06", "C*07", "Cw*0702", "Cw*07", "MICA*091",
           "MICA*008:01", "DRB1*04:07:01", "KIR2DL1*001", "TAP1*01:01", "A*02:01:01:01N", "B*44:02:01:02S",
           "A*01:01:38L", "A*01:01:01:02N", "A*23:19Q"]
+    # KIR names (IPD-KIR, out of scope) and tokens glued to a preceding word
+    p += ["KIR3DL1*001", "KIR2DL1*0010101", "2DL5A*001", "KIR3DP1*003:01", "KIR2DS4*00101", "kir2dl1*001",
+          "KIR2DL1", "xA*02:01", "1B*07:02", "KIR2DL1*AB", "HLA-KIR2DL1*001"]
     rng.shuffle(p)
     return p
 
@@ -120,6 +123,10 @@ def verify_texts(p: list[str]) -> list[str]:
         "old name A*01:34N in a report", "HLA-A*01:01 with DRB1*14:06",
         "Patient typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G).",
         "", "no alleles here", "HLA-A*02:01 and A*02:01 both appear", "A*02:01:01:01N A*02:01N", "(A*24:02) [B*07:02]",
+        # mixed HLA + KIR reports (issue #71): KIR names are out_of_scope, never fabricated HLA names
+        "HLA-DRB1*04:01, KIR3DL1*001",
+        "Patient typing A*02:01, B*07:02, C*07:02; KIR2DL1*0010101 KIR2DL5A*001 2DS4*00101 KIR3DP1*003:01; KIR2DL1 present",
+        "DQB1*99:99 with KIR2DL1*001 and DL1*001 alone, xA*02:01 1B*07:02, HLA-A*02:01-A*03:01, KIR2DL1*AB",
     ]
     return texts
 

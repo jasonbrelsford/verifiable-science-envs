@@ -92,11 +92,11 @@ ${selfServeKeysSection}
 
 <h2>Endpoints</h2>
 <h3><span class="pill">POST</span><code>/v1/verify</code> — check every allele-shaped token in free text</h3>
-<p>Send HLA typing report text or a model's answer about HLA, with patient identifiers removed first. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, <code>hallucinated</code>, or <code>mac_code</code> (an NMDP multiple allele code such as <code>A*02:AB</code> — reporting shorthand this service does not expand, surfaced so it is never silently skipped). Two-field <code>A*02:01g</code> and the XX code <code>A*02:XX</code> are checked by the name they abbreviate. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group; check <code>counts.mac_code</code> separately.</p>
+<p>Send HLA typing report text or a model's answer about HLA, with patient identifiers removed first. Every token that looks like an allele is classified: <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, <code>hallucinated</code>, <code>mac_code</code> (an NMDP multiple allele code such as <code>A*02:AB</code> — reporting shorthand this service does not expand, surfaced so it is never silently skipped), or <code>out_of_scope</code> (a KIR allele name such as <code>KIR3DL1*001</code> — IPD-KIR is a separate reference outside IPD-IMGT/HLA, so the name is surfaced, not checked, and never counted as fabricated). Two-field <code>A*02:01g</code> and the XX code <code>A*02:XX</code> are checked by the name they abbreviate. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group; check <code>counts.mac_code</code> and <code>counts.out_of_scope</code> separately.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \\
   -d '{"text": "Reported typing: A*0101, B*15:504:01, DRB1*14:06. Assistant suggested DQB1*05:03:26:99 (DQB1*05:03:01G)."}'`)}
 ${curl(`{"release":"${m.release}","clean":false,
- "counts":{"valid":2,"deleted":1,"group":1,"fabricated_group":0,"hallucinated":1,"mac_code":0},
+ "counts":{"valid":2,"deleted":1,"group":1,"fabricated_group":0,"hallucinated":1,"mac_code":0,"out_of_scope":0},
  "tokens":[{"token":"A*0101","status":"deleted","successor":"A*01:01:01:01","current_2field":"A*01:01",
             "g_group":"AMBIGUOUS","flags":["deprecated_name"],"note":"was assigned once, no longer current — see successor"},
            {"token":"DQB1*05:03:26:99","status":"hallucinated","note":"no such name in any release back to 1.05.0 — fabricated"}, …],
@@ -414,7 +414,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           release: { type: "string" }, clean: { type: "boolean" },
           counts: { type: "object", additionalProperties: { type: "integer" } },
           tokens: { type: "array", items: { type: "object", properties: { token: { type: "string" },
-            status: { type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code"] },
+            status: { type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code", "out_of_scope"] },
             note: { type: "string" }, successor: { type: "string" }, current_2field: { type: "string" },
             g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } },
           attribution } } } } }, 422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },

@@ -65,12 +65,19 @@ LEGACY_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$")
 # Loose grammar used for hallucination extraction from free text (GRADER_SPEC §3.4).
 # A trailing lowercase ``g`` is the two-field "lg" notation (A*02:01g) that labs and
 # py-ard emit for the G-group-equivalent 2-field name; without it the token would be
-# dropped silently because ``g`` is a word character.
-ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\w:])")
+# dropped silently because ``g`` is a word character.  The leading boundary stops a
+# match from starting inside another word: without it ``KIR3DL1*001`` yielded the
+# fragment ``DL1*001``, which was then counted as a fabricated HLA name.
+ALLELE_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\w:])")
 # NMDP multiple allele codes (A*02:AB, DRB1*04:BNDC) and the XX code (A*02:XX): a first
 # field followed by a colon and 2-5 capital letters.  Matched separately so that a report
 # full of MAC codes is never reported "clean" with those tokens silently unchecked.
-MAC_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\w:])")
+MAC_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\w:])")
+# KIR allele names (IPD-KIR: KIR2DL1*0010101, KIR3DL1*001, KIR2DL5A*001, KIR3DP1*003;
+# the ``KIR`` prefix is optional because reports abbreviate to 2DL1*001).  KIR genes are
+# outside IPD-IMGT/HLA, so these are reported as ``out_of_scope`` rather than checked —
+# surfaced, never silently skipped, and never counted as fabricated HLA names.
+KIR_TOKEN_RE = re.compile(r"(?<!\w)(?:KIR)?[23]D[LSP]\d[A-Z]?\*\d+(?::\d+)*(?![\w:])")
 GROUP_RE = re.compile(r"^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$")
 # Reported-typing shorthands accepted as INPUT (never produced as output):
 MAC_RE = re.compile(r"^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):([A-Z]{2,5})$")          # A*02:AB
@@ -675,15 +682,20 @@ class ImgtReference:
     # ------------------------------------------------------------ hallucination
     def classify_tokens(self, text: str) -> dict[str, list[str]]:
         """Split every allele-like token in free text into valid / deleted /
-        group / fabricated_group / hallucinated / mac_code, per GRADER_SPEC §3.4.
+        group / fabricated_group / hallucinated / mac_code / out_of_scope, per
+        GRADER_SPEC §3.4.
 
         ``mac_code`` holds NMDP multiple allele codes (A*02:AB): real reporting
         shorthand that this engine does not expand, so it is surfaced rather than
         silently skipped.  The XX code (A*02:XX) is the first-field prefix and is
         classified like one; a trailing lowercase ``g`` (A*02:01g, the two-field
-        "lg" notation) is classified by the two-field name it abbreviates."""
+        "lg" notation) is classified by the two-field name it abbreviates.
+        ``out_of_scope`` holds KIR allele names (KIR3DL1*001): a gene family
+        outside IPD-IMGT/HLA, surfaced (like ``mac_code``, without affecting
+        ``clean``) so the caller sees which tokens were not checked; a mixed
+        HLA+KIR report is no longer dirty for the KIR names alone."""
         seen = {"valid": [], "deleted": [], "group": [], "fabricated_group": [], "hallucinated": [],
-                "mac_code": []}
+                "mac_code": [], "out_of_scope": []}
         for tok in set(ALLELE_TOKEN_RE.findall(text)):
             t = tok[4:] if tok.startswith("HLA-") else tok
             if t.endswith("g"):
@@ -708,6 +720,8 @@ class ImgtReference:
                 seen["valid" if self._valid_prefix(f"{m.group(1)}*{m.group(2)}") else "hallucinated"].append(t)
             else:
                 seen["mac_code"].append(t)
+        for tok in set(KIR_TOKEN_RE.findall(text)):
+            seen["out_of_scope"].append(tok)
         for k in seen:
             seen[k].sort()
         return seen
