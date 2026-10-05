@@ -282,7 +282,7 @@ claim raw-response determinism, which no local inference stack guarantees.
 ### 4.5 External validation against NMDP tooling
 
 On a deterministic 2,000-allele sample across six loci, our normalizer's
-2-field reductions agree with py-ard 2.4.0 (db 3650) on 1,986/2,000 (99.30%).
+2-field reductions agree with py-ard 2.4.1 (db 3650) on 1,986/2,000 (99.30%).
 The 14 divergences comprise six Q-suffix cases (we name the 2-field group;
 py-ard annotates the reported allele's own suffix) and eight ARD-equivalence
 rollups (py-ard maps ARD-identical alleles to a group exemplar — correct for
