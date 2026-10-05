@@ -108,7 +108,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/normalize -H 'content-type: applica
   -d '{"typings": ["A*0101", "A*01:34N", "DRB1*1406", "A*24:09N", "B*9999"]}'`)}
 
 <h3><span class="pill">GET</span><code>/v1/allele/{name}</code> — the facts for one name</h3>
-<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), <code>group</code> (a G or P group name: type, member count and sample), or <code>deleted</code> (successor). 404 for anything not in the release. Class I (A/B/C) names carry a trailing <code>ligands</code> object: expression, the -21 leader residue (<code>leader_21</code>: M/T, Petersdorf 2020), Bw4/Bw6 (<code>bw</code>), the C1/C2 epitope (<code>c_group</code>), and the aggregate <code>kir_ligand</code> class, each aggregated over the name's members with an <code>ambiguities</code> map when they disagree.</p>
+<p><code>assigned</code> (G/P group, first release, confirmed status, WMDA serology, null flag), <code>valid_prefix</code> (member count and sample), <code>group</code> (a G or P group name: type, member count and sample), or <code>deleted</code> (successor). The same reported shorthands <code>/v1/normalize</code> accepts resolve to the name they stand for and answer with its facts plus <code>resolves_to</code> and a flag, so nothing is converted silently: legacy colon-less names (<code>A*0101</code>, <code>Cw*0702</code> → <code>deprecated_name</code>), the XX code (<code>A*02:XX</code> → <code>xx_code</code>), two-field <code>A*02:01g</code> (<code>lg_notation</code>) and an optional <code>HLA-</code> prefix. An NMDP multiple allele code (<code>A*02:AB</code>) returns <code>mac_code</code>: recognised, not expanded. 404 for anything not in the release. Class I (A/B/C) names carry a trailing <code>ligands</code> object: expression, the -21 leader residue (<code>leader_21</code>: M/T, Petersdorf 2020), Bw4/Bw6 (<code>bw</code>), the C1/C2 epitope (<code>c_group</code>), and the aggregate <code>kir_ligand</code> class, each aggregated over the name's members with an <code>ambiguities</code> map when they disagree.</p>
 ${curl(`curl -s 'https://api.hlaverify.com/v1/allele/A*24:09N'`)}
 
 <h3><span class="pill">POST</span><code>/v1/match</code> — donor–recipient match verdict</h3>
@@ -428,10 +428,15 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           release: { type: "string" }, rows: { type: "array", items: { type: "object", properties: {
             reported: { type: "string" }, current_name: { type: "string" }, allele_2field: { type: "string" },
             g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } }, attribution } } } } } } } },
-      "/v1/allele/{name}": { get: { summary: "Facts for one allele, prefix, or deleted name",
-        description: "Class I (A/B/C) names carry a trailing 'ligands' object (leader_21, bw, c_group, kir_ligand; see /v1/typing/check).",
+      "/v1/allele/{name}": { get: { summary: "Facts for one allele, prefix, group, deleted name, or reported shorthand",
+        description: "Accepts what /v1/normalize accepts: current names at 1-4 fields, legacy colon-less names (A*0101, Cw*0702), " +
+          "deleted names, G/P group names, the XX code (A*02:XX), two-field A*02:01g and an optional HLA- prefix. A shorthand " +
+          "answers with the facts of the name it stands for plus 'resolves_to' and a flag (deprecated_name, xx_code, lg_notation); " +
+          "an NMDP multiple allele code (A*02:AB) returns status mac_code, recognised but not expanded. " +
+          "Class I (A/B/C) names carry a trailing 'ligands' object (leader_21, bw, c_group, kir_ligand; see /v1/typing/check).",
         parameters: [{ name: "name", in: "path", required: true, schema: { type: "string" }, example: "A*24:09N" }],
-        responses: { 200: { description: "assigned | valid_prefix | deleted" }, 404: { description: "not in this release" } } } },
+        responses: { 200: { description: "assigned | valid_prefix | group | deleted | mac_code (+ resolves_to and flags for a shorthand)" },
+          404: { description: "not in this release" } } } },
       "/v1/match": { post: { summary: "Donor-recipient match verdict (rules R1-R6)",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["recipient", "donor"],
           properties: { framework: { type: "string", enum: ["6/6", "8/8", "10/10", "12/12", "antigen"], default: "8/8" },

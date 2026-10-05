@@ -162,6 +162,37 @@ def test_allele_endpoint_group_and_prefixed_names(client):
     assert pre["status"] == "assigned" and pre["name"] == "HLA-B*51:112"
 
 
+def test_allele_endpoint_accepts_reported_shorthands(client):
+    """GET /v1/allele takes what /v1/normalize takes; a shorthand answers with the facts of the
+    name it stands for, plus `resolves_to` and a flag so nothing is converted silently (#72)."""
+    legacy = client.get("/v1/allele/A*0101").json()
+    assert legacy["status"] == "valid_prefix" and legacy["name"] == "A*0101"
+    assert legacy["resolves_to"] == "A*01:01" and legacy["flags"] == ["deprecated_name"]
+    assert legacy["members_count"] > 100 and legacy["members_sample"][0].startswith("A*01:01")
+    cw = client.get("/v1/allele/Cw*0702").json()
+    assert cw["status"] == "valid_prefix" and cw["resolves_to"] == "C*07:02" and cw["flags"] == ["deprecated_name"]
+    assert "ligands" in cw
+    lg = client.get("/v1/allele/A*02:01g").json()
+    assert lg["status"] == "valid_prefix" and lg["resolves_to"] == "A*02:01" and lg["flags"] == ["lg_notation"]
+    xx = client.get("/v1/allele/HLA-A*02:XX").json()
+    assert xx["status"] == "valid_prefix" and xx["name"] == "HLA-A*02:XX"
+    assert xx["resolves_to"] == "A*02" and xx["flags"] == ["xx_code"]
+    old_null = client.get("/v1/allele/A*0134N").json()   # legacy form of a deleted name: chased
+    assert old_null["status"] == "deleted" and old_null["resolves_to"] == "A*01:34N"
+    assert old_null["successor"] == "A*01:01:38L" and old_null["flags"] == ["deprecated_name"]
+    mac = client.get("/v1/allele/A*02:AB").json()
+    assert mac["status"] == "mac_code" and mac["flags"] == ["mac_code"] and "note" in mac
+    assert "resolves_to" not in mac and "members_count" not in mac
+    plain = client.get("/v1/allele/A*02:01").json()
+    assert "flags" not in plain and "resolves_to" not in plain
+    # a shorthand for a name that does not exist still 404s, and the message names both forms
+    r = client.get("/v1/allele/A*99:XX")
+    assert r.status_code == 404 and r.json()["detail"] == "'A*99:XX' stands for 'A*99', which is not assigned in release 3.65.0"
+    r = client.get("/v1/allele/B*9999")
+    assert r.status_code == 404 and "stands for 'B*99:99'" in r.json()["detail"]
+    assert client.get("/v1/allele/A*02001").status_code == 404   # odd digit count: not a legacy name we can read
+
+
 def test_ligands_for_class_i_group(ref, pf):
     lg = lab.ligands(ref, pf, "B*44:02:01G")
     assert lg["expressed"] is True and lg["bw"] == "Bw4"

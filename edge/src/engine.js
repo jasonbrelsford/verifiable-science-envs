@@ -273,9 +273,35 @@ export function createEngine({ loadShard, manifest }) {
   }
 
   // --------------------------------------------------------- /v1/allele/{name}
+  // app._reported_form(): the shorthands /v1/normalize accepts, MAC -> XX -> lg -> legacy.
+  function reportedForm(bare) {
+    const sh = shorthand(bare);
+    if (sh) return { form: sh.kind, standsFor: sh.cand };
+    if (isLegacy(bare)) return { form: "deprecated_name", standsFor: legacyToColon(bare) };
+    return null;
+  }
+  // app.allele(): a shorthand answers with the facts of the name it stands for, plus the
+  // flag and `resolves_to`, so nothing is converted silently.
   async function allele(rawName) {
     const name = rawName.trim();
-    const row = await lookup(name);
+    const bare = stripPrefix(name);
+    const rf = reportedForm(bare);
+    if (rf && rf.form === "mac_code")
+      return { status: 200, body: { release: manifest.release, name, status: "mac_code",
+        note: STATUS_HELP.mac_code, flags: ["mac_code"], attribution: manifest.attribution } };
+    if (rf) {
+      if (!rf.standsFor)
+        return { status: 404, body: { detail: `'${name}' is not assigned in release ${manifest.release}` } };
+      const inner = await alleleFacts(rf.standsFor, rf.standsFor);
+      if (inner.status !== 200)
+        return { status: 404, body: { detail:
+          `'${name}' stands for '${rf.standsFor}', which is not assigned in release ${manifest.release}` } };
+      return { status: 200, body: { ...inner.body, name, resolves_to: rf.standsFor, flags: [rf.form] } };
+    }
+    return alleleFacts(name, name);
+  }
+  async function alleleFacts(key, name) {
+    const row = await lookup(key);
     const base = { release: manifest.release, name };
     if (row?.dl)
       return { status: 200, body: { ...base, status: "deleted", successor: row.succ ?? null, attribution: manifest.attribution } };

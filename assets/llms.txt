@@ -40,7 +40,8 @@ release; verification is pinned to an exact release version.
   OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…
     POST /v1/verify    {"text": "..."}                -> every allele-shaped token classified
     POST /v1/normalize {"typings": ["A*0101", ...]}   -> current name, 2-field name, G group, flags
-    GET  /v1/allele/A*24:09N                          -> assigned | valid_prefix | deleted (+successor)
+    GET  /v1/allele/A*24:09N                          -> assigned | valid_prefix | group | deleted (+successor);
+                                                         A*0101, A*02:XX, A*02:01g resolve (+resolves_to, flag); A*02:AB -> mac_code
     POST /v1/match     {"framework": "8/8", "recipient": {...}, "donor": {...}} -> count, verdicts, GvH/HvG, flags
     POST /v1/beta-signup {"email": "...", "org": "...", "use_case": "...", "source": "..."} -> beta list, recorded | already_recorded
     POST /v1/research-access {"email": "...", "institution": "...", "use_case": "...", "expected_volume": "...", "source": "..."}

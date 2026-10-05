@@ -341,7 +341,8 @@ export async function summarizeUnmet(eng, manifest, endpoint, input, result) {
         }
         break;
       case "allele":
-        if (result && result.detail && input && typeof input.name === "string")
+        if (result && result.status === "mac_code") acc.add("mac_code");   // recognised, still not expanded
+        else if (result && result.detail && input && typeof input.name === "string")
           await classifyUnresolved(eng, manifest, acc, input.name);
         break;
       case "match":
