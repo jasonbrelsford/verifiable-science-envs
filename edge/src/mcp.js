@@ -114,16 +114,17 @@ const VERIFY_OUT = {
     release: RELEASE,
     clean: {
       type: "boolean",
-      description: "The guardrail: true only when no token is hallucinated, fabricated_group or deleted. Gate on this before presenting the text. NMDP multiple allele codes (counts.mac_code) are not checked — treat them as unverified.",
+      description: "The guardrail: true only when no token is hallucinated, fabricated_group or deleted. Gate on this before presenting the text. NMDP multiple allele codes (counts.mac_code) and KIR allele names (counts.out_of_scope) are not checked — treat them as unverified.",
     },
     counts: {
       type: "object",
       description: "Number of distinct tokens per status.",
-      required: ["valid", "deleted", "group", "fabricated_group", "hallucinated", "mac_code"],
+      required: ["valid", "deleted", "group", "fabricated_group", "hallucinated", "mac_code", "out_of_scope"],
       properties: {
         valid: { type: "integer" }, deleted: { type: "integer" }, group: { type: "integer" },
         fabricated_group: { type: "integer" }, hallucinated: { type: "integer" },
         mac_code: { type: "integer", description: "NMDP multiple allele codes (A*02:AB) seen but not expanded." },
+        out_of_scope: { type: "integer", description: "KIR allele names (KIR3DL1*001) seen; a gene family outside IPD-IMGT/HLA, not checked." },
       },
     },
     tokens: {
@@ -135,11 +136,12 @@ const VERIFY_OUT = {
         properties: {
           token: { type: "string", description: "The token without any HLA- prefix." },
           status: {
-            type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code"],
+            type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code", "out_of_scope"],
             description: "valid: assigned (or a valid prefix; A*02:XX and two-field A*02:01g are checked by the name they abbreviate); " +
               "group: a real G/P group; deleted: no longer current (see successor); " +
               "fabricated_group: G/P-shaped but no such group; hallucinated: never existed in any release; " +
-              "mac_code: an NMDP multiple allele code, reporting shorthand this service does not expand.",
+              "mac_code: an NMDP multiple allele code, reporting shorthand this service does not expand; " +
+              "out_of_scope: a KIR allele name (IPD-KIR), outside IPD-IMGT/HLA and not checked.",
           },
           note: { type: "string", description: "Human-readable meaning of status." },
           successor: { type: "string", description: "deleted: the name it was renamed to, when known." },
@@ -393,7 +395,8 @@ function toolDefs() {
       description:
         "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
         "classify each one: valid / legacy (with modern form) / G-P group / deleted (with successor) / " +
-        "fabricated / NMDP MAC code (seen, not expanded). Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
+        "fabricated / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked). " +
+        "Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
         "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
         "HLA. Send the HLA content only, with patient identifiers removed first.",
       inputSchema: {
