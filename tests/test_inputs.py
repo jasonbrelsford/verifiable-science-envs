@@ -165,3 +165,33 @@ def test_allele_endpoint_group_and_prefixed_names(client):
 def test_ligands_for_class_i_group(ref, pf):
     lg = lab.ligands(ref, pf, "B*44:02:01G")
     assert lg["expressed"] is True and lg["bw"] == "Bw4"
+
+
+# --- KIR names in free text (issue #71): out of scope, never a fabricated HLA name ----
+
+def test_token_grammar_never_starts_inside_a_word(ref):
+    from sci_envs.reference.imgt import ALLELE_TOKEN_RE, MAC_TOKEN_RE
+    assert ALLELE_TOKEN_RE.findall("HLA-DRB1*04:01, KIR3DL1*001 KIR2DL1*0010101") == ["HLA-DRB1*04:01"]
+    assert ALLELE_TOKEN_RE.findall("xA*02:01 1B*07:02 (A*24:02) HLA-A*02:01") == ["A*24:02", "HLA-A*02:01"]
+    assert MAC_TOKEN_RE.findall("KIR2DL1*AB and A*02:AB") == ["A*02:AB"]
+
+
+def test_classify_tokens_reports_kir_as_out_of_scope(ref):
+    c = ref.classify_tokens("HLA-DRB1*04:01, KIR3DL1*001, KIR2DL1*0010101, 2DL5A*001, KIR3DP1*003:01; DQB1*99:99")
+    assert c["out_of_scope"] == ["2DL5A*001", "KIR2DL1*0010101", "KIR3DL1*001", "KIR3DP1*003:01"]
+    assert c["valid"] == ["DRB1*04:01"]
+    assert c["hallucinated"] == ["DQB1*99:99"]
+    assert all("DL1*001" not in v for v in c.values())
+
+
+def test_verify_endpoint_mixed_hla_kir_report_is_clean(client):
+    r = client.post("/v1/verify", json={"text": "HLA-DRB1*04:01, KIR3DL1*001"}).json()
+    by = {t["token"]: t for t in r["tokens"]}
+    assert set(by) == {"DRB1*04:01", "KIR3DL1*001"}
+    assert by["DRB1*04:01"]["status"] == "valid"
+    assert by["KIR3DL1*001"]["status"] == "out_of_scope" and "KIR" in by["KIR3DL1*001"]["note"]
+    assert r["counts"]["hallucinated"] == 0 and r["counts"]["out_of_scope"] == 1
+    assert r["clean"] is True
+    # a fabricated HLA name next to KIR typing still fails the guardrail
+    bad = client.post("/v1/verify", json={"text": "DQB1*99:99 with KIR2DL1*001"}).json()
+    assert bad["clean"] is False and bad["counts"]["out_of_scope"] == 1

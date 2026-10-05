@@ -82,6 +82,7 @@ STATUS_HELP = {
     "fabricated_group": "shaped like a G/P group but no such group exists",
     "hallucinated": "no such name in any release back to 1.05.0 — fabricated",
     "mac_code": "an NMDP multiple allele code (reporting shorthand for an allele list) — not expanded or checked here",
+    "out_of_scope": "a KIR allele name (IPD-KIR) — a gene family outside IPD-IMGT/HLA, not checked here",
 }
 
 
@@ -258,7 +259,7 @@ body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0
 textarea{width:100%;min-height:110px;font:13px/1.5 ui-monospace,monospace;padding:.6rem;border:1px solid #c9c5ba;border-radius:8px;box-sizing:border-box}
 button{background:#2f5d3a;color:#fff;border:0;border-radius:8px;padding:.55rem 1.2rem;font-size:14px;cursor:pointer;margin-top:.5rem}
 .tok{display:inline-block;margin:.15rem;padding:.2rem .55rem;border-radius:6px;font:12px ui-monospace,monospace}
-.valid{background:#dcefdc}.group{background:#dbe7f6}.deleted{background:#fdeece}.hallucinated,.fabricated_group{background:#f8d7d7}.mac_code{background:#ece6f7}
+.valid{background:#dcefdc}.group{background:#dbe7f6}.deleted{background:#fdeece}.hallucinated,.fabricated_group{background:#f8d7d7}.mac_code{background:#ece6f7}.out_of_scope{background:#e6e6e6}
 small{color:#6b6a64}#out{margin-top:1rem}h1{font-size:1.4rem}code{background:#eeece6;padding:.1rem .3rem;border-radius:4px}</style></head><body>
 <h1>HLA-Verify</h1>
 <p>Paste anything — a typing report, an AI answer, a note. Every allele-shaped token is checked
@@ -276,7 +277,8 @@ async function go(){
   const v = document.createElement('p');
   v.innerHTML = (d.clean ? '✅ <b>Clean</b> — every name is real and current.'
     : '⚠️ <b>Problems found</b> — ' + (d.counts.hallucinated+d.counts.fabricated_group) + ' fabricated, ' + d.counts.deleted + ' outdated.')
-    + (d.counts.mac_code ? ' ' + d.counts.mac_code + ' NMDP code(s) not checked.' : '');
+    + (d.counts.mac_code ? ' ' + d.counts.mac_code + ' NMDP code(s) not checked.' : '')
+    + (d.counts.out_of_scope ? ' ' + d.counts.out_of_scope + ' KIR name(s) out of scope.' : '');
   o.appendChild(v);
   for (const t of d.tokens){
     const s = document.createElement('span'); s.className = 'tok ' + t.status;
