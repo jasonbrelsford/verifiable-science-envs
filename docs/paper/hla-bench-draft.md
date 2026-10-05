@@ -201,6 +201,24 @@ beat to demonstrate real calibration rather than confident guessing;
 `qwen2.5:14b` (40%), `qwen2.5:3b` (45%), `phi4-mini` (46%), and
 `claude-sonnet-4-6` (4%) do, the other five tested models do not.
 
+**Figure 3.** Per-subtype accuracy for `claude-sonnet-4-6`, the most accurate
+model tested, from `bench/HLA-Bench-A.md`'s by-subtype table (`all` split).
+Same script and coloring as Figures 1-2.
+
+![Family A accuracy by subtype, anthropic/claude-sonnet-4-6, all 550 tasks](figures/family-a-accuracy-by-subtype.svg)
+
+The best tested model is perfect on `locus_field` and `null_trap` (both 100%)
+and near-perfect on `truncate` (97%), but four subtypes sit at 0%:
+`expand_ambiguity`, `first_release`, `new_in_release`, and `resolve_chain`.
+Three of those four require reasoning across the full release history (when a
+name first appeared, what changed it, what a renamed/deleted chain resolves
+to) rather than parsing a single name in isolation, and `expand_ambiguity`
+repeats the universal failure already noted in Figure 1's discussion — no
+model at any scale tested knows how many full-resolution alleles a 2-field
+name covers. Accuracy is not a single number per model; it is a profile of
+which lookups a release-pinned table answers and which a model still has to
+guess at.
+
 ### 4.2 Family C (all 205)
 
 | Model | Acc [95% CI] |
@@ -319,5 +337,6 @@ benchmark, generators, and graders themselves are released under Apache-2.0.
 - [ ] Cross-machine bit-identical reproduction check (tower vs tower2)
 - [x] Figure 1: Family A accuracy by model (`figures/family-a-accuracy-by-model.svg`, `scripts/generate_figures.py`)
 - [x] Figure 2: Family A wrong-but-overconfident rate by model (`figures/family-a-wrong-but-overconfident-by-model.svg`, same script); fixed a footnote-marker bug in the parser while adding it, so Figure 1 now includes the previously-dropped claude-sonnet-4-6 row too
-- [ ] Additional figures with provenance (per-subtype / calibration); bioRxiv category: bioinformatics
+- [x] Figure 3: Family A per-subtype accuracy for the best tested model (`figures/family-a-accuracy-by-subtype.svg`, same script, new `parse_by_subtype`)
+- [ ] Additional figures with provenance (calibration); bioRxiv category: bioinformatics
 - [ ] Decide author list / acknowledgements; ORCID
