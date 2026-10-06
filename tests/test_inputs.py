@@ -226,3 +226,63 @@ def test_verify_endpoint_mixed_hla_kir_report_is_clean(client):
     # a fabricated HLA name next to KIR typing still fails the guardrail
     bad = client.post("/v1/verify", json={"text": "DQB1*99:99 with KIR2DL1*001"}).json()
     assert bad["clean"] is False and bad["counts"]["out_of_scope"] == 1
+
+
+# ---- legacy spellings in /v1/verify (#88, #89); pinned in edge/test/golden.test.mjs too
+
+def test_classify_tokens_reads_legacy_4digit_names_by_their_colon_form(ref):
+    c = ref.classify_tokens("A*0201, B*0702, A*2402, DRB1*1501, DRB1*0401, DQB1*0301, HLA-A*0201, A*0101, B*4402, DPB1*0401")
+    assert c["valid"] == ["A*0101", "A*0201", "A*0201", "A*2402", "B*0702", "B*4402", "DPB1*0401", "DQB1*0301", "DRB1*0401", "DRB1*1501"]
+    assert c["deleted"] == [] and c["hallucinated"] == []
+    assert ref.classify_tokens("A*9999 and DPB1*1000")["hallucinated"] == ["A*9999", "DPB1*1000"]
+
+
+def test_classify_tokens_sees_cw_names(ref):
+    c = ref.classify_tokens("Cw*0702, HLA-Cw*0702, Cw*07:02, Cw*07:XX, Cw*07:AB, Cw*9999, Cw*99:99, Cw6 and A*0201")
+    assert c["valid"] == ["A*0201", "Cw*0702", "Cw*0702", "Cw*07:02", "Cw*07:XX"]
+    assert c["hallucinated"] == ["Cw*9999", "Cw*99:99"]
+    assert c["mac_code"] == ["Cw*07:AB"]
+    assert not any("Cw6" in v for v in c.values()), "serology has no * and stays out"
+
+
+def test_classify_tokens_legacy_deleted_and_historical_names(ref):
+    c = ref.classify_tokens("A*0105N B*1308Q Cw*04:09N A*01011 DRB1*1513")
+    assert c["deleted"] == ["A*01011", "A*0105N", "B*1308Q", "Cw*04:09N"]   # history, own record, colon form's record
+    assert c["valid"] == ["DRB1*1513"]                                       # DRB1*15:13 is a valid prefix of DRB1*15:13Q
+
+
+def test_verify_endpoint_legacy_report_is_clean_and_flagged(client):
+    r = client.post("/v1/verify", json={"text": "Patient typing: A*0201, Cw*0702, Cw*07:02, DRB1*1501 and HLA-B*0702"}).json()
+    by = {t["token"]: t for t in r["tokens"]}
+    assert r["clean"] is True and r["counts"]["valid"] == 5 and r["counts"]["hallucinated"] == 0
+    for tok, cur in [("A*0201", "A*02:01"), ("Cw*0702", "C*07:02"), ("Cw*07:02", "C*07:02"), ("DRB1*1501", "DRB1*15:01"), ("B*0702", "B*07:02")]:
+        assert by[tok]["status"] == "valid" and by[tok]["current_2field"] == cur and by[tok]["flags"] == ["deprecated_name"], tok
+    r = client.post("/v1/verify", json={"text": "A*0201, Cw*9999"}).json()
+    assert r["clean"] is False and r["counts"]["hallucinated"] == 1
+    r = client.post("/v1/verify", json={"text": "B*1308Q Cw*04:09N A*0105N"}).json()
+    by = {t["token"]: t for t in r["tokens"]}
+    assert by["B*1308Q"]["status"] == "deleted" and by["B*1308Q"]["successor"] == "B*13:08"
+    assert by["Cw*04:09N"]["status"] == "deleted" and by["Cw*04:09N"]["successor"] == "C*04:09L"
+    assert by["A*0105N"]["status"] == "deleted" and by["A*0105N"]["successor"] == "A*01:04:01:01N"
+
+
+def test_cw_colon_names_resolve_everywhere(ref, client):
+    assert resolve_name(ref, "Cw*07:02") == ("C*07:02", {"deprecated_name"})
+    assert resolve_name(ref, "HLA-Cw*07:02:01:01") == ("C*07:02:01:01", {"deprecated_name"})
+    assert resolve_name(ref, "Cw*07:XX") == ("C*07", {"deprecated_name", "xx_code"})
+    assert resolve_name(ref, "Cw*07:AB") == (None, {"deprecated_name", "mac_code"})
+    assert resolve_name(ref, "Cw*99:99") == (None, {"deprecated_name", "nonexistent_allele"})
+    assert resolve_name(ref, "cw*07:02") == (None, {"nonexistent_allele"})      # lower-case is a formatting variant
+    assert normalize(ref, "Cw*07:02") == {"allele_2field": "C*07:02", "g_group": "AMBIGUOUS", "flags": "deprecated_name"}
+    a = client.get("/v1/allele/Cw*07:02").json()
+    assert a["status"] == "valid_prefix" and a["resolves_to"] == "C*07:02" and a["flags"] == ["deprecated_name"]
+    x = client.get("/v1/allele/Cw*07:XX").json()
+    assert x["resolves_to"] == "C*07" and x["flags"] == ["deprecated_name", "xx_code"]
+    assert client.get("/v1/allele/Cw*07:AB").json()["status"] == "mac_code"
+    assert client.get("/v1/allele/Cw*99:99").status_code == 404
+
+
+def test_legacy_name_follows_its_colon_forms_successor(ref):
+    # B*13:08Q was deleted (now B*13:08); the legacy spelling follows, as /v1/normalize would for B*13:08Q
+    assert resolve_name(ref, "B*1308Q") == ("B*13:08", {"deprecated_name"})
+    assert resolve_name(ref, "A*01011") == (None, {"deprecated_name", "nonexistent_allele"})   # no colon form

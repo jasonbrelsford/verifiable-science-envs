@@ -104,3 +104,78 @@ test(`glstring: ${fx.glstring.length} strings`, async () => {
     }
   }
 });
+
+// Legacy spellings in /v1/verify (#88, #89): pinned expectations, independent of the fixture
+// file, so a regenerated fixtures.json cannot quietly carry a regression through.
+const byToken = (r) => Object.fromEntries(r.tokens.map((t) => [t.token, t]));
+
+test("verify: common legacy 4-digit names are valid with deprecated_name, and the report is clean (#88)", async () => {
+  const r = await engine.verify("A*0201, B*0702, A*2402, DRB1*1501, DRB1*0401, DQB1*0301, HLA-A*0201, A*0101, B*4402, DPB1*0401");
+  assert.equal(r.clean, true);
+  assert.equal(r.counts.hallucinated, 0);
+  assert.equal(r.counts.deleted, 0);
+  const t = byToken(r);
+  for (const [tok, cur] of [["A*0201", "A*02:01"], ["B*0702", "B*07:02"], ["A*2402", "A*24:02"], ["DRB1*1501", "DRB1*15:01"],
+    ["DRB1*0401", "DRB1*04:01"], ["DQB1*0301", "DQB1*03:01"], ["A*0101", "A*01:01"], ["B*4402", "B*44:02"], ["DPB1*0401", "DPB1*04:01"]]) {
+    assert.equal(t[tok].status, "valid", tok);
+    assert.equal(t[tok].current_2field, cur, tok);
+    assert.deepEqual(t[tok].flags, ["deprecated_name"], tok);
+  }
+  assert.ok(!("HLA-A*0201" in t), "the HLA- prefix is stripped from the reported token");
+});
+
+test("verify: Cw* names are seen, resolved to C*, and a fabricated one is hallucinated (#89)", async () => {
+  const r = await engine.verify("A*0201, Cw*0702, HLA-Cw*0702, Cw*07:02, Cw*07:XX, Cw*9999, Cw*99:99, Cw6, DRB1*1501");
+  const t = byToken(r);
+  assert.equal(t["Cw*0702"].status, "valid");
+  assert.equal(t["Cw*0702"].current_2field, "C*07:02");
+  assert.deepEqual(t["Cw*0702"].flags, ["deprecated_name"]);
+  assert.equal(t["Cw*07:02"].status, "valid");
+  assert.equal(t["Cw*07:02"].current_2field, "C*07:02");
+  assert.deepEqual(t["Cw*07:02"].flags, ["deprecated_name"]);
+  assert.equal(t["Cw*07:XX"].status, "valid");
+  assert.equal(t["Cw*07:XX"].current_2field, "C*07");
+  assert.deepEqual(t["Cw*07:XX"].flags, ["deprecated_name", "xx_code"]);
+  assert.equal(t["Cw*9999"].status, "hallucinated");
+  assert.equal(t["Cw*99:99"].status, "hallucinated");
+  assert.ok(!("Cw6" in t), "serology has no * and stays out");
+  assert.equal(r.counts.hallucinated, 2);
+  assert.equal(r.clean, false);
+});
+
+test("verify: a legacy name keeps its own deletion record, or follows its colon form's successor", async () => {
+  const r = await engine.verify("A*0105N B*1308Q Cw*04:09N A*01011 A*9999");
+  const t = byToken(r);
+  assert.equal(t["A*0105N"].status, "deleted");               // listed in Deleted_alleles.txt under its old spelling
+  assert.equal(t["A*0105N"].successor, "A*01:04:01:01N");
+  assert.equal(t["B*1308Q"].status, "deleted");               // B*13:08Q was deleted: its successor
+  assert.equal(t["B*1308Q"].successor, "B*13:08");
+  assert.equal(t["B*1308Q"].current_2field, "B*13:08");
+  assert.equal(t["Cw*04:09N"].status, "deleted");
+  assert.equal(t["Cw*04:09N"].successor, "C*04:09L");
+  assert.equal(t["A*01011"].status, "deleted");               // a 5-digit interim name: history only
+  assert.equal(t["A*01011"].successor, "A*01:01:01:01");
+  assert.equal(t["A*9999"].status, "hallucinated");           // a fabricated legacy name is still fabricated
+  assert.equal(r.clean, false);
+});
+
+test("normalize and allele read Cw*07:02 as a deprecated spelling of C*07:02 (#89)", async () => {
+  const n = await engine.normalizeBatch(["Cw*07:02", "HLA-Cw*07:02:01:01", "Cw*07:AB", "cw*07:02"]);
+  assert.equal(n.rows[0].current_name, "C*07:02");
+  assert.deepEqual(n.rows[0].flags, ["deprecated_name"]);
+  assert.equal(n.rows[1].current_name, "C*07:02:01:01");
+  assert.deepEqual(n.rows[1].flags, ["deprecated_name"]);
+  assert.equal(n.rows[2].current_name, "UNRESOLVABLE");
+  assert.deepEqual(n.rows[2].flags, ["deprecated_name", "mac_code"]);
+  assert.equal(n.rows[3].current_name, "UNRESOLVABLE", "lower-case is still a formatting variant, not a name");
+  const a = await engine.allele("Cw*07:02");
+  assert.equal(a.status, 200);
+  assert.equal(a.body.status, "valid_prefix");
+  assert.equal(a.body.resolves_to, "C*07:02");
+  assert.deepEqual(a.body.flags, ["deprecated_name"]);
+  const x = await engine.allele("Cw*07:XX");
+  assert.equal(x.body.resolves_to, "C*07");
+  assert.deepEqual(x.body.flags, ["deprecated_name", "xx_code"]);
+  const m = await engine.allele("Cw*07:AB");
+  assert.equal(m.body.status, "mac_code");
+});

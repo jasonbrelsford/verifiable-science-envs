@@ -62,7 +62,7 @@ export const UNMET_CLASSES = [
     would_take: "loading the NMDP MAC table (a licensing and dependency decision)" },
   { id: "format_variant", kind: "feature", feasibility: 1.0,
     title: "Formatting variants that would resolve after cleanup",
-    seen: "lower-case names, internal spaces, Cw*07:01, a space instead of *",
+    seen: "lower-case names (cw*07:01), internal spaces, a space instead of *",
     would_take: "lenient parsing with a flag, same as the HLA- prefix today" },
   { id: "allele_list", kind: "feature", feasibility: 1.0,
     title: "Ambiguity strings in a typing slot",
@@ -177,7 +177,8 @@ export function isAlleleList(s, locusKey = null) {
 }
 
 // The cleanups a lenient parser would apply, each named: case, space (internal
-// whitespace), cw (Cw*07:01), star (the '*' dropped or replaced by a space),
+// whitespace), cw (cw*07:01 in any case; the engine itself reads Cw*07:01 as a
+// deprecated spelling of C*07:01), star (the '*' dropped or replaced by a space),
 // locus (fields only, under a typing key that names the locus). Returns the
 // candidate strings to try (most conservative first) and the sorted fix names,
 // or null when nothing would change. A trailing lower-case g is the lg notation

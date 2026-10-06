@@ -93,6 +93,14 @@ def pool() -> list[str]:
     # KIR names (IPD-KIR, out of scope) and tokens glued to a preceding word
     p += ["KIR3DL1*001", "KIR2DL1*0010101", "2DL5A*001", "KIR3DP1*003:01", "KIR2DS4*00101", "kir2dl1*001",
           "KIR2DL1", "xA*02:01", "1B*07:02", "KIR2DL1*AB", "HLA-KIR2DL1*001"]
+    # legacy spellings accepted as reported typing (#88, #89): common colon-less names, the Cw
+    # locus label on colon-style names, legacy names whose colon form was itself deleted,
+    # names listed in Deleted_alleles.txt under their old spelling, and fabricated legacy names
+    p += ["A*0201", "B*0702", "A*2402", "DRB1*1501", "DRB1*0401", "DQB1*0301", "HLA-A*0201", "HLA-DRB1*1501",
+          "Cw*0702", "HLA-Cw*0702", "Cw*07:02", "HLA-Cw*07:02", "Cw*07:02:01:01", "Cw*07:XX", "Cw*07:AB", "Cw*07:02g",
+          "Cw*9999", "Cw*99:99", "A*9999", "B*4402", "DPB1*0401", "A*020101", "A*01010101",
+          "B*1308Q", "DRB1*1513", "Cw*0409N", "Cw*04:09N", "A*020108", "A*0105N", "A*2401", "A*0223",
+          "A*01011", "A*02011", "DPB1*1000", "Cw*0102", "Cw*01:02", "cw*07:02", "CW*07:02", "Cw*07"]
     rng.shuffle(p)
     return p
 
@@ -127,6 +135,13 @@ def verify_texts(p: list[str]) -> list[str]:
         "HLA-DRB1*04:01, KIR3DL1*001",
         "Patient typing A*02:01, B*07:02, C*07:02; KIR2DL1*0010101 KIR2DL5A*001 2DS4*00101 KIR3DP1*003:01; KIR2DL1 present",
         "DQB1*99:99 with KIR2DL1*001 and DL1*001 alone, xA*02:01 1B*07:02, HLA-A*02:01-A*03:01, KIR2DL1*AB",
+        # legacy spellings (#88, #89): a 1990s-format report is clean, a fabricated Cw*9999 is not
+        "A*0201", "Cw*0702", "HLA-Cw*0702", "Cw*07:02", "Cw*9999",
+        "Patient typing: A*0201, A*2402; B*0702, B*4402; Cw*0702, Cw*0401; DRB1*1501, DRB1*0401; DQB1*0602, DQB1*0301",
+        "HLA-A*0201, HLA-Cw*0702, HLA-DRB1*1501 and A*0101 with A*01010101 and A*020101",
+        "Cw*07:02 Cw*07:02:01:01 Cw*07:XX Cw*07:AB Cw*07:02g Cw6 Cw*99:99 Cw*9999 A*9999 cw*07:02 CW*07:02",
+        "B*1308Q Cw*0409N Cw*04:09N A*020108 A*0105N A*2401 A*0223 A*01011 A*02011 DPB1*1000 DRB1*1513",
+        "Donor is A*0201, B*0702, Cw*0702, DRB1*1501 (A*02:01, B*07:02, C*07:02, DRB1*15:01)",
     ]
     return texts
 
@@ -141,6 +156,9 @@ def typing_pool(locus: str) -> list[str]:
     out.append(prefixes(rng.choice(al), 2))
     out.append(prefixes(rng.choice(al), 3) if len(split_allele(rng.choice(al))[1]) >= 3 else prefixes(rng.choice(al), 2))
     out.append(legacy_of(rng.choice(al)))
+    if locus == "C":                                   # the Cw locus label on a colon-style name (#89)
+        out.append("Cw" + rng.choice(al)[1:])
+        out.append("Cw" + prefixes(rng.choice(al), 2)[1:])
     nulls = [x for x in al if x.endswith("N")]
     if nulls:
         out.append(rng.choice(nulls))
@@ -371,7 +389,10 @@ def main():
     # reported shorthands on /v1/allele (#72): legacy, lg, XX, MAC, HLA- forms, and misses
     shorthands = ["A*0101", "Cw*0702", "A*02:01g", "A*02:XX", "A*02:AB", "HLA-A*02:XX", "HLA-A*0101", "HLA-A*02:01g",
                   "A*0134N", "A*24:09g", "DRB1*1406", "DRB1*04:BNDC", "B*15:ABCDE", "A*99:XX", "A*99:01g", "B*9999",
-                  "A*02001", "DQB1*06:02g", "C*04:09g", "DQB1*06:XX", "Cw*07", "A*02:XXX", "A*02:A", "a*01:01"]
+                  "A*02001", "DQB1*06:02g", "C*04:09g", "DQB1*06:XX", "Cw*07", "A*02:XXX", "A*02:A", "a*01:01",
+                  # the Cw locus label on colon-style names (#89), and legacy names whose colon form was deleted (#88)
+                  "Cw*07:02", "HLA-Cw*07:02", "Cw*07:02:01:01", "Cw*07:XX", "Cw*07:AB", "Cw*07:02g", "Cw*99:99",
+                  "Cw*04:09N", "B*1308Q", "DRB1*1513", "A*0201", "A*2401", "A*01011", "cw*07:02"]
     for name in rng.sample(p, 700) + shorthands:
         resp = client.get("/v1/allele/" + name)
         fx["allele"].append({"input": name, "status": resp.status_code, "expected": resp.json()})

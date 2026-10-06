@@ -21,24 +21,17 @@ Reported-typing shorthands accepted as input (each leaves a flag so nothing is c
 - NMDP multiple allele codes (``A*02:AB``) are recognised but NOT expanded: they need the NMDP
   MAC table, which this build does not load. They return unresolvable with ``mac_code`` so a
   caller can tell "we could not check this" from "this name does not exist".
+- The legacy ``Cw`` locus label on a colon-style name (``Cw*07:02``, ``Cw*07:XX``) resolves as
+  the ``C`` name with ``deprecated_name``, like the colon-less ``Cw*0702`` always has.
 """
 from __future__ import annotations
 
-from imgt import (ImgtReference, ImgtError, split_allele, is_legacy_name, LEGACY_RE,
-                                     MAC_RE, XX_RE, LG_RE, group_parts, strip_prefix)
+from imgt import (ImgtReference, ImgtError, split_allele, is_legacy_name, legacy_to_colon,
+                                     cw_to_c, MAC_RE, XX_RE, LG_RE, group_parts, strip_prefix)
+
+legacy_to_colon = legacy_to_colon   # re-exported: app.py, lab.py and the tests import it from here
 
 SUFFIXES = "NLSCAQ"
-
-
-def legacy_to_colon(s: str):
-    m = LEGACY_RE.match(s.strip())
-    if not m:
-        return None
-    loc, digits, suf = m.group(1), m.group(2), m.group(3)
-    loc = "C" if loc == "Cw" else loc
-    if len(digits) % 2:
-        return None
-    return f"{loc}*{':'.join(digits[i:i + 2] for i in range(0, len(digits), 2))}{suf}"
 
 
 def name_parts(name: str) -> tuple[str, list[str], str]:
@@ -73,6 +66,10 @@ def resolve_name(ref: ImgtReference, reported: str):
     """-> (name_or_None, flags:set)"""
     s = strip_prefix(reported)
     flags: set[str] = set()
+    c = cw_to_c(s)
+    if c is not None:                        # Cw*07:02: the C name, resolved like any reported name
+        name, fl = resolve_name(ref, c)
+        return name, fl | {"deprecated_name"}
     if MAC_RE.match(s) and not XX_RE.match(s):
         return None, {"mac_code"}
     m = XX_RE.match(s)
@@ -89,10 +86,13 @@ def resolve_name(ref: ImgtReference, reported: str):
         flags.add("deprecated_name")
         succ = ref.renamed_to(s)
         return (succ, flags) if succ else (None, flags | {"nonexistent_allele"})
-    if is_legacy_name(s):
-        flags.add("deprecated_name")
+    if is_legacy_name(s):                    # A*0201: the colon form, resolved like any reported name
+        flags.add("deprecated_name")         # (so a colon form that was itself deleted follows its successor)
         cand = legacy_to_colon(s)
-        return (cand, flags) if _ok(ref, cand) else (None, flags | {"nonexistent_allele"})
+        if cand is None:
+            return None, flags | {"nonexistent_allele"}
+        name, fl = resolve_name(ref, cand)
+        return name, fl | flags
     if _ok(ref, s):
         return s, flags
     return None, flags | {"nonexistent_allele"}

@@ -137,7 +137,8 @@ const VERIFY_OUT = {
           token: { type: "string", description: "The token without any HLA- prefix." },
           status: {
             type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code", "out_of_scope"],
-            description: "valid: assigned (or a valid prefix; A*02:XX and two-field A*02:01g are checked by the name they abbreviate); " +
+            description: "valid: assigned (or a valid prefix; A*02:XX and two-field A*02:01g are checked by the name they abbreviate, " +
+              "and a legacy spelling such as A*0201, Cw*0702 or Cw*07:02 by the current name it stands for, with flag deprecated_name); " +
               "group: a real G/P group; deleted: no longer current (see successor); " +
               "fabricated_group: G/P-shaped but no such group; hallucinated: never existed in any release; " +
               "mac_code: an NMDP multiple allele code, reporting shorthand this service does not expand; " +
@@ -166,8 +167,8 @@ const ALLELE_OUT = {
       type: "string", enum: ["assigned", "valid_prefix", "group", "deleted", "mac_code"],
       description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; group: a G or P group name (see group_type); deleted: withdrawn or renamed (see successor); mac_code: an NMDP multiple allele code (A*02:AB), recognised but not expanded or checked.",
     },
-    resolves_to: { type: "string", description: "Present when the name was a reported shorthand (legacy colon-less, XX code, lg notation): the current-style name it stands for, whose facts this result carries." },
-    flags: { type: "array", items: STR, description: "Present for a shorthand: deprecated_name (legacy colon-less name), xx_code, lg_notation, or mac_code. Absent for a plain name." },
+    resolves_to: { type: "string", description: "Present when the name was a reported shorthand (legacy colon-less or Cw spelling, XX code, lg notation): the current-style name it stands for, whose facts this result carries." },
+    flags: { type: "array", items: STR, description: "Present for a shorthand: deprecated_name (legacy spelling: colon-less A*0101, or the Cw locus label as in Cw*07:02), xx_code, lg_notation, or mac_code. Absent for a plain name." },
     note: { type: "string", description: "mac_code: what a multiple allele code is and why it is not expanded." },
     successor: { type: ["string", "null"], description: "deleted: the current name, or null if none." },
     g_group: { type: ["string", "null"], description: "assigned: G group, or null." },
@@ -397,7 +398,7 @@ function toolDefs() {
       name: "verify_text",
       description:
         "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
-        "classify each one: valid / legacy (with modern form) / G-P group / deleted (with successor) / " +
+        "classify each one: valid / legacy spelling such as A*0201 or Cw*0702 (valid, with modern form and flag deprecated_name) / G-P group / deleted (with successor) / " +
         "fabricated / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked). " +
         "Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
         "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
@@ -417,7 +418,7 @@ function toolDefs() {
     {
       name: "normalize_allele",
       description:
-        "Normalize one reported HLA allele name (any era or reporting shorthand: legacy A*0101, " +
+        "Normalize one reported HLA allele name (any era or reporting shorthand: legacy A*0101, Cw*0702 or Cw*07:02, " +
         "G/P group names, A*02:XX, two-field A*02:01g, optional HLA- prefix) to current 2-field form, " +
         "with G group, P group, serologic equivalent, and flags. NMDP MAC codes (A*02:AB) are " +
         "recognised but not expanded (flag mac_code).",
@@ -437,7 +438,7 @@ function toolDefs() {
         "assigned (G/P group, first release, confirmed status, WMDA serology, null flag), " +
         "valid_prefix (member count and sample), group (a G or P group name: member count and sample), " +
         "or deleted (successor). Reported shorthands are accepted as /v1/normalize accepts them — legacy " +
-        "colon-less names (A*0101, Cw*0702), the XX code (A*02:XX), two-field A*02:01g, an optional HLA- " +
+        "spellings (A*0101, Cw*0702, Cw*07:02), the XX code (A*02:XX), two-field A*02:01g, an optional HLA- " +
         "prefix — and answer with the facts of the name they stand for plus resolves_to and a flag " +
         "(deprecated_name, xx_code, lg_notation); an NMDP multiple allele code (A*02:AB) returns mac_code, " +
         "recognised but not expanded. Not found if the name has never existed in any release.",

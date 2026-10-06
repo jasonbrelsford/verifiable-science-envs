@@ -76,8 +76,8 @@ taking the API down. Every billable response carries `x-hla-verify-daily-*` head
 
 ```bash
 python -m sci_envs.service.edge_export      # ~45s, writes the gitignored edge/public tables
-cd edge && node --test                      # 261 tests as of 2026-10-05, incl. golden parity with the Python oracle
-pytest -q                                   # 173 passed, 3 skipped as of 2026-10-05 (needs .[dev,service,mcp])
+cd edge && node --test                      # 265 tests as of 2026-10-06, incl. golden parity with the Python oracle
+pytest -q                                   # 181 passed, 2 skipped as of 2026-10-06 (needs .[dev,service,mcp])
 npx wrangler@4 dev --local --port <free>    # then exercise the change
 node <path>/mcpclient/probe.mjs http://127.0.0.1:<port>/mcp
 ```
