@@ -44,6 +44,13 @@ organizations and is NOT assumed anywhere in this family. Three layers, in order
    haplotypes generated from the pinned IPD-IMGT/HLA release, inherited under
    Mendel's rules, unphased into tasks. Ground truth is known by construction;
    every graded number derives from it. This layer alone is the benchmark.
+   *Implemented 2026-10-06 as `sci_envs/families/phasing/mendelian.py`
+   (`python -m sci_envs.families.phasing`): seeded, byte-reproducible, founder pool
+   drawn from the pinned release at full resolution, whole-haplotype transmission (no
+   recombination in v0), two- or three-generation families, unphased genotype kept next
+   to the phased truth. The §6 question-1 values are flags with the proposal as defaults
+   (`--founders 40 --loci A,B,DRB1`, one population). Grading, subtypes and the bench
+   split are not built yet.*
 2. **Realism layer — open data only.** Founder pools and frequency weights may be
    informed by openly licensed resources (1000 Genomes-class HLA call sets; openly
    published frequency tables where the article's data terms permit reuse). These
