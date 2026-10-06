@@ -122,7 +122,8 @@ test("normalize: each unmet shape lands in its class; served names contribute no
     "A*02:AB": { mac_code: 1 },
     "a*02:01": { format_variant: 1 },
     "A*02 :01": { format_variant: 1 },
-    "Cw*07:01": { format_variant: 1 },
+    "cw*07:01": { format_variant: 1 },
+    "Cw*07:01": {},                       // the Cw locus label now resolves with deprecated_name (#89)
     "DRB1 04:01": { format_variant: 1 },
     "A0201": { format_variant: 1 },
     "DRB10401": { format_variant: 1 },
@@ -150,7 +151,7 @@ test("normalize: each unmet shape lands in its class; served names contribute no
 
 test("normalize: blob8 value names the fix, the locus, never the string", async () => {
   assert.equal((await classifyNormalize("a*02 :01")).value, "format_variant=case+space");
-  assert.equal((await classifyNormalize("Cw*07:01")).value, "format_variant=cw");
+  assert.equal((await classifyNormalize("cw*07:01")).value, "format_variant=cw");
   assert.equal((await classifyNormalize("KIR2DL1*001")).value, "unknown_locus=KIR");
   assert.equal((await classifyNormalize("ABO*A1")).value, "unknown_locus=ABO");
   assert.equal((await classifyNormalize("A*99:99")).value, "", "unknown_allele carries no value: the name is content");
@@ -159,7 +160,7 @@ test("normalize: blob8 value names the fix, the locus, never the string", async 
 });
 
 test("typing/check: bare antigen numbers and fields-only names read against their locus key; an unknown key counts once", async () => {
-  const typing = { A: ["02:01", "0201"], B: ["44", "B*44:02"], C: ["7", "Cw*07:01"], DRB1: ["4", "DRB1*04:01"],
+  const typing = { A: ["02:01", "0201"], B: ["44", "B*44:02"], C: ["7", "cw*07:01"], DRB1: ["4", "DRB1*04:01"],
     KIR2DL1: ["KIR2DL1*001", "KIR2DL1*002"], DQA1: ["DQA1*01:01", "DQA1*05:01"] };
   const body = await eng.checkTyping(typing);
   const u = await summarizeUnmet(eng, manifest, "typing/check", { typing }, body);
@@ -209,13 +210,14 @@ test("glstring, allele and compat classify their unresolvable tokens the same wa
 
   for (const [name, want] of [["A*02:AB", { mac_code: 1 }], ["A*99:99", { unknown_allele: 1 }], ["a*02:01", { format_variant: 1 }],
     ["A2", { serology: 1 }], ["KIR2DL1*001", { unknown_locus: 1 }], ["A*02:01", {}], ["A*02:01:01G", {}],
-    ["A*0101", {}], ["Cw*0702", {}], ["A*02:XX", {}], ["A*02:01g", {}]]) {   // shorthands /v1/allele now resolves (#72)
+    ["A*0101", {}], ["Cw*0702", {}], ["A*02:XX", {}], ["A*02:01g", {}],       // shorthands /v1/allele now resolves (#72)
+    ["Cw*07:02", {}], ["Cw*07:XX", {}], ["A*0201", {}]]) {                      // and the legacy spellings of #88/#89
     const r = await eng.allele(name);
     assert.deepEqual(hits(await summarizeUnmet(eng, manifest, "allele", { name }, r.body)), want, name);
   }
 
   const rec = { A: ["A*02:01", "a*24:02"], B: ["B*07:02", "B*08:01"], C: ["C*07:01", "C*07:02"] };
-  const don = { A: ["A*02:01", "A*24:02"], B: ["B*07:02", "B*08:01"], C: ["C*07:01", "Cw*07:02"] };
+  const don = { A: ["A*02:01", "A*24:02"], B: ["B*07:02", "B*08:01"], C: ["C*07:01", "cw*07:02"] };
   const c = await summarizeUnmet(eng, manifest, "compat", { recipient: rec, donor: don }, await eng.compat(rec, don));
   assert.deepEqual(hits(c), { format_variant: 2 });
 });
@@ -359,7 +361,7 @@ test("MCP: the same input classifies the same as its /v1 route, through the onCa
   const calls = [];
   const who = { label: "anonymous", tier: "free", keyed: false };
   const hook = (tool, status, units, unmet) => calls.push({ tool, status, units, unmet });
-  await handleMcp(rpc("normalize_allele", { name: "Cw*07:01" }), eng, who, manifest, hook);
+  await handleMcp(rpc("normalize_allele", { name: "cw*07:01" }), eng, who, manifest, hook);
   await handleMcp(rpc("check_typing", { typing: { A: ["2", "A*24:02"], KIR2DL1: ["KIR2DL1*001"] } }), eng, who, manifest, hook);
   await handleMcp(rpc("match_score", { framework: "9/10", recipient: { A: ["A*02:01"] }, donor: { A: ["A*02:01"] } }), eng, who, manifest, hook);
   await handleMcp(rpc("about", {}), eng, who, manifest, hook);

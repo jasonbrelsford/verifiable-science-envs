@@ -54,7 +54,14 @@ def shard_of(name: str) -> str | None:
 
 
 def _classify_one(r: ImgtReference, t: str) -> str | None:
-    """The classify_tokens() branch order for one token; None = hallucinated."""
+    """The status of one exported key; None = hallucinated (never exported).
+
+    Mirrors imgt._classify_allele_token() for a key's own record: assigned, group, valid
+    prefix, Deleted_alleles.txt (``dl``), or a historical name. A legacy spelling (A*0101,
+    Cw*0702) therefore exports only as the historical row it may have (s=d, no ``dl``);
+    the Worker answers for it with the row of the current name it stands for, as
+    resolve_name() does (edge/src/engine.js classifyAlleleToken), so that row's rn/rf/n2
+    are the source of truth and this one is only reached when there is no current form."""
     t = strip_prefix(t)   # exported keys include 'HLA-' forms; the release files carry no prefix
     if r.exists(t):
         return "v"

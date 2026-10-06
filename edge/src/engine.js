@@ -9,9 +9,11 @@ export const LEGACY_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$/;
 // Python \w is Unicode-aware; mirror it with \p{L}\p{N}_ under the u flag. A trailing
 // lowercase g is the two-field "lg" notation (A*02:01g) — see imgt.ALLELE_TOKEN_RE. The
 // leading boundary stops a match starting inside another word (KIR3DL1*001 → "DL1*001").
-export const ALLELE_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\p{L}\p{N}_:])/gu;
+// The optional lowercase w in the locus is the legacy Cw* label (Cw*0702, Cw*07:02): without
+// it a C-locus name in the old style never tokenised, so a fabricated Cw*9999 went unseen.
+export const ALLELE_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+w?[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\p{L}\p{N}_:])/gu;
 // NMDP multiple allele codes (A*02:AB) and the XX code (A*02:XX) — imgt.MAC_TOKEN_RE.
-export const MAC_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\p{L}\p{N}_:])/gu;
+export const MAC_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:HLA-)?[A-Z]+w?[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\p{L}\p{N}_:])/gu;
 // KIR allele names (KIR2DL1*0010101, 3DL1*001): outside IPD-IMGT/HLA, reported as
 // out_of_scope rather than checked — imgt.KIR_TOKEN_RE.
 export const KIR_TOKEN_RE = /(?<![\p{L}\p{N}_])(?:KIR)?[23]D[LSP]\d[A-Z]?\*\d+(?::\d+)*(?![\p{L}\p{N}_:])/gu;
@@ -126,6 +128,12 @@ export function legacyToColon(s) {
   for (let i = 0; i < digits.length; i += 2) parts.push(digits.slice(i, i + 2));
   return `${loc}*${parts.join(":")}${m[3]}`;
 }
+// imgt.cw_to_c(): the legacy Cw locus label on a colon-style name, 'Cw*07:02' -> 'C*07:02'
+// (accepted as a deprecated name, never produced); null for anything else.
+export function cwToC(name) {
+  const n = stripPrefix(name);
+  return n.startsWith("Cw*") && n.includes(":") ? "C" + n.slice(2) : null;
+}
 function suffixOf(name) {
   if (name == null || isLegacy(name)) return null;
   const m = ALLELE_RE.exec(name.trim());
@@ -147,11 +155,15 @@ export function createEngine({ loadShard, manifest }) {
     return hasOwn(rows, name) ? rows[name] : null;
   }
 
-  // normalize.resolve_name(): strip 'HLA-' -> MAC -> XX -> lg -> row (allele, prefix,
+  // normalize.resolve_name(): strip 'HLA-' -> Cw -> MAC -> XX -> lg -> row (allele, prefix,
   // deleted, G/P group) -> legacy -> nonexistent. A row's rn/rf were computed by
   // resolve_name() on that exact key, so any hit is final. The shorthand conversions
-  // return the row of the name they stand for plus the flag resolve_name() adds.
+  // return the row of the name they stand for plus the flag resolve_name() adds; a
+  // colon-less legacy name (A*0201) is the colon form resolved the same way, so one whose
+  // colon form was itself deleted follows that successor.
   function shorthand(s) {
+    const c = cwToC(s);
+    if (c !== null) return { kind: "deprecated_name", cand: c };
     if (MAC_RE.test(s) && !XX_RE.test(s)) return { kind: "mac_code", cand: null };
     let m = XX_RE.exec(s);
     if (m) return { kind: "xx_code", cand: `${m[1]}*${m[2]}` };
@@ -171,9 +183,9 @@ export function createEngine({ loadShard, manifest }) {
     if (row) return [row.rn ?? null, row.rf ?? [], row];
     if (isLegacy(s)) {
       const cand = legacyToColon(s);
-      const crow = cand ? await lookup(cand) : null;
-      if (crow && crow.s === "v") return [cand, ["deprecated_name"], crow];
-      return [null, ["deprecated_name", "nonexistent_allele"], null];
+      if (cand === null) return [null, ["deprecated_name", "nonexistent_allele"], null];
+      const [rn, rf, crow] = await resolveName(cand);
+      return [rn, sortedUnique(["deprecated_name", ...rf]), crow];
     }
     return [null, ["nonexistent_allele"], null];
   }
@@ -191,10 +203,9 @@ export function createEngine({ loadShard, manifest }) {
     if (row) return { allele_2field: row.n2, g_group: row.ng, flags: row.nf ?? [] };
     if (isLegacy(s)) {
       const cand = legacyToColon(s);
-      const crow = cand ? await lookup(cand) : null;
-      if (crow && crow.s === "v")
-        return { allele_2field: crow.n2, g_group: crow.ng, flags: sortedUnique(["deprecated_name", ...(crow.nf ?? [])]) };
-      return { allele_2field: "UNRESOLVABLE", g_group: "UNRESOLVABLE", flags: ["deprecated_name", "nonexistent_allele"] };
+      if (cand === null) return { allele_2field: "UNRESOLVABLE", g_group: "UNRESOLVABLE", flags: ["deprecated_name", "nonexistent_allele"] };
+      const n = await normalizeOne(cand);
+      return { ...n, flags: sortedUnique(["deprecated_name", ...n.flags]) };
     }
     return { allele_2field: "UNRESOLVABLE", g_group: "UNRESOLVABLE", flags: ["nonexistent_allele"] };
   }
@@ -208,34 +219,52 @@ export function createEngine({ loadShard, manifest }) {
   // ---------------------------------------------------------------- /v1/verify
   // imgt.classify_tokens() + app.verify(): allele-shaped tokens, then MAC/XX-shaped ones,
   // then KIR-shaped ones (surfaced as out_of_scope, never looked up).
+  //
+  // imgt._classify_allele_token(): lg -> Cw*07:02 (the C name) -> own row (allele, prefix,
+  // group, Deleted_alleles.txt) -> fabricated group -> legacy spelling (A*0201: the row of
+  // its colon form, flagged deprecated_name) -> historical name -> hallucinated. A legacy
+  // name's own row is only a historical one (s=d without dl); its current form answers
+  // for it, the way resolve_name() reads it, so a 1990s report is valid, not fabricated.
+  async function classifyAlleleToken(t) {
+    if (t.endsWith("g")) {         // lg notation: classified by the two-field name it abbreviates
+      const row = await lookup(t.slice(0, -1));
+      return { row, status: row && row.s === "v" ? "valid" : "hallucinated", flag: "lg_notation" };
+    }
+    const c = cwToC(t);
+    if (c !== null) {
+      const row = await lookup(c);
+      return { row, status: row ? CLS[row.s] : (GROUP_RE.test(c) ? "fabricated_group" : "hallucinated"), flag: "deprecated_name" };
+    }
+    const own = await lookup(t);
+    if (own && (own.s !== "d" || own.dl || !isLegacy(t))) return { row: own, status: CLS[own.s], flag: null };
+    if (!own && GROUP_RE.test(t)) return { row: null, status: "fabricated_group", flag: null };
+    const cand = isLegacy(t) ? legacyToColon(t) : null;
+    const crow = cand ? await lookup(cand) : null;
+    if (crow) return { row: crow, status: CLS[crow.s], flag: "deprecated_name", successor: own?.succ ?? crow.succ };
+    if (own) return { row: own, status: "deleted", flag: null };   // a historical name with no current form
+    return { row: null, status: "hallucinated", flag: null };
+  }
   async function verify(text) {
     const toks = new Set(text.match(ALLELE_TOKEN_RE) ?? []);
     const macToks = new Set(text.match(MAC_TOKEN_RE) ?? []);
     const kirToks = new Set(text.match(KIR_TOKEN_RE) ?? []);
     const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [], mac_code: [], out_of_scope: [] };
-    const rowsByTok = new Map();   // token -> {row, flag}: the row that answers for it
+    const rowsByTok = new Map();   // token -> {row, flag, successor?}: the row that answers for it
     for (const tok of toks) {
       const t = stripPrefix(tok);
-      let row, status, flag = null;
-      if (t.endsWith("g")) {       // lg notation: classified by the two-field name it abbreviates
-        row = await lookup(t.slice(0, -1));
-        status = row && row.s === "v" ? "valid" : "hallucinated";
-        flag = "lg_notation";
-      } else {
-        row = await lookup(t);
-        status = row ? CLS[row.s] : (GROUP_RE.test(t) ? "fabricated_group" : "hallucinated");
-      }
-      seen[status].push(t);
-      rowsByTok.set(t, { row, flag });
+      const r = await classifyAlleleToken(t);
+      seen[r.status].push(t);
+      rowsByTok.set(t, r);
     }
     for (const tok of macToks) {
       const t = stripPrefix(tok);
-      const m = XX_RE.exec(t);
+      const tc = cwToC(t);         // Cw*07:XX / Cw*07:AB: the C-locus code it stands for
+      const m = XX_RE.exec(tc ?? t);
       if (m) {                     // XX code: the first-field prefix
         const row = await lookup(`${m[1]}*${m[2]}`);
         const status = row && row.s === "v" ? "valid" : "hallucinated";
         seen[status].push(t);
-        rowsByTok.set(t, { row, flag: "xx_code" });
+        rowsByTok.set(t, { row, flag: "xx_code", extraFlag: tc !== null ? "deprecated_name" : null });
       } else {
         seen.mac_code.push(t);
         rowsByTok.set(t, { row: null, flag: null });
@@ -250,12 +279,16 @@ export function createEngine({ loadShard, manifest }) {
     for (const status of Object.keys(seen)) {
       for (const t of seen[status]) {
         const out = { token: t, status, note: STATUS_HELP[status] };
-        const { row, flag } = rowsByTok.get(t);
-        if (status === "deleted" && row?.succ) out.successor = row.succ;
+        const { row, flag, extraFlag, successor } = rowsByTok.get(t);
+        if (status === "deleted") {
+          const succ = successor ?? row?.succ;
+          if (succ) out.successor = succ;
+        }
         if ((status === "valid" || status === "deleted") && row.n2 !== "UNRESOLVABLE") {
           out.current_2field = row.n2;
           out.g_group = row.ng;
-          const flags = flag ? sortedUnique([flag, ...(row.nf ?? [])]) : (row.nf ?? []);
+          const added = [flag, extraFlag].filter((f) => f != null);
+          const flags = added.length ? sortedUnique([...added, ...(row.nf ?? [])]) : (row.nf ?? []);
           if (flags.length) out.flags = flags;
         }
         tokens.push(out);
@@ -284,11 +317,18 @@ export function createEngine({ loadShard, manifest }) {
   }
 
   // --------------------------------------------------------- /v1/allele/{name}
-  // app._reported_form(): the shorthands /v1/normalize accepts, MAC -> XX -> lg -> legacy.
+  // app._reported_form(): the shorthands /v1/normalize accepts, Cw -> MAC -> XX -> lg -> legacy.
+  // The legacy Cw locus label (Cw*07:02, Cw*07:XX) adds deprecated_name to whatever the C name is.
   function reportedForm(bare) {
+    const c = cwToC(bare);
+    if (c !== null) {
+      const inner = reportedForm(c);
+      if (inner && inner.forms.length === 1 && inner.forms[0] === "mac_code") return inner;
+      return { forms: ["deprecated_name", ...(inner ? inner.forms : [])], standsFor: inner ? inner.standsFor : c };
+    }
     const sh = shorthand(bare);
-    if (sh) return { form: sh.kind, standsFor: sh.cand };
-    if (isLegacy(bare)) return { form: "deprecated_name", standsFor: legacyToColon(bare) };
+    if (sh) return { forms: [sh.kind], standsFor: sh.cand };
+    if (isLegacy(bare)) return { forms: ["deprecated_name"], standsFor: legacyToColon(bare) };
     return null;
   }
   // app.allele(): a shorthand answers with the facts of the name it stands for, plus the
@@ -297,7 +337,7 @@ export function createEngine({ loadShard, manifest }) {
     const name = rawName.trim();
     const bare = stripPrefix(name);
     const rf = reportedForm(bare);
-    if (rf && rf.form === "mac_code")
+    if (rf && rf.forms.length === 1 && rf.forms[0] === "mac_code")
       return { status: 200, body: { release: manifest.release, name, status: "mac_code",
         note: STATUS_HELP.mac_code, flags: ["mac_code"], attribution: manifest.attribution } };
     if (rf) {
@@ -307,7 +347,7 @@ export function createEngine({ loadShard, manifest }) {
       if (inner.status !== 200)
         return { status: 404, body: { detail:
           `'${name}' stands for '${rf.standsFor}', which is not assigned in release ${manifest.release}` } };
-      return { status: 200, body: { ...inner.body, name, resolves_to: rf.standsFor, flags: [rf.form] } };
+      return { status: 200, body: { ...inner.body, name, resolves_to: rf.standsFor, flags: rf.forms } };
     }
     return alleleFacts(name, name);
   }

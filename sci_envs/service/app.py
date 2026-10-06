@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from sci_envs.reference.imgt import (ImgtReference, ImgtError, split_allele, strip_prefix, is_legacy_name,
-                                     MAC_RE, XX_RE, LG_RE)
+                                     cw_to_c, MAC_RE, XX_RE, LG_RE)
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name, legacy_to_colon
 from sci_envs.families.matching.rules import FRAMEWORKS, score
 from sci_envs.service import lab
@@ -103,7 +103,9 @@ def verify(body: VerifyIn, _: None = Depends(_auth)):
         for t in toks:
             row = {"token": t, "status": status, "note": STATUS_HELP[status]}
             if status == "deleted":
-                succ = r.renamed_to(t)
+                # A legacy spelling (A*0223, Cw*04:09N) may be known only by its current form.
+                current = cw_to_c(t) or (legacy_to_colon(t) if is_legacy_name(t) else None)
+                succ = r.renamed_to(t) or (r.renamed_to(current) if current else None)
                 if succ:
                     row["successor"] = succ
             if status in ("valid", "deleted"):
@@ -152,20 +154,28 @@ def match(body: MatchIn, _: None = Depends(_auth)):
 
 
 def _reported_form(bare: str):
-    """The reported-typing shorthands /v1/normalize accepts, for /v1/allele: -> (flag, name_it_stands_for).
-    Mirrors normalize.resolve_name(): MAC -> XX -> lg -> legacy. (None, None) for a plain name;
-    ('mac_code', None) for an NMDP multiple allele code, which is recognised but never expanded."""
+    """The reported-typing shorthands /v1/normalize accepts, for /v1/allele: -> (flags, name_it_stands_for).
+    Mirrors normalize.resolve_name(): Cw -> MAC -> XX -> lg -> legacy. ([], None) for a plain name;
+    (['mac_code'], None) for an NMDP multiple allele code, which is recognised but never expanded.
+    The legacy ``Cw`` locus label (Cw*07:02, Cw*07:XX) adds ``deprecated_name`` to whatever the
+    ``C`` name is."""
+    c = cw_to_c(bare)
+    if c is not None:
+        flags, stands_for = _reported_form(c)
+        if flags == ["mac_code"]:
+            return flags, None
+        return ["deprecated_name"] + flags, stands_for or c
     if MAC_RE.match(bare) and not XX_RE.match(bare):
-        return "mac_code", None
+        return ["mac_code"], None
     m = XX_RE.match(bare)
     if m:
-        return "xx_code", f"{m.group(1)}*{m.group(2)}"
+        return ["xx_code"], f"{m.group(1)}*{m.group(2)}"
     m = LG_RE.match(bare)
     if m:
-        return "lg_notation", f"{m.group(1)}*{m.group(2)}:{m.group(3)}"
+        return ["lg_notation"], f"{m.group(1)}*{m.group(2)}:{m.group(3)}"
     if is_legacy_name(bare):
-        return "deprecated_name", legacy_to_colon(bare)
-    return None, None
+        return ["deprecated_name"], legacy_to_colon(bare)
+    return [], None
 
 
 @app.get("/v1/allele/{name:path}")
@@ -176,11 +186,11 @@ def allele(name: str, _: None = Depends(_auth)):
     bare = strip_prefix(name)   # looked up without the optional 'HLA-'; echoed back as given
     # Reported-typing shorthands resolve to the name they stand for, and the answer carries the
     # flag and `resolves_to` so nothing is converted silently (same vocabulary as /v1/normalize).
-    form, stands_for = _reported_form(bare)
-    if form == "mac_code":
+    forms, stands_for = _reported_form(bare)
+    if forms == ["mac_code"]:
         return {"release": r.release, "name": name, "status": "mac_code", "note": STATUS_HELP["mac_code"],
                 "flags": ["mac_code"], "attribution": ATTRIBUTION}
-    if form is not None:
+    if forms:
         if stands_for is None:
             raise HTTPException(404, f"{name!r} is not assigned in release {r.release}")
         try:
@@ -189,7 +199,7 @@ def allele(name: str, _: None = Depends(_auth)):
             raise HTTPException(404, f"{name!r} stands for {stands_for!r}, which is not assigned in release {r.release}")
         out["name"] = name
         out["resolves_to"] = stands_for
-        out["flags"] = [form]
+        out["flags"] = forms
         return out
     return _allele_facts(r, bare, name)
 

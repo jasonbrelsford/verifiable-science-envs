@@ -67,12 +67,16 @@ LEGACY_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{4,})([NLSCAQ]?)$")
 # py-ard emit for the G-group-equivalent 2-field name; without it the token would be
 # dropped silently because ``g`` is a word character.  The leading boundary stops a
 # match from starting inside another word: without it ``KIR3DL1*001`` yielded the
-# fragment ``DL1*001``, which was then counted as a fabricated HLA name.
-ALLELE_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\w:])")
+# fragment ``DL1*001``, which was then counted as a fabricated HLA name.  The optional
+# lowercase ``w`` in the locus is the legacy ``Cw*`` locus label (Cw*0702, Cw*07:02):
+# without it a C-locus name in the old style never tokenised, so a report carrying a
+# fabricated ``Cw*9999`` was reported clean.  Serology (``Cw6``) has no ``*`` and
+# stays out.
+ALLELE_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+w?[0-9]*\*\d{2,}(?::\d{2,}){0,3}[NLSCAQGPg]?(?![\w:])")
 # NMDP multiple allele codes (A*02:AB, DRB1*04:BNDC) and the XX code (A*02:XX): a first
 # field followed by a colon and 2-5 capital letters.  Matched separately so that a report
 # full of MAC codes is never reported "clean" with those tokens silently unchecked.
-MAC_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\w:])")
+MAC_TOKEN_RE = re.compile(r"(?<!\w)(?:HLA-)?[A-Z]+w?[0-9]*\*\d{2,}:[A-Z]{2,5}(?![\w:])")
 # KIR allele names (IPD-KIR: KIR2DL1*0010101, KIR3DL1*001, KIR2DL5A*001, KIR3DP1*003;
 # the ``KIR`` prefix is optional because reports abbreviate to 2DL1*001).  KIR genes are
 # outside IPD-IMGT/HLA, so these are reported as ``out_of_scope`` rather than checked —
@@ -215,6 +219,31 @@ def is_legacy_name(name: str) -> bool:
     pre-2010 nomenclature. No current name is colon-less with 4+ digits."""
     n = name.strip()
     return ":" not in n and bool(LEGACY_RE.match(n))
+
+
+def legacy_to_colon(s: str) -> Optional[str]:
+    """'A*0101' -> 'A*01:01'; 'Cw*0702' -> 'C*07:02'; 'A*020101N' -> 'A*02:01:01N'.
+    None for anything that is not a legacy name, or has an odd digit count (the
+    5-digit interim names such as A*01011 have no colon form)."""
+    m = LEGACY_RE.match(s.strip())
+    if not m:
+        return None
+    loc, digits, suf = m.group(1), m.group(2), m.group(3)
+    loc = "C" if loc == "Cw" else loc
+    if len(digits) % 2:
+        return None
+    return f"{loc}*{':'.join(digits[i:i + 2] for i in range(0, len(digits), 2))}{suf}"
+
+
+def cw_to_c(name: str) -> Optional[str]:
+    """'Cw*07:02' -> 'C*07:02': the legacy ``Cw`` locus label on a colon-style name.
+    Labs still write it (the locus was renamed C in 2010 with the colon change);
+    it is accepted as a deprecated name, never produced. None for any other name,
+    including colon-less ``Cw*0702`` (that is :func:`legacy_to_colon`'s job)."""
+    n = strip_prefix(name)
+    if n.startswith("Cw*") and ":" in n:
+        return "C" + n[2:]
+    return None
 
 
 def locus_of(name: str) -> str:
@@ -693,29 +722,27 @@ class ImgtReference:
         ``out_of_scope`` holds KIR allele names (KIR3DL1*001): a gene family
         outside IPD-IMGT/HLA, surfaced (like ``mac_code``, without affecting
         ``clean``) so the caller sees which tokens were not checked; a mixed
-        HLA+KIR report is no longer dirty for the KIR names alone."""
+        HLA+KIR report is no longer dirty for the KIR names alone.
+
+        Legacy names are classified by the current name they stand for, the way
+        ``resolve_name()`` already reads them: a colon-less pre-2010 name
+        (A*0201, Cw*0702, HLA-DRB1*1501) by its colon form, and the legacy
+        ``Cw`` locus label on a colon-style name (Cw*07:02) by the ``C`` name.
+        So a 1990s-format report is ``valid`` (the caller sees the
+        ``deprecated_name`` flag and ``current_2field``), not fabricated, and a
+        made-up ``A*9999`` or ``Cw*9999`` is still ``hallucinated``.  A name
+        listed in Deleted_alleles.txt under its old spelling (A*0105N) keeps its
+        own deletion record, as in ``resolve_name()``; a colon-less name whose
+        colon form was deleted is ``deleted`` with that successor."""
         seen = {"valid": [], "deleted": [], "group": [], "fabricated_group": [], "hallucinated": [],
                 "mac_code": [], "out_of_scope": []}
         for tok in set(ALLELE_TOKEN_RE.findall(text)):
             t = tok[4:] if tok.startswith("HLA-") else tok
-            if t.endswith("g"):
-                base = t[:-1]
-                seen["valid" if (self.exists(base) or self._valid_prefix(base)) else "hallucinated"].append(t)
-            elif self.exists(t):
-                seen["valid"].append(t)
-            elif self.is_group_name(t):
-                seen["group"].append(t)
-            elif self._valid_prefix(t):
-                seen["valid"].append(t)
-            elif GROUP_RE.match(t):
-                seen["fabricated_group"].append(t)
-            elif self.is_deleted(t) or (self.ids_for_name_ever(t) and not self.exists(t)):
-                seen["deleted"].append(t)
-            else:
-                seen["hallucinated"].append(t)
+            seen[self._classify_allele_token(t)].append(t)
         for tok in set(MAC_TOKEN_RE.findall(text)):
             t = tok[4:] if tok.startswith("HLA-") else tok
-            m = XX_RE.match(t)
+            t_c = cw_to_c(t)          # Cw*07:XX / Cw*07:AB: the C-locus code it stands for
+            m = XX_RE.match(t_c or t)
             if m:
                 seen["valid" if self._valid_prefix(f"{m.group(1)}*{m.group(2)}") else "hallucinated"].append(t)
             else:
@@ -725,6 +752,52 @@ class ImgtReference:
         for k in seen:
             seen[k].sort()
         return seen
+
+    def _classify_allele_token(self, t: str) -> str:
+        """The status of one allele-shaped token (``HLA-`` already stripped).
+        Branch order, mirrored by edge/src/engine.js verify() and
+        edge_export._classify_one(): lg -> exists -> group -> valid prefix ->
+        fabricated group -> Deleted_alleles.txt -> legacy spelling (by its
+        current form) -> historical name -> hallucinated."""
+        if t.endswith("g"):               # lg notation: the two-field name it abbreviates
+            base = t[:-1]
+            return "valid" if (self.exists(base) or self._valid_prefix(base)) else "hallucinated"
+        t_c = cw_to_c(t)
+        if t_c is not None:               # Cw*07:02 -> C*07:02, a deprecated spelling of a current-style name
+            return self._classify_current(t_c) or "hallucinated"
+        if self.exists(t):
+            return "valid"
+        if self.is_group_name(t):
+            return "group"
+        if self._valid_prefix(t):
+            return "valid"
+        if GROUP_RE.match(t):
+            return "fabricated_group"
+        if self.is_deleted(t):            # listed under its old spelling: its own record wins
+            return "deleted"
+        if is_legacy_name(t):             # A*0201 -> A*02:01: the name a legacy string stands for
+            cand = legacy_to_colon(t)
+            status = self._classify_current(cand) if cand else None
+            if status is not None:
+                return status
+        if self.ids_for_name_ever(t) and not self.exists(t):
+            return "deleted"
+        return "hallucinated"
+
+    def _classify_current(self, name: str) -> Optional[str]:
+        """Status of the current-style name a legacy spelling stands for;
+        None when it is nothing in any release (the caller decides what that means)."""
+        if self.exists(name):
+            return "valid"
+        if self.is_group_name(name):
+            return "group"
+        if self._valid_prefix(name):
+            return "valid"
+        if GROUP_RE.match(name):
+            return "fabricated_group"
+        if self.is_deleted(name) or (self.ids_for_name_ever(name) and not self.exists(name)):
+            return "deleted"
+        return None
 
     def _valid_prefix(self, name: str) -> bool:
         """True if `name` is a lower-resolution name with at least one full
