@@ -21,8 +21,9 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from sci_envs.reference.imgt import ImgtReference, ImgtError, split_allele, strip_prefix
-from sci_envs.families.nomenclature.normalize import normalize, resolve_name
+from sci_envs.reference.imgt import (ImgtReference, ImgtError, split_allele, strip_prefix, is_legacy_name,
+                                     MAC_RE, XX_RE, LG_RE)
+from sci_envs.families.nomenclature.normalize import normalize, resolve_name, legacy_to_colon
 from sci_envs.families.matching.rules import FRAMEWORKS, score
 from sci_envs.service import lab
 
@@ -150,12 +151,50 @@ def match(body: MatchIn, _: None = Depends(_auth)):
             "attribution": ATTRIBUTION}
 
 
+def _reported_form(bare: str):
+    """The reported-typing shorthands /v1/normalize accepts, for /v1/allele: -> (flag, name_it_stands_for).
+    Mirrors normalize.resolve_name(): MAC -> XX -> lg -> legacy. (None, None) for a plain name;
+    ('mac_code', None) for an NMDP multiple allele code, which is recognised but never expanded."""
+    if MAC_RE.match(bare) and not XX_RE.match(bare):
+        return "mac_code", None
+    m = XX_RE.match(bare)
+    if m:
+        return "xx_code", f"{m.group(1)}*{m.group(2)}"
+    m = LG_RE.match(bare)
+    if m:
+        return "lg_notation", f"{m.group(1)}*{m.group(2)}:{m.group(3)}"
+    if is_legacy_name(bare):
+        return "deprecated_name", legacy_to_colon(bare)
+    return None, None
+
+
 @app.get("/v1/allele/{name:path}")
 def allele(name: str, _: None = Depends(_auth)):
     r = ref()
     _stats["requests"] += 1
     name = name.strip()
     bare = strip_prefix(name)   # looked up without the optional 'HLA-'; echoed back as given
+    # Reported-typing shorthands resolve to the name they stand for, and the answer carries the
+    # flag and `resolves_to` so nothing is converted silently (same vocabulary as /v1/normalize).
+    form, stands_for = _reported_form(bare)
+    if form == "mac_code":
+        return {"release": r.release, "name": name, "status": "mac_code", "note": STATUS_HELP["mac_code"],
+                "flags": ["mac_code"], "attribution": ATTRIBUTION}
+    if form is not None:
+        if stands_for is None:
+            raise HTTPException(404, f"{name!r} is not assigned in release {r.release}")
+        try:
+            out = _allele_facts(r, stands_for, stands_for)
+        except HTTPException:
+            raise HTTPException(404, f"{name!r} stands for {stands_for!r}, which is not assigned in release {r.release}")
+        out["name"] = name
+        out["resolves_to"] = stands_for
+        out["flags"] = [form]
+        return out
+    return _allele_facts(r, bare, name)
+
+
+def _allele_facts(r: ImgtReference, bare: str, name: str) -> dict:
     if r.is_deleted(bare):
         succ = r.renamed_to(bare)
         return {"release": r.release, "name": name, "status": "deleted", "successor": succ, "attribution": ATTRIBUTION}

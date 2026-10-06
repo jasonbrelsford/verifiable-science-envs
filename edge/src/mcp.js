@@ -163,9 +163,12 @@ const ALLELE_OUT = {
     release: RELEASE,
     name: STR,
     status: {
-      type: "string", enum: ["assigned", "valid_prefix", "group", "deleted"],
-      description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; group: a G or P group name (see group_type); deleted: withdrawn or renamed (see successor).",
+      type: "string", enum: ["assigned", "valid_prefix", "group", "deleted", "mac_code"],
+      description: "assigned: an exact allele in this release; valid_prefix: a lower-resolution prefix of assigned alleles; group: a G or P group name (see group_type); deleted: withdrawn or renamed (see successor); mac_code: an NMDP multiple allele code (A*02:AB), recognised but not expanded or checked.",
     },
+    resolves_to: { type: "string", description: "Present when the name was a reported shorthand (legacy colon-less, XX code, lg notation): the current-style name it stands for, whose facts this result carries." },
+    flags: { type: "array", items: STR, description: "Present for a shorthand: deprecated_name (legacy colon-less name), xx_code, lg_notation, or mac_code. Absent for a plain name." },
+    note: { type: "string", description: "mac_code: what a multiple allele code is and why it is not expanded." },
     successor: { type: ["string", "null"], description: "deleted: the current name, or null if none." },
     g_group: { type: ["string", "null"], description: "assigned: G group, or null." },
     p_group: { type: ["string", "null"], description: "assigned: P group, or null." },
@@ -430,15 +433,20 @@ function toolDefs() {
     {
       name: "allele_info",
       description:
-        "Look up one exact name in the pinned release and return what it is: " +
+        "Look up one name in the pinned release and return what it is: " +
         "assigned (G/P group, first release, confirmed status, WMDA serology, null flag), " +
         "valid_prefix (member count and sample), group (a G or P group name: member count and sample), " +
-        "or deleted (successor). Not found if the name has never existed in any release.",
+        "or deleted (successor). Reported shorthands are accepted as /v1/normalize accepts them — legacy " +
+        "colon-less names (A*0101, Cw*0702), the XX code (A*02:XX), two-field A*02:01g, an optional HLA- " +
+        "prefix — and answer with the facts of the name they stand for plus resolves_to and a flag " +
+        "(deprecated_name, xx_code, lg_notation); an NMDP multiple allele code (A*02:AB) returns mac_code, " +
+        "recognised but not expanded. Not found if the name has never existed in any release.",
       inputSchema: {
         type: "object",
         required: ["name"],
         properties: { name: { type: "string", maxLength: MAX_NAME, description:
-          "Exact HLA allele name, a lower-resolution prefix, or a deleted name. An allele string only, " +
+          "An HLA allele name of any era: exact name, lower-resolution prefix, deleted name, G/P group, legacy " +
+          "colon-less name, XX code or lg notation. An allele string only, " +
           "never a patient name, medical record number or other identifier." } },
         additionalProperties: false,
       },

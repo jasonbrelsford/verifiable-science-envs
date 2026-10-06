@@ -208,7 +208,8 @@ test("glstring, allele and compat classify their unresolvable tokens the same wa
   assert.deepEqual(hits(g), { mac_code: 1, unknown_locus: 2, unknown_allele: 1 });
 
   for (const [name, want] of [["A*02:AB", { mac_code: 1 }], ["A*99:99", { unknown_allele: 1 }], ["a*02:01", { format_variant: 1 }],
-    ["A2", { serology: 1 }], ["KIR2DL1*001", { unknown_locus: 1 }], ["A*02:01", {}], ["A*02:01:01G", {}]]) {
+    ["A2", { serology: 1 }], ["KIR2DL1*001", { unknown_locus: 1 }], ["A*02:01", {}], ["A*02:01:01G", {}],
+    ["A*0101", {}], ["Cw*0702", {}], ["A*02:XX", {}], ["A*02:01g", {}]]) {   // shorthands /v1/allele now resolves (#72)
     const r = await eng.allele(name);
     assert.deepEqual(hits(await summarizeUnmet(eng, manifest, "allele", { name }, r.body)), want, name);
   }
