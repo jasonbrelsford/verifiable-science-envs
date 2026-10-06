@@ -1,0 +1,45 @@
+# Pings the private jasonbrelsford/tower-ops repo when something happens here that one of
+# its jobs acts on, so the jobs run on events instead of polling:
+#   CI finished / a PR opened, changed, labelled or reviewed -> gatekeeper sweep
+#   an issue labelled work-queue                             -> do-the-work
+#   the uptime workflow opened an incident issue             -> phone alert
+# Safe on a public repo: it never checks out or runs PR code, and the payload carries only
+# numbers and fixed words (no titles or branch names), so nothing a stranger writes reaches
+# a shell. Fork PRs get no secrets, so their pings are simply skipped.
+name: notify-tower
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, labeled]
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Dispatch to tower-ops
+        env:
+          GH_TOKEN: ${{ secrets.TOWER_OPS_DISPATCH }}
+          EVENT: ${{ github.event_name }}
+          LABEL: ${{ github.event.label.name }}
+          ISSUE: ${{ github.event.issue.number }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ' ') }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "no TOWER_OPS_DISPATCH secret (fork PR or not configured); skipping"; exit 0; fi
+          case "$EVENT" in
+            workflow_run|pull_request_target|pull_request_review) type=pr-event ;;
+            issues)
+              if [ "$LABEL" = "work-queue" ] || { [ "${{ github.event.action }}" = "opened" ] && [[ " $ISSUE_LABELS " == *" work-queue "* ]]; }; then type=work-queue
+              elif [[ " $ISSUE_LABELS " == *" uptime "* ]] && [ "${{ github.event.action }}" = "opened" ]; then type=alert-uptime
+              else echo "issue event not relevant"; exit 0; fi ;;
+            *) exit 0 ;;
+          esac
+          gh api repos/jasonbrelsford/tower-ops/dispatches -f event_type="$type" \
+            -f "client_payload[repo]=${{ github.repository }}" -f "client_payload[issue]=${ISSUE:-0}"
+          echo "sent $type"
