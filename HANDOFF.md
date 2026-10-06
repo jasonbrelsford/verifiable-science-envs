@@ -172,8 +172,11 @@ human picking this up should expect their footprints and leave them intact:
    `/v1/verify` and `/v1/normalize` strings, the site's pages): dispatch it and read the
    `probe.json` log group of the run it starts, which is how the scheduled tasks see the
    live service from a sandbox that cannot reach it.
-6. **`/api` on the site documents 4 of the `/v1/*` routes** (`verify`, `normalize`,
-   `allele`, `usage`) and still says "three endpoints".
+6. **Endpoint coverage on the site is complete except for one route.** `/api` documents
+   every `/v1/*` route including the Lab Toolkit (`typing/check`, `compat`, `glstring`;
+   site PR #26) and no longer quotes a count; `llms.txt` lists all nine routes (site PR
+   #28). The one route `/api` leaves out is `POST /v1/research-access`, which is
+   documented on `/research` and in `llms.txt` instead — deliberate, not a gap to fill.
 7. **The MAC-code table is an NMDP dependency** and the privacy switch for anonymous
    buckets (`UNMET_ANON_BUCKETS`) is Jason's decision; neither is a queue item.
 8. **Compatibility scoring may become a separate product** (drug manufacturers and
