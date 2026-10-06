@@ -1,0 +1,30 @@
+# Read-only probe of the live API and site, for the scheduled HLA-Verify tasks. Their
+# sandbox cannot reach api.hlaverify.com or hlaverify.com, but it can read job logs, so
+# this runner does the fetching and prints what it saw as one JSON line inside a
+# `::group::probe.json` log group (the site's unmet-report workflow uses the same shape),
+# plus a Markdown table on the step summary. The job fails when a document is missing, a
+# stated release disagrees with /healthz, or the 14-name allele panel / fixed verify and
+# normalize strings answer differently from the contract, so the run's conclusion is the
+# signal. Anonymous calls only — no key, no secret, nothing written: 16 billable calls per
+# run out of the runner IP's 100/day. Dispatch it, then read the log of the run it starts.
+name: probe
+on:
+  schedule:
+    - cron: "40 5 * * *"    # 05:40 UTC daily, well before the 13:00 UTC reports
+  workflow_dispatch: {}
+permissions: { contents: read }
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Probe api.hlaverify.com and hlaverify.com
+        run: python3 .github/workflows/probe.py --out probe.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe
+          path: probe.json
+          retention-days: 30

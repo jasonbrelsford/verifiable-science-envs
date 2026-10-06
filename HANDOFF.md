@@ -167,7 +167,11 @@ human picking this up should expect their footprints and leave them intact:
    Analytics Engine; Stripe meters nothing from them. Invoices follow the subscription,
    not the counts.
 5. **No uptime commitment.** `uptime.yml` pings the API from GitHub Actions; that is a
-   check, not an availability measurement, so nothing promises an SLA.
+   check, not an availability measurement, so nothing promises an SLA. `probe.yml` is the
+   deeper read-only check (documents' release fields, a 14-name allele panel, fixed
+   `/v1/verify` and `/v1/normalize` strings, the site's pages): dispatch it and read the
+   `probe.json` log group of the run it starts, which is how the scheduled tasks see the
+   live service from a sandbox that cannot reach it.
 6. **`/api` on the site documents 4 of the `/v1/*` routes** (`verify`, `normalize`,
    `allele`, `usage`) and still says "three endpoints".
 7. **The MAC-code table is an NMDP dependency** and the privacy switch for anonymous
