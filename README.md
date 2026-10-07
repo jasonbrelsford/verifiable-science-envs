@@ -109,7 +109,7 @@ Local models run free via Ollama; Anthropic/OpenAI/Gemini clients are included (
 sci_envs/
   reference/imgt.py         # pinned IPD-IMGT/HLA loader: fetch → md5-verify → query
   families/nomenclature/    # family A: generators, grader, normalizer
-  families/phasing/         # family B: synthetic Mendelian truth generator (layer 1; grading not yet built)
+  families/phasing/         # family B: synthetic Mendelian truth generator + first graded subtypes and grader
   families/matching/        # family C: rules engine (R1–R6, documented for lab audit)
   harness/                  # runners, model clients, report
   adapters/                 # verifiers (Prime Intellect) + Inspect AI exports

@@ -49,8 +49,8 @@ organizations and is NOT assumed anywhere in this family. Three layers, in order
    drawn from the pinned release at full resolution, whole-haplotype transmission (no
    recombination in v0), two- or three-generation families, unphased genotype kept next
    to the phased truth. The §6 question-1 values are flags with the proposal as defaults
-   (`--founders 40 --loci A,B,DRB1`, one population). Grading, subtypes and the bench
-   split are not built yet.*
+   (`--founders 40 --loci A,B,DRB1`, one population). The first graded slice on top of
+   it — three subtypes, the §4 grader and the dev/test split — landed 2026-10-07; see §7.*
 2. **Realism layer — open data only.** Founder pools and frequency weights may be
    informed by openly licensed resources (1000 Genomes-class HLA call sets; openly
    published frequency tables where the article's data terms permit reuse). These
@@ -66,3 +66,96 @@ organizations and is NOT assumed anywhere in this family. Three layers, in order
 2. Whether GRIMM runs in CI (dependency weight) or only in the release-validation workflow.
 3. Whether `family_phase` belongs in B or starts family C (matching) — it shares machinery with donor–recipient logic.
 4. External validated-haplotype lists (Zenodo-published, DOI-pinned) may back a `validated_haplotype` slice once their licence is confirmed.
+
+## 7. Layer 2 decisions (2026-10-07)
+
+*The design pass the §6 questions asked for, plus the smallest graded slice it unlocks.
+Implemented in `sci_envs/families/phasing/tasks.py` (subtypes, suite) and
+`sci_envs/families/phasing/grade.py` (grader); tests in `tests/test_family_b_tasks.py`.*
+
+**Q1 — pool size and locus set: settled by PR #86's defaults.** 40 founder haplotypes,
+loci A–B–DRB1, one synthetic population, 12 alleles per locus. They are flags on the
+layer-1 generator, not constants, so a second population or a C/DQB1 extension is a flag
+change plus a new `SUITE_REV`. The graded suite draws 60 two-generation families (120
+children) from that pool under the suite seed.
+
+**Q2 — GRIMM stays out of CI.** It is release-validation only. The three subtypes below
+need no LD model and no frequency table: their truth is Mendelian and their oracle is an
+exact enumeration over the parents' genotypes, so there is nothing for GRIMM to cross-check
+yet. When the frequency-dependent subtypes arrive, GRIMM runs in the release-validation
+workflow against the generating pool, never as a `pytest` dependency.
+
+**Q3 — `family_phase` stays in family B for v0.** The layer-1 generator already emits the
+parents' genotypes next to every child, so the subtype costs nothing here. Moving it to
+family C (matching) is a later refactor if donor–recipient logic needs the same machinery.
+
+**Q4 — validated-haplotype lists stay open.** It is a licence question; nothing in this
+layer depends on it.
+
+### 7.1 The subtypes built (no frequencies needed)
+
+| Subtype | Tier | Input | Truth | Answer |
+|---|---|---|---|---|
+| `phase_trivial` | T1 | one individual, **two** loci, exactly one heterozygous | phased pair from the generator, projected onto the two loci | the pair |
+| `consistency_check` | T1 | a child plus both parents' *unphased* genotypes, one locus made impossible | — | `UNRESOLVABLE` + `inconsistent_genotype` |
+| `family_phase` | T4 | a child heterozygous at ≥ 2 loci plus both parents' *unphased* genotypes | phased pair from the generator | the pair |
+
+The two family subtypes share one instruction text, so the agent is never told which it is
+facing: it has to find the inconsistency. `consistency_check` is planted two ways, kept as
+slices — `foreign_allele` (one allele replaced by a real pool allele at that locus that
+neither parent carries) and `impossible_combination` (both alleles at one locus taken from
+one heterozygous parent while the other parent carries neither). The planted name always
+exists in the pinned release: the inconsistency is Mendelian, not nomenclature, so a
+hallucination check cannot shortcut the task. Every input name is a current release name;
+every genotype is sorted per locus so no position carries phase.
+
+**The Mendel oracle.** `mendelian_phasings(child, father, mother, loci)` enumerates every
+order-normalised haplotype pair Mendel allows from unphased parents: at each locus one
+allele from the father's pair and one from the mother's. With unphased parents,
+whole-haplotype transmission adds no further constraint, so per-locus assignment is the
+whole rule. An empty set is `consistency_check`; exactly one member is `family_phase`;
+the generator asserts that member equals the phased truth, so a disagreement between the
+oracle and construction fails generation rather than shipping a wrong key. Task ids are
+`hla_phasing.<SUITE_REV>.T<tier>.<subtype>.<seed>`; the dev/test split is keyed on the
+task id as families A and C do it. The same `(tag, base_seed)` writes byte-identical
+task files; the test suite checks this.
+
+### 7.2 Grading as built (§4, determinate subtypes only)
+
+Response envelope as family A (`answer`, `confidence`, `flags`, `reasoning`; JSON found
+inside prose is accepted). `answer` is `{"haplotypes": [h1, h2]}` — each haplotype a list
+in the task's `loci` order or an object keyed by locus (`HLA-` prefix and key case
+forgiven) — or the sentinel `UNRESOLVABLE` (case-insensitive, like family A's sentinels).
+
+- **Correct** = the order-normalised pair equals the truth pair exactly; nothing fuzzy.
+  For `consistency_check`, correct = the sentinel.
+- **`phase_flip`**: the pair reproduces the genotype but pairs the alleles wrongly.
+- **`impossible_pair`**: the pair does not reproduce the genotype (an allele the
+  individual does not carry) — the fabrication analogue. A fabricated name in the answer
+  is additionally `hallucinated_answer`, which outranks it.
+- **`refused`**: `UNRESOLVABLE` where a phase existed. A blanket `UNRESOLVABLE` therefore
+  scores exactly the `consistency_check` third of the suite and is `refused` on every
+  other task — the same penalty family A applies to refusal spam.
+- A pair returned for an inconsistent genotype is wrong with `missed_ambiguity`; it is not
+  a `phase_flip` (there is no right pairing to flip).
+- Wrong locus count or haplotype count, a non-pair non-sentinel answer, or an unparseable
+  envelope: `malformed_response`.
+- Calibration, flag vocabulary (`phase_ambiguous`, `rare_haplotype`,
+  `inconsistent_genotype`, `low_resolution_input`; unknown strings ignored),
+  under-confidence tolerated, and the hallucination check over answer + reasoning are
+  family A's rules verbatim. `expected_confidence` is `high` for all three subtypes: every
+  answer is forced.
+- Primary-mode precedence: `malformed_response` > `hallucinated_answer` >
+  `impossible_pair` > `phase_flip` > `wrong_but_overconfident` > `wrong_calibrated` >
+  `refused` > `correct_but_overconfident` > `correct_with_hallucinated_reasoning` >
+  `missed_ambiguity` > `false_positive_flag` > `clean_correct`.
+- **Oracle gate** (as family A §5): the phased truth read straight from the generator
+  must grade `correct`, `calibrated`, `failure_modes == ["clean_correct"]` on every task.
+
+### 7.3 Not in this layer
+
+`phase_from_ld`, `impute_missing_locus`, `phase_ambiguous`, `rare_haplotype`,
+`resolution_lift`, `null_in_haplotype` (all need the realism layer or a frequency model),
+the probabilistic grading rules of §4 (ranked lists, tolerance bands, Brier, the
+probability-sum check), `common_default`, the harness/CLI wiring (`hla-bench generate
+--family b`), GRIMM validation, and any registry or partner data.
