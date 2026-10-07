@@ -80,8 +80,13 @@ PANEL = [
     ("KIR2DL1*001", 404, None),         # not an HLA name
 ]
 
-VERIFY_TEXT = "A*01:01:01:01 B*44:02:01:01 DQB1*05:03:26:99"
-VERIFY_EXPECTED = {"A*01:01:01:01": "valid", "B*44:02:01:01": "valid", "DQB1*05:03:26:99": "hallucinated"}
+# One POST. The last three tokens are the legacy-spelling class from the 2026-10-06 evaluation
+# (PR #92, golden.test.mjs #88/#89): a 4-digit name and a Cw* name resolve as valid with the
+# deprecated_name flag, and a fabricated Cw* name is hallucinated. Tokens are reported with any
+# HLA- prefix stripped, so the expectation keys use the bare spelling.
+VERIFY_TEXT = "A*01:01:01:01 B*44:02:01:01 DQB1*05:03:26:99 A*0201 Cw*0702 Cw*9999"
+VERIFY_EXPECTED = {"A*01:01:01:01": "valid", "B*44:02:01:01": "valid", "DQB1*05:03:26:99": "hallucinated",
+                   "A*0201": "valid", "Cw*0702": "valid", "Cw*9999": "hallucinated"}
 
 NORMALIZE_TYPINGS = ["A*02:XX", "A*02:AB", "A*0101"]
 NORMALIZE_EXPECTED = {
