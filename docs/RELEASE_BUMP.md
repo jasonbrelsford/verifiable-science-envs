@@ -175,7 +175,20 @@ trailers:
 
 ```bash
 git checkout -b work/<issue>-release-v<new>
-git add -A                                   # fixtures.json is ~3.5 MB and is meant to be committed
+git status --short                           # every line must be a file from step 1 or 2,
+                                             # plus edge/test/fixtures.json; anything else
+                                             # (a stray .env, .dev.vars, scratch output) stays out
+git add sci_envs/service/edge_export.py sci_envs/service/app.py sci_envs/mcp_server.py \
+        sci_envs/adapters/common.py sci_envs/adapters/inspect_task.py sci_envs/adapters/verifiers_env.py \
+        sci_envs/harness/run.py sci_envs/families/nomenclature/generate.py \
+        edge/test/gen_fixtures.py edge/test/fixtures.json \
+        .github/workflows/ci.yml .github/workflows/edge-deploy.yml .github/workflows/bench.yml \
+        README.md assets/llms.txt assets/demo.template.html assets/landing.html assets/product.html \
+        skills/hla-verify/SKILL.md docs/TASK_SPEC.md
+git add tests/<only the test files you edited in step 3>
+git diff --cached --stat                     # fixtures.json is ~3.5 MB and is meant to be committed;
+                                             # never stage with `git add -A` or `git add .` in this
+                                             # public repo — stage the paths you changed, by name
 git commit -m "release: bump pinned IPD-IMGT/HLA release to v<new>"
 git push origin work/<issue>-release-v<new>
 ```
