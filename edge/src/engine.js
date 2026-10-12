@@ -139,6 +139,30 @@ function suffixOf(name) {
   const m = ALLELE_RE.exec(name.trim());
   return m ? m[3] : null;
 }
+// Standard field-count meanings (issue #102): what each resolution level does and does
+// not distinguish. 4-field (full_sequence) is deliberately left out — optional, and no
+// caller of resolutionOf() below asks for it, since only names with fewer than four
+// fields carry the ambiguity this field exists to explain.
+const RESOLUTION_LEVELS = {
+  1: ["allele_group", "the allele group (first field) only; not protein, coding or non-coding differences"],
+  2: ["protein", "protein sequence differences; not synonymous coding or non-coding differences"],
+  3: ["coding_sequence", "synonymous coding differences; not intron/UTR differences"],
+};
+function resolutionOf(fields) {
+  const r = RESOLUTION_LEVELS[fields];
+  return r ? { fields, level: r[0], distinguishes: r[1] } : null;
+}
+// normalize.name_parts() field count, reported-shorthand-aware (legacy spellings, the old
+// Cw label, two-field lg notation) so a caller gets the same number regardless of which
+// era they typed in. null for anything that isn't a plain allele name (XX/MAC codes,
+// G/P groups) — those are not what this field is for.
+function fieldsOf(raw) {
+  const t = stripPrefix(raw).trim();
+  if (LG_RE.test(t)) return 2;
+  const c = cwToC(t) ?? (isLegacy(t) ? legacyToColon(t) : t);
+  const m = c ? ALLELE_RE.exec(c) : null;
+  return m ? m[2].split(":").length : null;
+}
 const sortedUnique = (arr) => Array.from(new Set(arr)).sort();
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
@@ -291,6 +315,10 @@ export function createEngine({ loadShard, manifest }) {
           const flags = added.length ? sortedUnique([...added, ...(row.nf ?? [])]) : (row.nf ?? []);
           if (flags.length) out.flags = flags;
         }
+        if (status === "valid") {
+          const fields = fieldsOf(t);
+          if (fields != null && fields < 4) out.resolution = resolutionOf(fields);
+        }
         tokens.push(out);
       }
     }
@@ -373,6 +401,9 @@ export function createEngine({ loadShard, manifest }) {
     if (row?.s === "v") {
       const out = { ...base, status: "valid_prefix", attribution: manifest.attribution,
         members_count: row.mc ?? 0, members_sample: row.ms ?? [] };
+      const fields = fieldsOf(name);
+      const resolution = fields != null ? resolutionOf(fields) : null;
+      if (resolution) out.resolution = resolution;
       if (row.lg !== undefined) out.ligands = row.lg;
       return { status: 200, body: out };
     }
