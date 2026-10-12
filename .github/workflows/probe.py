@@ -11,12 +11,13 @@ What it checks
   1. Public documents on the API: /healthz, /docs, /openapi.json, /llms.txt, /.well-known/ard.json,
      /mcp/server-card, /pricing. Each one's HTTP status and the IPD-IMGT/HLA release it states,
      if it states one; they must all agree with /healthz. None of these is billable.
-  2. The 14-name allele panel from the 2026-10-05 evaluation, GET /v1/allele/{name}: the HTTP
-     status and `status` field each name must return under the current contract.
+  2. The 16-name allele panel from the 2026-10-05 evaluation (extended 2026-10-09 with a
+     non-classical gene and a prefixed G-group name), GET /v1/allele/{name}: the HTTP status
+     and `status` field each name must return under the current contract.
   3. One POST /v1/verify and one POST /v1/normalize on fixed strings, checked token by token.
   4. The site's public pages: HTTP status, and the release string on /llms.txt.
 
-Budget: 16 billable anonymous calls per run (14 + 1 + 1) out of the 100/day the runner's IP
+Budget: 18 billable anonymous calls per run (16 + 1 + 1) out of the 100/day the runner's IP
 gets; the documents and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
 
@@ -59,10 +60,12 @@ API_DOCUMENTS = [
     ("/pricing", 200, True),
 ]
 
-# The 14-name panel: (name, expected HTTP status, expected `status` field or None for a 404).
+# The 16-name panel: (name, expected HTTP status, expected `status` field or None for a 404).
 # Expectations are the current contract (handlers.js / sci_envs service), verified against
 # the Python oracle on 2026-10-06. A release bump does not change them: every valid name
-# here has been assigned for years and C*04:09N has been deleted since 3.0x.
+# here has been assigned for years and C*04:09N has been deleted since 3.0x. MICA*091 and
+# HLA-B*49:01:01G were added 2026-10-09 so the 46-gene and HLA- prefix claims are checked
+# live every day (both already in edge/test/fixtures.json).
 PANEL = [
     ("A*01:01:01:01", 200, "assigned"),
     ("B*44:02:01:01", 200, "assigned"),
@@ -78,6 +81,8 @@ PANEL = [
     ("a*02:01", 404, None),             # case-sensitive by design
     ("A2", 404, None),                  # serology, not an allele name
     ("KIR2DL1*001", 404, None),         # not an HLA name
+    ("MICA*091", 200, "assigned"),      # non-classical gene, proves the 46-gene claim
+    ("HLA-B*49:01:01G", 200, "group"),  # prefixed G-group name
 ]
 
 # One POST. The last three tokens are the legacy-spelling class from the 2026-10-06 evaluation
