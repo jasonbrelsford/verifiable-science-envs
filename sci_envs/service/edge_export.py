@@ -44,13 +44,19 @@ from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _m
 from sci_envs.families.matching.rules import antigen_of
 from sci_envs.service import lab
 
-SHARD_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{2})")
+SHARD_RE = re.compile(r"^(?:HLA-)?([A-Za-z]+[0-9]*)\*\d{2}")
 
 
 def shard_of(name: str) -> str | None:
-    """Shard path for a name: '<locus>/<first two digits>'. Mirrors edge/src/engine.js shardOf()."""
+    """Shard path for a name: '<locus>'. Mirrors edge/src/engine.js shardOf().
+
+    One shard per locus (not per locus + first-two-digits, as before 2026-10-13) — see the
+    comment on shardOf() in engine.js for why: a batch diverse enough in loci+groups could
+    exceed the Workers Free plan's 50-subrequest cap (issue #111), and loci are capped at
+    46 by the release itself, so this granularity can never approach that limit.
+    """
     m = SHARD_RE.match(name)
-    return f"{m.group(1)}/{m.group(2)}" if m else None
+    return m.group(1) if m else None
 
 
 def _classify_one(r: ImgtReference, t: str) -> str | None:

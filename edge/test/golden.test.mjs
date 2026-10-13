@@ -179,3 +179,43 @@ test("normalize and allele read Cw*07:02 as a deprecated spelling of C*07:02 (#8
   const m = await engine.allele("Cw*07:AB");
   assert.equal(m.body.status, "mac_code");
 });
+
+// Issue #111: a 116-name /v1/normalize batch from hla-pgx-open's build (diverse across 15
+// loci and 62 distinct locus+group combinations under the old per-group sharding) 500'd —
+// the Workers Free plan caps a single request at 50 subrequests, and each previously-uncached
+// shard fetch (env.ASSETS.fetch) was one. shardOf() now groups by locus only (loci are capped
+// at 46 by the release itself), so this regression test reproduces the shape — many names
+// spread across more than 50 distinct locus+group pairs within just a handful of loci — and
+// asserts the engine only ever touches one shard per locus.
+test("normalize: a batch spanning 50+ locus+group pairs across a few loci loads one shard per locus (#111)", async () => {
+  const perLocusGroups = {
+    A: ["A*01", "A*02", "A*03", "A*11", "A*23", "A*24", "A*25", "A*26", "A*29", "A*30", "A*31", "A*32"],
+    B: ["B*07", "B*08", "B*13", "B*14", "B*15", "B*18", "B*27", "B*35", "B*37", "B*38", "B*39", "B*40"],
+    C: ["C*01", "C*02", "C*03", "C*04", "C*05", "C*06", "C*07", "C*08", "C*12", "C*14", "C*15", "C*16"],
+    DRB1: ["DRB1*01", "DRB1*03", "DRB1*04", "DRB1*07", "DRB1*08", "DRB1*09", "DRB1*10", "DRB1*11",
+      "DRB1*12", "DRB1*13", "DRB1*14", "DRB1*15"],
+    DQB1: ["DQB1*02", "DQB1*03", "DQB1*04", "DQB1*05", "DQB1*06"],
+    DPB1: ["DPB1*01", "DPB1*02", "DPB1*03", "DPB1*04", "DPB1*05", "DPB1*06", "DPB1*08", "DPB1*09",
+      "DPB1*10", "DPB1*11"],
+  };
+  const names = Object.values(perLocusGroups).flat();
+  assert.ok(names.length > 50, "fixture must itself exceed the old per-group shard count");
+
+  const loaded = new Set();
+  const countingEngine = createEngine({
+    manifest,
+    loadShard: async (sh) => {
+      loaded.add(sh);
+      try {
+        return JSON.parse(await readFile(path.join(pub, "data", sh + ".json"), "utf8"));
+      } catch (e) {
+        if (e.code === "ENOENT") return null;
+        throw e;
+      }
+    },
+  });
+  const r = await countingEngine.normalizeBatch(names);
+  assert.equal(r.rows.length, names.length);
+  assert.deepEqual([...loaded].sort(), Object.keys(perLocusGroups).sort());
+  assert.ok(loaded.size < 50, `shard loads (${loaded.size}) must stay under the Workers Free subrequest cap`);
+});

@@ -22,7 +22,7 @@ export const GROUP_RE = /^([A-Z]+[0-9]*)\*(\d{2,}(?::\d{2,}){0,2})([GP])$/;
 export const MAC_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):([A-Z]{2,5})$/;
 export const XX_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):XX$/;
 export const LG_RE = /^(?:HLA-)?([A-Z]+[0-9]*)\*(\d{2,}):(\d{2,})g$/;
-const SHARD_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*(\d{2})/;
+const SHARD_RE = /^(?:HLA-)?([A-Za-z]+[0-9]*)\*\d{2}/;
 
 export const STATUS_HELP = {
   valid: "assigned in this release (or a valid lower-resolution prefix)",
@@ -110,9 +110,15 @@ export function countGlTokens(s) {
   return n;
 }
 
+// One shard per locus (not per locus + first-two-digits, as before 2026-10-13): a batch
+// mixing enough loci to blow the Workers Free plan's 50-subrequest cap is a real shape —
+// hla-pgx-open's 116-allele /v1/normalize probe touched 62 distinct locus+group shards
+// across 15 loci and 500'd (issue #111). Loci are capped at 46 by the release itself, so
+// one shard per locus can never approach the limit; the cost is a bigger fetch (and first
+// parse) per newly-touched locus, cached for the isolate's lifetime after that.
 export function shardOf(name) {
   const m = SHARD_RE.exec(name);
-  return m ? `${m[1]}/${m[2]}` : null;
+  return m ? m[1] : null;
 }
 export function isLegacy(name) {
   const n = name.trim();
