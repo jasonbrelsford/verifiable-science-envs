@@ -36,6 +36,8 @@ curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' 
 
 The hosted API is a Cloudflare Worker (`edge/`) that looks names up in tables exported from the pinned release by this repository's Python engine (`python -m sci_envs.service.edge_export`); a golden test (`edge/test/`) proves the Worker's output is byte-identical to the Python service on thousands of generated inputs.
 
+**Pharmacogenomics (hosted only):** `POST /v1/pgx/screen` normalizes a typing first and then joins each two-field allele to the published CPIC and PharmGKB HLA–drug associations (B\*57:01 → abacavir, B\*15:02 and A\*31:01 → carbamazepine, B\*58:01 → allopurinol, …), `POST /v1/pgx/pair` does it for a recipient and a donor and says whose genome carries each actionable allele, and `GET /v1/pgx/table` (JSON or `?format=csv`) is the whole table — free, no key. The table is [hla-pgx-open](https://github.com/jasonbrelsford/hla-pgx-open) (CC BY-SA 4.0), vendored at deploy time by `python -m sci_envs.service.pgx_export` into a bundle beside the release tables, never inside them; every response carries the table's snapshot date and commit next to the IPD-IMGT/HLA release. Guideline lookup only — decision support, not a medical device.
+
 ### Self-host
 
 From a checkout:

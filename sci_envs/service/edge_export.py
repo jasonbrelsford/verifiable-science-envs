@@ -196,6 +196,12 @@ def export(tag: str, out: Path) -> dict:
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     print(f"exported {n_rows} rows in {len(shards)} shards to {out} in {round(time.time() - t0)}s; "
           f"skipped {len(skipped)}: {skipped[:8]}")
+    # The pharmacogenomics table (edge/src/pgx.js) ships beside the release tables, never
+    # inside them: a separate CC BY-SA bundle from hla-pgx-open, vendored at deploy time.
+    # Fails the deploy on a stale or half-built upstream snapshot (pgx_export.py).
+    if os.environ.get("HLA_VERIFY_SKIP_PGX") != "1":
+        from sci_envs.service.pgx_export import export as export_pgx
+        export_pgx(out)
     return manifest
 
 

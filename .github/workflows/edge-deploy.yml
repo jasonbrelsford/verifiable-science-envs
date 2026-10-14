@@ -37,6 +37,9 @@ jobs:
         run: |
           curl -sf https://api.hlaverify.com/healthz
           curl -sf https://api.hlaverify.com/v1/verify -H 'content-type: application/json' -d '{"text":"A*0101 DQB1*05:03:26:99"}' | grep -q '"hallucinated":1'
+          # pharmacogenomics: the vendored bundle shipped and the normalize-then-join path works
+          curl -sf 'https://api.hlaverify.com/v1/pgx/table?format=csv' | head -1 | grep -q '^source,source_record_id,'
+          curl -sf https://api.hlaverify.com/v1/pgx/screen -H 'content-type: application/json' -d '{"alleles":["B*5701"]}' | grep -q '"drugs_actionable":\["abacavir"\]'
       - name: smoke mcp
         env:
           MCP: https://api.hlaverify.com/mcp
