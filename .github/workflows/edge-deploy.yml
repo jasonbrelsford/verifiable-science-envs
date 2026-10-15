@@ -50,11 +50,12 @@ jobs:
           exit 1
       - name: smoke
         # Every check names what it got on failure, as a check-run annotation: the job log
-        # is not readable from the scheduled tasks' sandbox, the annotations are. The body
-        # is matched in bash, not through a pipe: this shell runs with pipefail, and a
-        # `curl | head`/`| grep -q` that stops reading early kills curl with EPIPE (exit 23)
-        # on any body larger than the pipe buffer — the CSV table is — so a correct answer
-        # failed the old form of this step too.
+        # is not readable from the scheduled tasks' sandbox, the annotations are. Each check
+        # reads the whole body and tests the HTTP status explicitly, in bash rather than
+        # through a pipe. The old `curl -sf … | grep -q` form reported only grep's status
+        # (no `shell:` is set here, so this is `bash -e` without pipefail): a 404 or 503 was
+        # indistinguishable from a wrong body, and a `| head -1` would have hidden a curl
+        # failure entirely.
         run: |
           check() {  # check <name> <ERE the 200 body must match> <curl args...>
             local name=$1 re=$2; shift 2
