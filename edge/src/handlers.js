@@ -191,7 +191,7 @@ export const RESEARCH_PREFIX = "research/";
 // API key but does parse as truthy JSON. Adding a prefix to this list is what
 // keeps it out of authorizeKey(); adding one without it is the bug that made
 // a beta/ record presentable as a paid key.
-export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX];
+export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX, "report/"];
 
 // use_case carries the reason the owner will approve or refuse on, so it gets
 // more room than the beta list's; institution is a name, expected_volume a
@@ -253,4 +253,115 @@ export async function doResearchAccess(env, manifest, body, country) {
   }
   return good({ ok: true, status: already ? "already_recorded" : "recorded",
     message: researchMessage(already), release: manifest.release }, 1);
+}
+
+// ------------------------------------------------------------ support reports
+// "This answer looks wrong": the support portal's intake. Anyone can report a
+// verdict, normalization or lookup they believe is incorrect, a docs page that
+// disagrees with the API, or an outdated release, from hlaverify.com/support,
+// from POST /v1/report or from the report_result MCP tool. Free, never billable.
+//
+// One record per report in the KEYS namespace behind REPORT_PREFIX, keyed by a
+// random id the reporter gets back. It holds what they typed plus a timestamp,
+// cf-ipcountry and the release that was live, never the IP or headers. The
+// containment rule is the same as beta/ and research/: the prefix is listed in
+// RESERVED_PREFIXES, so a report record can never authenticate as an API key.
+//
+// WHAT HAPPENS NEXT is outside the Worker. The private site repo's support
+// intake reads new records, opens one private issue per report, and an agent
+// reruns the input against the live API and the reference data. The issue's
+// status label is written back here as `status`, `note` and `fixed_in`, which
+// is all GET /v1/report/{id} shows: never the input, never the email.
+//
+// PATIENT DATA: an HLA typing on its own is not an identifier, but a report is
+// free text. Anything that looks like a patient identifier (record number, date
+// of birth, SSN) is refused before it is stored, and the refusal says why.
+export const REPORT_PREFIX = "report/";
+export const REPORT_KINDS = ["wrong_result", "docs_mismatch", "outdated_release", "question", "other"];
+export const REPORT_STATUSES = ["received", "investigating", "confirmed", "fixed", "expected_behavior",
+  "duplicate", "needs_info"];
+export const MAX_REPORT_ENDPOINT = 60, MAX_REPORT_INPUT = 2000, MAX_REPORT_RECEIVED = 4000,
+  MAX_REPORT_EXPECTED = 1000, MAX_REPORT_DETAILS = 2000, MAX_REPORT_REQUEST_ID = 100;
+export const REPORT_ID_RE = /^r[0-9a-f]{16}$/;
+
+const PATIENT_DATA = [
+  [/\b\d{3}-\d{2}-\d{4}\b/, "something shaped like a Social Security number"],
+  [/\b(?:MRN|DOB|medical record|date of birth|patient name|birth ?date)\b/i, "a patient identifier label (MRN, DOB, patient name)"],
+  [/\b(?:0?[1-9]|1[0-2])[/.-](?:0?[1-9]|[12]\d|3[01])[/.-](?:19|20)\d{2}\b/, "a date that could be a date of birth"],
+];
+
+// Every free-text field is checked, so the refusal names the field.
+function patientData(fields) {
+  for (const [name, value] of Object.entries(fields)) {
+    if (!value) continue;
+    for (const [re, what] of PATIENT_DATA) {
+      if (re.test(value)) return `${name} contains ${what}. Reports must not include patient identifiers: ` +
+        `send only the HLA names or the request, and remove names, record numbers and dates.`;
+    }
+  }
+  return null;
+}
+
+const reportMessage = (id) =>
+  `Thanks — report ${id} is recorded. A person reviews every report; follow it at ` +
+  `https://hlaverify.com/support?id=${id}. If you left an email address we will reply there.`;
+
+function newReportId() {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return "r" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// body: {kind, input, expected, endpoint?, received?, details?, email?, request_id?, source?}
+export async function doReport(env, manifest, body, country) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return bad(422, "body must be a JSON object");
+  const kind = body.kind === undefined ? "wrong_result" : body.kind;
+  if (!REPORT_KINDS.includes(kind)) return bad(422, `kind must be one of ${REPORT_KINDS.join(", ")}`);
+  if (typeof body.input !== "string" || !body.input.trim()) return bad(422, "input must be a non-empty string: the HLA names or request you sent");
+  const input = body.input.trim();
+  if (input.length > MAX_REPORT_INPUT) return bad(422, `input must be at most ${MAX_REPORT_INPUT} characters`);
+  if (typeof body.expected !== "string" || !body.expected.trim()) return bad(422, "expected must be a non-empty string: what you expected instead");
+  const expected = body.expected.trim();
+  if (expected.length > MAX_REPORT_EXPECTED) return bad(422, `expected must be at most ${MAX_REPORT_EXPECTED} characters`);
+
+  const fields = { input, expected };
+  for (const [name, max] of [["endpoint", MAX_REPORT_ENDPOINT], ["received", MAX_REPORT_RECEIVED],
+    ["details", MAX_REPORT_DETAILS], ["request_id", MAX_REPORT_REQUEST_ID], ["source", MAX_SOURCE]]) {
+    const [v, e] = optional(body[name], name, max);
+    if (e) return bad(422, e);
+    fields[name] = v;
+  }
+  let email = null;
+  if (body.email !== undefined && body.email !== null && body.email !== "") {
+    if (typeof body.email !== "string") return bad(422, "email must be a string");
+    email = body.email.trim();
+    if (email.length > MAX_EMAIL) return bad(422, `email must be at most ${MAX_EMAIL} characters`);
+    if (!EMAIL_RE.test(email)) return bad(422, "email must look like an address, e.g. name@lab.example");
+  }
+  const phi = patientData({ input, expected, received: fields.received, details: fields.details });
+  if (phi) return bad(422, phi);
+
+  if (!env || !env.KEYS) return bad(503, "reports are not available on this deployment — email hello@hlaverify.com");
+  const id = newReportId();
+  const ts = new Date().toISOString();
+  await env.KEYS.put(REPORT_PREFIX + id, JSON.stringify({
+    id, kind, ...fields, email,
+    release: manifest.release, ts, updated: ts, country: country || null,
+    status: "received", note: null, fixed_in: null,
+  }));
+  return good({ ok: true, id, status: "received", status_url: `https://hlaverify.com/support?id=${id}`,
+    message: reportMessage(id), release: manifest.release }, 1);
+}
+
+// GET /v1/report/{id}: the public half of a report. Only what the reporter
+// needs to follow it; the input and the email address never leave the record.
+export async function doReportStatus(env, id) {
+  if (!REPORT_ID_RE.test(id || "")) return bad(404, "no report with that id");
+  if (!env || !env.KEYS) return bad(503, "reports are not available on this deployment");
+  let rec = null;
+  try { rec = JSON.parse((await env.KEYS.get(REPORT_PREFIX + id)) || "null"); } catch (_) { rec = null; }
+  if (!rec) return bad(404, "no report with that id");
+  const status = REPORT_STATUSES.includes(rec.status) ? rec.status : "received";
+  return good({ id, kind: rec.kind, status, created: rec.ts, updated: rec.updated || rec.ts,
+    note: rec.note || null, fixed_in: rec.fixed_in || null, release_at_report: rec.release || null });
 }

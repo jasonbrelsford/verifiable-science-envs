@@ -13,7 +13,7 @@ import manifest from "../public/manifest.json" with { type: "json" };
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
-  doBetaSignup, doResearchAccess, RESERVED_PREFIXES } from "./handlers.js";
+  doBetaSignup, doResearchAccess, doReport, doReportStatus, RESERVED_PREFIXES } from "./handlers.js";
 import { handleMcp } from "./mcp.js";
 import { handleDiscovery } from "./discovery.js";
 import { handleStripeWebhook, resolveCheckoutSuccess } from "./stripe.js";
@@ -480,6 +480,25 @@ export default {
         const r = await doResearchAccess(env, manifest, body, req.headers.get("cf-ipcountry"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "research-access", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, hdrs);
+      }
+      // Support reports ("this answer looks wrong"). Same rules again: the
+      // anonymous limiter covers it, it is never billable, and the record is not
+      // a key (handlers.js RESERVED_PREFIXES). GET /v1/report/{id} shows only the
+      // public status, never the input or the email.
+      if (path === "/v1/report") {
+        if (req.method !== "POST") return err(405, "POST {\"input\": \"...\", \"expected\": \"...\", \"kind\": \"wrong_result\"}");
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
+        const r = await doReport(env, manifest, body, req.headers.get("cf-ipcountry"));
+        if (!r.ok) return err(r.status, r.detail);
+        meter(env, ctx, who, "report", 200, r.units, Date.now() - t0);
+        return json(r.body, 200, hdrs);
+      }
+      if (path.startsWith("/v1/report/")) {
+        if (req.method !== "GET") return err(405, "GET /v1/report/{id}");
+        const r = await doReportStatus(env, path.slice("/v1/report/".length));
+        meter(env, ctx, who, "report-status", r.ok ? 200 : r.status, 0, Date.now() - t0);
+        if (!r.ok) return err(r.status, r.detail);
         return json(r.body, 200, hdrs);
       }
       return err(404, "Not Found");
