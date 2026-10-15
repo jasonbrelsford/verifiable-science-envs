@@ -15,9 +15,9 @@ from sci_envs.reference.imgt import ImgtReference, split_allele
 from sci_envs.families.phasing import (
     DEFAULT_FOUNDERS, DEFAULT_LOCI, DEFAULT_POPULATION, PhasingError,
     draw_founder_pool, simulate_family, unphase, check_mendelian, normalize_loci,
-    generate_dataset, dumps,
+    generate_dataset, dumps, mendelian_phasings, phased_pairs, pedigree_phasings,
 )
-from sci_envs.families.phasing.mendelian import main
+from sci_envs.families.phasing.mendelian import main, GENERATOR_REV
 
 REF = ImgtReference.load("v3.65.0-alpha")
 DATA = generate_dataset(REF)
@@ -150,3 +150,128 @@ def test_output_is_plain_json_and_names_the_release():
     assert back["family"] == "hla_phasing" and back["layer"] == "synthetic_mendelian_truth"
     assert back["reference"]["tag"] == "v3.65.0-alpha"
     assert back["parameters"]["recombination"].startswith("none")
+    assert back["parameters"]["null_per_locus"] == 0 and back["parameters"]["sibling_pairs_per_locus"] == 0
+    assert back["generator_rev"] == GENERATOR_REV == "B1-r2"
+
+
+# ------------------------------------------------------------- layer 3 (§8.1) pool parameters
+def _mendel_holds(fam: dict) -> bool:
+    members = {m["id"]: m for m in fam["members"]}
+    for m in fam["members"]:
+        if m["father"] is None:
+            continue
+        paternal, maternal = m["truth"]["haplotypes"]
+        if paternal not in members[m["father"]]["truth"]["haplotypes"]:
+            return False
+        if maternal not in members[m["mother"]]["truth"]["haplotypes"]:
+            return False
+    return True
+
+
+def test_null_per_locus_relabels_exactly_k_slots_with_null_alleles():
+    d = generate_dataset(REF, null_per_locus=2)
+    base = DATA["pool"]
+    for locus in d["pool"]["loci"]:
+        alleles = d["pool"]["alleles_by_locus"][locus]
+        nulls = [a for a in alleles if split_allele(a)[2] == "N"]
+        assert len(nulls) == 2 and all(REF.exists(a) and a.startswith(locus + "*") for a in nulls)
+        assert len(alleles) == len(base["alleles_by_locus"][locus]) == 12
+        assert len(set(alleles) & set(base["alleles_by_locus"][locus])) == 10   # the other ten slots are the default pool's
+    # the relabel is a bijection on names: haplotype structure and frequencies are the default pool's
+    assert [h["frequency"] for h in d["pool"]["haplotypes"]] == [h["frequency"] for h in base["haplotypes"]]
+    assert len({tuple(h["alleles"]) for h in d["pool"]["haplotypes"]}) == 40
+    assert all(_mendel_holds(fam) for fam in d["families"])
+    # and the default pool's bytes do not change: zero is the layer-1 pool exactly
+    assert dumps(generate_dataset(REF, null_per_locus=0, sibling_pairs_per_locus=0)) == dumps(DATA)
+
+
+def test_sibling_pairs_per_locus_relabels_pairs_sharing_a_two_field_prefix():
+    from sci_envs.reference.imgt import truncate
+    d = generate_dataset(REF, sibling_pairs_per_locus=3)
+
+    def sibling_pairs(alleles):
+        by_prefix = {}
+        for a in alleles:
+            by_prefix.setdefault(truncate(a, 2), []).append(a)
+        return [v for v in by_prefix.values() if len(v) >= 2]
+
+    for locus in d["pool"]["loci"]:
+        alleles = d["pool"]["alleles_by_locus"][locus]
+        base = DATA["pool"]["alleles_by_locus"][locus]
+        assert len(alleles) == 12 and all(REF.exists(a) and split_allele(a)[2] == "" for a in alleles)
+        new = [v for v in sibling_pairs(alleles) if not set(v) & set(base)]
+        # exactly three pairs were planted, each two full-resolution names under one two-field
+        # prefix the default pool did not use (a prefix the default pool shares by chance stays)
+        assert len(new) == 3 and all(len(v) == 2 for v in new)
+        assert len(sibling_pairs(alleles)) == len(sibling_pairs(base)) + 3
+        assert all(len(split_allele(a)[1]) >= 3 for v in new for a in v)
+        assert len(set(alleles) & set(base)) == 6
+    # independent of the null parameter: both together leave 12 slots, 2 null + 6 siblings
+    both = generate_dataset(REF, null_per_locus=2, sibling_pairs_per_locus=3)
+    for locus in both["pool"]["loci"]:
+        assert sum(split_allele(a)[2] == "N" for a in both["pool"]["alleles_by_locus"][locus]) == 2
+    assert dumps(generate_dataset(REF, sibling_pairs_per_locus=3)) == dumps(d)       # seeded, reproducible
+
+
+@pytest.mark.parametrize("kwargs", [
+    dict(null_per_locus=-1), dict(sibling_pairs_per_locus=-1),
+    dict(null_per_locus=4, sibling_pairs_per_locus=5),            # 4 + 10 > 12 slots
+    dict(null_per_locus=1, alleles_per_locus=2, sibling_pairs_per_locus=1),
+])
+def test_pool_parameters_that_do_not_fit_are_refused(kwargs):
+    with pytest.raises(PhasingError):
+        draw_founder_pool(REF, **kwargs)
+
+
+def test_cli_exposes_the_pool_parameters():
+    import io, contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        assert main(["--tag", "v3.65.0-alpha", "--null-per-locus", "1", "--sibling-pairs-per-locus", "1",
+                     "--families", "2"]) == 0
+    out = json.loads(buf.getvalue())
+    assert out["parameters"]["null_per_locus"] == 1 and out["parameters"]["sibling_pairs_per_locus"] == 1
+    for locus, alleles in out["pool"]["alleles_by_locus"].items():
+        assert sum(a.endswith("N") for a in alleles) == 1
+
+
+# ---------------------------------------------------------------- layer 3 (§8.2) oracles
+LOCI = ["A", "B"]
+F1, F2 = ("A*01:01", "B*07:02"), ("A*02:01", "B*08:01")
+M1, M2 = ("A*03:01", "B*35:01"), ("A*11:01", "B*44:02")
+
+
+def test_phased_pairs_enumerates_transmission_and_filters_on_typed_loci():
+    allp = phased_pairs([F1, F2], [M1, M2])
+    assert len(allp) == 4 and all(p == tuple(sorted(p)) for p in allp)
+    child = {"A": ["A*01:01", "A*03:01"], "B": ["B*07:02", "B*35:01"]}
+    assert phased_pairs([F1, F2], [M1, M2], child, LOCI) == {(F1, M1)}
+    # the imputation oracle: one locus untyped, exactly one pair matches the typed locus
+    assert phased_pairs([F1, F2], [M1, M2], {"A": None, "B": ["B*08:01", "B*44:02"]}, LOCI) == {(F2, M2)}
+    # an untyped locus where both parents are homozygous adds nothing (the trivial case §8.2 excludes)
+    assert phased_pairs([F1, F1], [M1, M1], {"A": None, "B": ["B*07:02", "B*35:01"]}, LOCI) == {(F1, M1)}
+    # typed loci that match nothing: empty
+    assert phased_pairs([F1, F2], [M1, M2], {"A": ["A*24:02", "A*03:01"], "B": None}, LOCI) == set()
+
+
+def test_pedigree_phasings_resolves_what_unphased_parents_cannot():
+    """Both parents carry both alleles at both loci, so the parents alone leave two
+    pairs; grandparents who each carry one haplotype whole fix each parent's phase and
+    leave one."""
+    father = {"A": ["A*01:01", "A*02:01"], "B": ["B*07:02", "B*08:01"]}
+    mother = dict(father)
+    child = dict(father)
+    assert len(mendelian_phasings(child, father, mother, LOCI)) == 2
+    gp = {
+        "paternal_grandfather": {"A": ["A*01:01", "A*01:01"], "B": ["B*07:02", "B*07:02"]},   # gives (01:01, 07:02)
+        "paternal_grandmother": {"A": ["A*02:01", "A*02:01"], "B": ["B*08:01", "B*08:01"]},   # gives (02:01, 08:01)
+        "maternal_grandfather": {"A": ["A*01:01", "A*01:01"], "B": ["B*07:02", "B*07:02"]},
+        "maternal_grandmother": {"A": ["A*02:01", "A*02:01"], "B": ["B*08:01", "B*08:01"]},
+    }
+    assert pedigree_phasings(child, father, mother, gp, LOCI) == {(("A*01:01", "B*07:02"), ("A*02:01", "B*08:01"))}
+    # grandparents who leave the parents' phase open leave the child's open too
+    open_gp = {k: father for k in gp}
+    assert len(pedigree_phasings(child, father, mother, open_gp, LOCI)) == 2
+    # a parent inconsistent with its own parents: nothing is reachable
+    bad_gp = dict(gp, paternal_grandfather={"A": ["A*24:02", "A*24:02"], "B": ["B*07:02", "B*07:02"]})
+    assert pedigree_phasings(child, father, mother, bad_gp, LOCI) == set()

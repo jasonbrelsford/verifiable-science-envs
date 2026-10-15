@@ -1,0 +1,66 @@
+{
+  "family": "hla_phasing",
+  "input": {
+    "genotype": {
+      "A": [
+        "A*29:01:01:07",
+        "A*29:02:14"
+      ],
+      "B": [
+        "B*40:01:67",
+        "B*55:01:01:26"
+      ],
+      "DRB1": [
+        "DRB1*08:18",
+        "DRB1*14:45"
+      ]
+    },
+    "loci": [
+      "A",
+      "B",
+      "DRB1"
+    ],
+    "population": "synthetic-pop-1",
+    "relatives": {
+      "father": {
+        "A": [
+          "A*29:01:01:07",
+          "A*29:02:14"
+        ],
+        "B": [
+          "B*40:01:67",
+          "B*40:01:67"
+        ],
+        "DRB1": [
+          "DRB1*08:18",
+          "DRB1*08:18"
+        ]
+      },
+      "mother": {
+        "A": [
+          "A*29:01:01:07",
+          "A*29:01:01:07"
+        ],
+        "B": [
+          "B*40:01:67",
+          "B*55:01:01:26"
+        ],
+        "DRB1": [
+          "DRB1*08:18",
+          "DRB1*14:45"
+        ]
+      }
+    }
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.66.0. You are given one individual's unphased HLA genotype from a synthetic population: two alleles per locus at the listed loci, in no particular order within a locus. Return the two haplotypes (one allele per locus, in the order of \"loci\") that together reproduce the genotype. The genotypes of the individual's relatives are given under \"relatives\": always the father and mother, and sometimes all four grandparents (paternal_grandfather, paternal_grandmother, maternal_grandfather, maternal_grandmother). A relative given as an unphased genotype has two alleles per locus in no particular order; a relative given as {\"haplotypes\": [h1, h2]} is already phased, established by a prior family study. Inheritance is Mendelian with whole-haplotype transmission (no recombination within the HLA block): one haplotype came whole from the father and the other whole from the mother. Use the relatives to decide which alleles travel together. If one of the individual's loci is null, it was not typed: fill it in from the relatives. If the individual's alleles are given at two fields while the relatives' are at full resolution, return the haplotypes at the relatives' resolution and raise low_resolution_input. If the relatives leave exactly one possible pair, return it as \"haplotypes\"; if they leave two, return both under \"ranked\" and raise phase_ambiguous. If a haplotype you return carries a null (N-suffixed) allele, raise null_allele. If the individual's genotype could not have arisen from these relatives, answer \"UNRESOLVABLE\" with the inconsistent_genotype flag. Respond with ONLY a JSON object: {\"answer\": <see below>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. \"answer\" is {\"haplotypes\": [[<one allele per locus, in the order given by \"loci\">], [<the other haplotype>]]} when exactly one pair is possible; {\"ranked\": [{\"haplotypes\": [...], \"probability\": <optional, 0 to 1>}, ...]} with two or three entries when more than one pair remains possible (probabilities, if given, must sum to at most 1); or \"UNRESOLVABLE\". The order of the two haplotypes within a pair does not matter. Recognized flags: phase_ambiguous, rare_haplotype, inconsistent_genotype, low_resolution_input, null_allele. Answer \"UNRESOLVABLE\" only when no phase can be assigned; if the genotype is impossible under Mendelian inheritance from the stated relatives, answer \"UNRESOLVABLE\" and raise inconsistent_genotype. Use the allele names exactly as given (current IPD-IMGT/HLA colon-delimited nomenclature).",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "a12bfb4eba8525ce89884c5bb944c178",
+    "release": "3.66.0",
+    "tag": "v3.66.0-alpha"
+  },
+  "slices": [],
+  "subtype": "family_phase",
+  "task_id": "hla_phasing.B3-r1.T4.family_phase.0001",
+  "tier": 4
+}

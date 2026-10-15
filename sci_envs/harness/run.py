@@ -15,9 +15,22 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from sci_envs.reference.imgt import ImgtReference
-from sci_envs.families.nomenclature.grade import grade, summarize, Score
+from sci_envs.families.nomenclature.grade import grade as grade_nomenclature, summarize, Score
 from sci_envs.families.nomenclature.task import dumps
 from . import models as M
+
+
+def grader_for(task_full: dict):
+    """The grader a task's ``family`` field names: family B (``hla_phasing``) has its own;
+    families A and C share the nomenclature grader (C's answers are objects it compares)."""
+    if task_full.get("family") == "hla_phasing":
+        from sci_envs.families.phasing.grade import grade as grade_phasing
+        return grade_phasing
+    return grade_nomenclature
+
+
+def grade(task_full: dict, response, ref: ImgtReference) -> Score:
+    return grader_for(task_full)(task_full, response, ref)
 
 
 def load_suite(suite_dir: str | Path, split: str = "dev") -> tuple[dict, dict[str, dict]]:
@@ -128,12 +141,13 @@ def run_model(model, full: dict[str, dict], ref: ImgtReference, suite_dir: Path,
 
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
-    p = argparse.ArgumentParser(prog="hla-bench", description="Run models against HLA-Bench-A and grade them.")
+    p = argparse.ArgumentParser(prog="hla-bench", description="Run models against HLA-Bench-A/B/C and grade them.")
     sub = p.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("generate", help="(re)generate a suite from the pinned reference")
     g.add_argument("--tag", default="v3.66.0-alpha"); g.add_argument("--out", default=None)
     g.add_argument("--seed", type=int, default=None, help="base seed; a different seed gives a disjoint suite (e.g. a training split)")
-    g.add_argument("--family", default="a", choices=["a", "c"], help="a = nomenclature (HLA-Bench-A), c = donor-recipient matching (HLA-Bench-C)")
+    g.add_argument("--family", default="a", choices=["a", "b", "c"],
+                   help="a = nomenclature (HLA-Bench-A), b = haplotype phasing (HLA-Bench-B), c = donor-recipient matching (HLA-Bench-C)")
     r = sub.add_parser("run", help="run one or more models")
     r.add_argument("models", nargs="+", help="baseline-naive-string | baseline-confident-guesser | baseline-cautious-abstainer | oracle | anthropic/<m> | openai/<m> | google/<m> | ollama/<m> (local, free)")
     r.add_argument("--suite", default="runs/hla-bench-a"); r.add_argument("--split", default="dev", choices=["dev", "test", "all"])
@@ -148,11 +162,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.cmd == "generate":
         if args.family == "c":
             from sci_envs.families.matching.generate import generate_suite, write_suite
+        elif args.family == "b":
+            from sci_envs.families.phasing import generate_suite, write_suite
         else:
             from sci_envs.families.nomenclature.generate import generate_suite, write_suite
         ref = ImgtReference.load(args.tag)
         tasks, manifest = generate_suite(ref, **({"base_seed": args.seed} if args.seed else {}))
-        write_suite(tasks, manifest, args.out or ("runs/hla-bench-c" if args.family == "c" else "runs/hla-bench-a"))
+        write_suite(tasks, manifest, args.out or f"runs/hla-bench-{args.family}")
         print(json.dumps({k: manifest[k] for k in ("benchmark", "total", "split")}))
         return 0
     if args.cmd == "report":

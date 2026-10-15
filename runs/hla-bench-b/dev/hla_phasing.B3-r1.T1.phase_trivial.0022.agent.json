@@ -1,0 +1,31 @@
+{
+  "family": "hla_phasing",
+  "input": {
+    "genotype": {
+      "A": [
+        "A*29:01:01:07",
+        "A*29:01:01:07"
+      ],
+      "B": [
+        "B*08:321",
+        "B*55:01:01:26"
+      ]
+    },
+    "loci": [
+      "A",
+      "B"
+    ],
+    "population": "synthetic-pop-1"
+  },
+  "instructions": "Using IPD-IMGT/HLA release 3.66.0. You are given one individual's unphased HLA genotype from a synthetic population: two alleles per locus at the listed loci, in no particular order within a locus. Return the two haplotypes (one allele per locus, in the order of \"loci\") that together reproduce the genotype. Respond with ONLY a JSON object: {\"answer\": <see below>, \"confidence\": \"high\"|\"medium\"|\"low\", \"flags\": [<strings>], \"reasoning\": \"<brief>\"}. \"answer\" is {\"haplotypes\": [[<one allele per locus, in the order given by \"loci\">], [<the other haplotype>]]} when exactly one pair is possible; {\"ranked\": [{\"haplotypes\": [...], \"probability\": <optional, 0 to 1>}, ...]} with two or three entries when more than one pair remains possible (probabilities, if given, must sum to at most 1); or \"UNRESOLVABLE\". The order of the two haplotypes within a pair does not matter. Recognized flags: phase_ambiguous, rare_haplotype, inconsistent_genotype, low_resolution_input, null_allele. Answer \"UNRESOLVABLE\" only when no phase can be assigned; if the genotype is impossible under Mendelian inheritance from the stated relatives, answer \"UNRESOLVABLE\" and raise inconsistent_genotype. Use the allele names exactly as given (current IPD-IMGT/HLA colon-delimited nomenclature).",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "md5": "a12bfb4eba8525ce89884c5bb944c178",
+    "release": "3.66.0",
+    "tag": "v3.66.0-alpha"
+  },
+  "slices": [],
+  "subtype": "phase_trivial",
+  "task_id": "hla_phasing.B3-r1.T1.phase_trivial.0022",
+  "tier": 1
+}

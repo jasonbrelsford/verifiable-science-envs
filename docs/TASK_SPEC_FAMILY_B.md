@@ -167,7 +167,17 @@ four of these become frequency-free slices in layer 3.*
 so an agent can build it, and the line it does not cross. Docs only — the generator and
 grader work get their own issue once this is on `main`. The supply numbers in 8.5 were
 measured on the merged layer-1 generator at IPD-IMGT/HLA 3.66.0 under the suite seed;
-they are the evidence behind the task counts, not a promise about a later release.*
+they are the evidence behind the task counts, not a promise about a later release.
+Implemented 2026-10-15 (issue #126): the pool parameters and the ``phased_pairs`` /
+``pedigree_phasings`` oracles in ``mendelian.py`` (``GENERATOR_REV`` ``B1-r2``), the five
+subtypes, the ``ranked`` form, the two input shapes and the one-text rule in ``tasks.py``
+(``SUITE_REV`` ``B3-r1``, 240 tasks, the split keyed without the rev), the 8.3 modes and
+the probability rule in ``grade.py`` (``GRADER_VERSION`` ``B-0.2``), and ``hla-bench
+generate --family b`` with grading dispatched on the task's family; tests in
+``tests/test_family_b.py``, ``tests/test_family_b_tasks.py`` and ``tests/test_harness.py``.
+The 8.5 guard is live: at 3.66.0 the suite seed clears every count, and about half of the
+other base seeds trip it on ``phase_ambiguous`` (supply 18–39 of 600 children), so a
+``--seed`` run of family B can legitimately fail at generation.*
 
 ### 8.1 The §6 questions, revisited
 

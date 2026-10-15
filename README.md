@@ -96,11 +96,12 @@ Also see [`skills/hla-verify/`](skills/hla-verify/) (importable Claude skill) an
 ```bash
 pip install -e ".[dev]"
 pytest -q                             # first run fetches ~33 MB of reference data
-hla-bench generate                    # family A (or --family c); sealed split stays local
+hla-bench generate                    # family A (or --family b, --family c); sealed split stays local
 hla-bench run baseline-naive-string --suite runs/hla-bench-a --split dev
 hla-bench run ollama/qwen2.5:7b --suite runs/hla-bench-a --split dev
 hla-bench run anthropic/claude-sonnet-4-6 --suite runs/hla-bench-a --split all
 hla-bench report --suite runs/hla-bench-a --out bench/HLA-Bench-A.md
+hla-bench run oracle --suite runs/hla-bench-b --split dev     # family B: 240 phasing tasks, grader dispatched on the task's family
 ```
 
 Local models run free via Ollama; Anthropic/OpenAI/Gemini clients are included (keys via a gitignored `.env`). Raw responses and per-task scores never leave the machine; only aggregates and a stratified ≤3-per-subtype wrong-answer sample are committed.
@@ -111,7 +112,7 @@ Local models run free via Ollama; Anthropic/OpenAI/Gemini clients are included (
 sci_envs/
   reference/imgt.py         # pinned IPD-IMGT/HLA loader: fetch → md5-verify → query
   families/nomenclature/    # family A: generators, grader, normalizer
-  families/phasing/         # family B: synthetic Mendelian truth generator + first graded subtypes and grader
+  families/phasing/         # family B: synthetic Mendelian truth generator + 8 frequency-free subtypes and grader (HLA-Bench-B)
   families/matching/        # family C: rules engine (R1–R6, documented for lab audit)
   harness/                  # runners, model clients, report
   adapters/                 # verifiers (Prime Intellect) + Inspect AI exports
