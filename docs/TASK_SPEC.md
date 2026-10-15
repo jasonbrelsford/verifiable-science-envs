@@ -1,6 +1,6 @@
 # TASK_SPEC — Family A: HLA Allele Nomenclature Resolution
 
-*v0.1.1 · August 30, 2026 · Rung 1 of the credibility ladder. Companion: `GRADER_SPEC.md`. Reference facts verified against the ANHIG/IMGTHLA GitHub mirror on 2026-08-30: current release **3.65.0** (2026-07-14), **46,652** named alleles, **288** deleted alleles, `Allelelist_history.txt` columns back to 3.27.0.*
+*v0.1.1 · August 30, 2026 · Rung 1 of the credibility ladder. Companion: `GRADER_SPEC.md`. Reference facts verified against the ANHIG/IMGTHLA GitHub mirror on 2026-10-14: current release **3.66.0** (2026-10-14), **47,424** named alleles, **289** deleted alleles, `Allelelist_history.txt` columns back to 3.27.0.*
 
 ## 1. Purpose
 
@@ -10,7 +10,7 @@ Non-goals for v0.1: imputation (family B), matching (family C), sequences of any
 
 ## 2. Reference data (the only inputs the generator reads)
 
-All from `github.com/ANHIG/IMGTHLA` at a pinned tag (e.g. `v3.65.0-alpha`). Record tag + file `md5checksum.txt` in every task.
+All from `github.com/ANHIG/IMGTHLA` at a pinned tag (e.g. `v3.66.0-alpha`). Record tag + file `md5checksum.txt` in every task.
 
 | File | Used for |
 |---|---|
@@ -35,8 +35,8 @@ Every task is one JSON object with two projections: `*.full.json` (grader, holds
   "family": "hla_nomenclature",
   "tier": 2,
   "subtype": "g_group",
-  "reference": {"db": "IPD-IMGT/HLA", "release": "3.65.0", "tag": "v3.65.0-alpha", "md5": "…"},
-  "instructions": "Using IPD-IMGT/HLA release 3.65.0, give the G group for the allele below. Respond with JSON: {\"answer\": \"<allele or group>\", \"confidence\": \"high|medium|low\", \"flags\": [..], \"reasoning\": \"...\"}. If the input cannot be resolved, answer \"UNRESOLVABLE\" and say why in flags.",
+  "reference": {"db": "IPD-IMGT/HLA", "release": "3.66.0", "tag": "v3.66.0-alpha", "md5": "…"},
+  "instructions": "Using IPD-IMGT/HLA release 3.66.0, give the G group for the allele below. Respond with JSON: {\"answer\": \"<allele or group>\", \"confidence\": \"high|medium|low\", \"flags\": [..], \"reasoning\": \"...\"}. If the input cannot be resolved, answer \"UNRESOLVABLE\" and say why in flags.",
   "input": {"allele": "A*01:01:01:02N"},
   "answer": {"canonical": "A*01:01:01G", "accept": ["A*01:01:01G"], "expected_confidence": "high", "expected_flags": ["null_allele"]},
   "scorer_notes": {"hla_id": "HLA02169", "source_rows": {"hla_nom_g.txt": 7}}
@@ -56,7 +56,7 @@ Each subtype is a generator function `gen_<subtype>(ref, rng) -> Task`. Difficul
 |---|---|---|
 | `truncate` | 4-field allele → 2-field | e.g. `A*01:01:01:01` → `A*01:01`. Preserve expression suffix rules: a suffix belongs to the full name; 2-field form drops it unless *all* alleles under that 2-field share it (grader computes). |
 | `expand_ambiguity` | Given `B*15:01` and the release, count how many 4-field names fall under it | Integer answer; tests whether the model knows resolution ≠ identity. |
-| `valid_name` | Is `DRB1*04:01:01:1` a valid allele name in 3.65.0? | Boolean; inputs mix valid names, near-miss typos (wrong separator count, leading-zero errors like `A*1:01`, deprecated 4-digit form `A*0101`), and never-existed names. |
+| `valid_name` | Is `DRB1*04:01:01:1` a valid allele name in 3.66.0? | Boolean; inputs mix valid names, near-miss typos (wrong separator count, leading-zero errors like `A*1:01`, deprecated 4-digit form `A*0101`), and never-existed names. |
 | `locus_field` | Which locus does `DQB1*02:01:01` belong to; is it class I or II | Trivial floor; catches DRB1/DRB3 and DPA1/DQA1 confusions. |
 
 ### Tier 2 — Group resolution
@@ -75,7 +75,7 @@ Each subtype is a generator function `gen_<subtype>(ref, rng) -> Task`. Difficul
 | `existed_at` | allele + release R → did this name exist in release R (boolean) |
 | `first_release` | allele → first release in which the name appears |
 | `name_at_release` | HLA ID + release R → the name at that release |
-| `deleted_reason` | deleted name → categorical reason: `identical_sequence`, `renamed_extended`, `named_in_error`, `low_expression_renamed`, `suffix_changed`, `never_assigned`, `other` (mapped from `Deleted_alleles.txt` description by regex in `DeletedAllele.reason`; at 3.65.0: 106/47/32/1/91/9/2; `other` is excluded from generation) |
+| `deleted_reason` | deleted name → categorical reason: `identical_sequence`, `renamed_extended`, `named_in_error`, `low_expression_renamed`, `suffix_changed`, `never_assigned`, `other` (mapped from `Deleted_alleles.txt` description by regex in `DeletedAllele.reason`; at 3.66.0: 106/48/32/1/91/9/2; `other` is excluded from generation) |
 | `new_in_release` | release R → how many alleles at locus L were added vs R−1 (integer) |
 
 ### Tier 4 — Compositional and adversarial

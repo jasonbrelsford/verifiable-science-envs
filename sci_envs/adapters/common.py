@@ -14,12 +14,12 @@ SYSTEM_PROMPT = SYSTEM
 
 
 @lru_cache(maxsize=4)
-def reference(tag: str = "v3.65.0-alpha") -> ImgtReference:
+def reference(tag: str = "v3.66.0-alpha") -> ImgtReference:
     return ImgtReference.load(tag)
 
 
 @lru_cache(maxsize=8)
-def suite(tag: str = "v3.65.0-alpha", split: str = "dev") -> tuple[list[dict], dict]:
+def suite(tag: str = "v3.66.0-alpha", split: str = "dev") -> tuple[list[dict], dict]:
     """Full task dicts for a split ('dev' | 'test' | 'all'), generated deterministically."""
     tasks, manifest = generate_suite(reference(tag))
     full = [t.full() for t in tasks if split == "all" or t.scorer_notes.get("split") == split]
@@ -46,6 +46,6 @@ def last_assistant_text(completion: Any) -> str:
     return str(completion)
 
 
-def score(task_full: dict, completion: Any, tag: str = "v3.65.0-alpha") -> dict:
+def score(task_full: dict, completion: Any, tag: str = "v3.66.0-alpha") -> dict:
     s = grade(task_full, last_assistant_text(completion), reference(tag))
     return s.to_dict()

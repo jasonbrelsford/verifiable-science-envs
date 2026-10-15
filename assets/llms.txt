@@ -31,11 +31,11 @@ release; verification is pinned to an exact release version.
   product managers, and AI platform teams): https://hlaverify.com/product
 - Pricing (free/starter/lab/scale/enterprise tiers; paid keys are issued on request today,
   self-serve Stripe checkout is not open yet): https://api.hlaverify.com/pricing
-- Free public beta: verdicts are production-quality and pinned to IPD-IMGT/HLA 3.65.0, and
+- Free public beta: verdicts are production-quality and pinned to IPD-IMGT/HLA 3.66.0, and
   anonymous access stays open at 100 calls/day per IP. Paid keys with higher quotas are
   issued on request — email hello@hlaverify.com, or join the list at
   https://hlaverify.com/beta (or POST /v1/beta-signup) to hear when checkout opens.
-- Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.65.0, open at 100 calls/day; keys for
+- Hosted API (deterministic, nothing stored, IPD-IMGT/HLA 3.66.0, open at 100 calls/day; keys for
   production): https://api.hlaverify.com — reference https://api.hlaverify.com/docs,
   OpenAPI https://api.hlaverify.com/openapi.json. Also reachable at https://hlaverify.com/v1/…
     POST /v1/verify    {"text": "..."}                -> every allele-shaped token classified
@@ -58,9 +58,9 @@ release; verification is pinned to an exact release version.
 - MCP server (add HLA-Verify as agent tools):
     Remote (Streamable HTTP, no install): https://api.hlaverify.com/mcp
       tools: verify_text, normalize_allele, allele_info, match_score, check_typing,
-      donor_compat, validate_gl_string, about, beta_signup, research_access (donor_compat
-      is decision support only; beta_signup and research_access are the only tools that
-      write)
+      donor_compat, validate_gl_string, pgx_lookup, pgx_pair, about, beta_signup,
+      research_access (donor_compat, pgx_lookup and pgx_pair are decision support only;
+      beta_signup and research_access are the only tools that write)
       protocol: MCP 2026-07-28 (stateless; call server/discover for versions, capabilities
       and instructions) plus the legacy initialize handshake (2025-11-25, 2025-06-18,
       2025-03-26, 2024-11-05)

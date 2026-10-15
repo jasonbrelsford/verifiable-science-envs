@@ -68,7 +68,7 @@ footer a{color:var(--green)}
 </div>
 
 <h2>What it checks</h2>
-<p class="sub">Four endpoints, JSON in and out, pinned to IPD-IMGT/HLA 3.65.0 (46,652 named alleles), served from Cloudflare's edge.</p>
+<p class="sub">Four endpoints, JSON in and out, pinned to IPD-IMGT/HLA 3.66.0 (47,424 named alleles), served from Cloudflare's edge.</p>
 <div class="grid2">
 <div class="card"><h3><span class="pill">POST</span>/v1/verify</h3><p>Classifies every allele-shaped token in free text as <code>valid</code>, <code>group</code> (G/P), <code>deleted</code> (with successor), <code>fabricated_group</code>, or <code>hallucinated</code>. <code>clean</code> is true only when nothing is fabricated, deleted, or a made-up group.</p>
 <div class="sample">curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \
@@ -138,7 +138,7 @@ footer a{color:var(--green)}
 <h2>Why trust it</h2>
 <div class="grid2">
 <div class="card"><h3>Deterministic</h3><p>No language model anywhere in the loop. Same input plus same release gives the same JSON every time — no per-request variance to explain to a lab director.</p></div>
-<div class="card"><h3>Release-pinned</h3><p>Pinned to an exact IPD-IMGT/HLA release — 46,652 named alleles in 3.65.0. <code>/healthz</code> reports the live release so a pipeline can assert on it; keyed customers get a verdict diff before the pin moves each quarter.</p></div>
+<div class="card"><h3>Release-pinned</h3><p>Pinned to an exact IPD-IMGT/HLA release — 47,424 named alleles in 3.66.0. <code>/healthz</code> reports the live release so a pipeline can assert on it; keyed customers get a verdict diff before the pin moves each quarter.</p></div>
 <div class="card"><h3>Nothing stored</h3><p>Requests are processed in memory and discarded. Metering records counts per key, never content.</p></div>
 <div class="card"><h3>Open rules</h3><p>Nomenclature normalization and matching rules R1–R6 are published in the repository for lab audit — not a black box.</p></div>
 <div class="card"><h3>Open benchmark</h3><p>HLA-Bench-A (550 nomenclature tasks) and HLA-Bench-C (205 matching pairs) are public, executable-oracle suites with confidence intervals — the same failure modes this API catches at runtime.</p></div>

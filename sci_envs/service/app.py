@@ -9,7 +9,7 @@ IPD-IMGT/HLA release (fetched at runtime, never redistributed; CC-BY-ND
 attribution in every response). Stores nothing; logs counts, not content.
 
 Run:  uvicorn sci_envs.service.app:app --host 0.0.0.0 --port 8000
-Env:  HLA_VERIFY_TAG        release tag to pin (default v3.65.0-alpha)
+Env:  HLA_VERIFY_TAG        release tag to pin (default v3.66.0-alpha)
       HLA_VERIFY_API_KEYS   comma-separated keys; unset = open (demo mode)
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ from sci_envs.families.nomenclature.normalize import normalize, resolve_name, le
 from sci_envs.families.matching.rules import FRAMEWORKS, score
 from sci_envs.service import lab
 
-TAG = os.environ.get("HLA_VERIFY_TAG", "v3.65.0-alpha")
+TAG = os.environ.get("HLA_VERIFY_TAG", "v3.66.0-alpha")
 ATTRIBUTION = ("Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), "
                "fetched at runtime from the ANHIG/IMGTHLA mirror under CC-BY-ND.")
 
@@ -142,7 +142,11 @@ def verify(body: VerifyIn, _: None = Depends(_auth)):
                 if succ:
                     row["successor"] = succ
             if status in ("valid", "deleted"):
-                n = normalize(r, t)
+                # lg notation at any field count (A*02:01g, MICA*238g) is classified by the name it
+                # abbreviates, so the facts and the flag come from that name, as the Worker reads it.
+                n = normalize(r, t[:-1]) if t.endswith("g") else normalize(r, t)
+                if t.endswith("g") and n["allele_2field"] != "UNRESOLVABLE":
+                    n["flags"] = ";".join(sorted(set(filter(None, n["flags"].split(";"))) | {"lg_notation"}))
                 if n["allele_2field"] != "UNRESOLVABLE":
                     row["current_2field"], row["g_group"] = n["allele_2field"], n["g_group"]
                     if n["flags"]:

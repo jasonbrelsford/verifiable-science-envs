@@ -28,7 +28,7 @@ def hla_grader():
 
 
 @task
-def hla_bench_a(tag: str = "v3.65.0-alpha", split: str = "dev") -> Task:
+def hla_bench_a(tag: str = "v3.66.0-alpha", split: str = "dev") -> Task:
     full, manifest = suite(tag, split)
     samples = [Sample(id=t["task_id"], input=prompt_for(t), target=json.dumps(t["answer"]["canonical"]),
                       metadata={"task_full": t, "tier": t["tier"], "subtype": t["subtype"]}) for t in full]

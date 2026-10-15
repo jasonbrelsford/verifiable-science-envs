@@ -3,9 +3,9 @@
 # this runner does the fetching and prints what it saw as one JSON line inside a
 # `::group::probe.json` log group (the site's unmet-report workflow uses the same shape),
 # plus a Markdown table on the step summary. The job fails when a document is missing, a
-# stated release disagrees with /healthz, or the 14-name allele panel / fixed verify and
+# stated release disagrees with /healthz, or the 16-name allele panel / fixed verify and
 # normalize strings answer differently from the contract, so the run's conclusion is the
-# signal. Anonymous calls only — no key, no secret, nothing written: 16 billable calls per
+# signal. Anonymous calls only — no key, no secret, nothing written: 18 billable calls per
 # run out of the runner IP's 100/day. Dispatch it, then read the log of the run it starts.
 name: probe
 on:

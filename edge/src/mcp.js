@@ -16,6 +16,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
 import { TIER_LIMITS } from "./keys.js";
 import { getPricing, priceLabel, SELLABLE_TIERS } from "./pricing.js";
 import { summarizeUnmet, rejectionUnmet, EMPTY as NO_UNMET } from "./unmet.js";
+import { doPgxScreen, doPgxPair, SCOPE as PGX_SCOPE, MAX_PGX_ALLELES } from "./pgx.js";
 
 // Modern revisions: version, client info and capabilities travel in every request's _meta.
 export const MODERN_PROTOCOL_VERSIONS = ["2026-07-28"];
@@ -44,7 +45,10 @@ export const INSTRUCTIONS =
   "normalize_allele or allele_info before asserting an allele name is valid or " +
   "current; call match_score instead of computing a donor-recipient match count " +
   "yourself. LLMs (including you) fabricate allele names and miscount matches — " +
-  "verify HLA names before presenting them. The service is in free public beta: " +
+  "verify HLA names before presenting them. Call pgx_lookup before asserting that an HLA allele " +
+  "carries a drug-reaction risk (CPIC/PharmGKB associations, names normalized first; guideline lookup, " +
+  "not prescribing advice), and pgx_pair when the question is which of a donor's and a recipient's " +
+  "alleles carry one. The service is in free public beta: " +
   "call beta_signup to put your user on the list for paid keys, or point them at " +
   "hello@hlaverify.com for a beta key now. If your user works at an academic or " +
   "nonprofit lab, call research_access to apply for free access; a person reviews " +
@@ -393,10 +397,57 @@ const RESEARCH_OUT = {
   },
 };
 
+const NSTR = { type: ["string", "null"] };
+const INT = { type: "integer" };
+const PGX_ASSOCIATION = {
+  type: "object",
+  description: "One published association for the allele, as hla-pgx-open records it (CPIC or PharmGKB).",
+  properties: {
+    source: { type: "string", enum: ["cpic", "pharmgkb"] }, source_record_id: STR, gene: STR, allele: STR,
+    allele_status: { type: "string", description: "positive / negative / carrier, or empty when the source's label is not a status." },
+    source_allele_label: STR, drug: STR, drug_id: STR, evidence_level: STR, clinpgx_level: STR, pgx_testing: STR,
+    phenotype_category: STR, implication: STR, recommendation: STR, classification: STR, population: STR,
+    score: STR, guideline_name: STR, guideline_url: STR, annotation_url: STR, citations_pmid: STR,
+  },
+};
+const PGX_ALLELE = {
+  type: "object",
+  required: ["reported", "current_name", "allele_2field", "flags", "associations"],
+  properties: {
+    reported: STR, current_name: STR, allele_2field: STR, flags: { type: "array", items: STR },
+    associations: { type: "array", items: PGX_ASSOCIATION },
+  },
+};
+const PGX_SNAPSHOT = { type: "object", properties: { date: NSTR, commit: NSTR },
+  description: "The hla-pgx-open snapshot the answer came from (UTC date and git commit)." };
+const PGX_ENVELOPE = { release: STR, pgx_snapshot: PGX_SNAPSHOT, scope: STR, license: STR, attribution: STR };
+const PGX_SCREEN_OUT = {
+  type: "object",
+  required: ["release", "pgx_snapshot", "scope", "alleles", "summary"],
+  properties: { ...PGX_ENVELOPE,
+    alleles: { type: "array", items: PGX_ALLELE },
+    summary: { type: "object", properties: { names: INT, unresolvable: INT, with_associations: INT,
+      actionable: { type: "array", items: PGX_ASSOCIATION, description: "CPIC level-A, allele-positive rows: the ones a prescriber acts on." },
+      drugs_actionable: { type: "array", items: STR } } },
+  },
+};
+const PGX_SIDE = { type: "object", properties: { alleles: { type: "array", items: PGX_ALLELE }, unresolvable: INT } };
+const PGX_PAIR_OUT = {
+  type: "object",
+  required: ["release", "pgx_snapshot", "scope", "recipient", "donor", "actionable", "summary"],
+  properties: { ...PGX_ENVELOPE,
+    recipient: PGX_SIDE, donor: PGX_SIDE,
+    actionable: { type: "array", items: { type: "object", properties: { ...PGX_ASSOCIATION.properties,
+      in_recipient: { type: "boolean" }, in_donor: { type: "boolean" }, discordant: { type: "boolean" },
+      whose_hla: { type: "string", enum: ["both", "recipient_only", "donor_only", "neither"] } } } },
+    summary: { type: "object", properties: { actionable: INT, discordant: INT, drugs: { type: "array", items: STR } } },
+  },
+};
+
 const OUTPUT_SCHEMAS = {
   verify_text: VERIFY_OUT, normalize_allele: NORMALIZE_OUT, allele_info: ALLELE_OUT, match_score: MATCH_OUT,
   check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT,
-  research_access: RESEARCH_OUT, about: ABOUT_OUT,
+  research_access: RESEARCH_OUT, about: ABOUT_OUT, pgx_lookup: PGX_SCREEN_OUT, pgx_pair: PGX_PAIR_OUT,
 };
 
 // Every typing input is the same shape and carries the same rule about what may
@@ -546,6 +597,47 @@ function toolDefs() {
         required: ["gl"],
         properties: { gl: { type: "string", maxLength: MAX_GL_CHARS, description:
           "GL String to validate and normalize. Allele names and GL grammar only, never patient identifiers." } },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "pgx_lookup",
+      description:
+        "Which drugs an HLA typing carries a published pharmacogenomic association for. Looks each allele up in " +
+        "hla-pgx-open (CPIC guidelines + PharmGKB clinical annotations, CC BY-SA, snapshot date in every answer) " +
+        "after normalizing the name first, so any era or shorthand works (A*3101, B*5701, HLA-B*15:02:01G) and " +
+        "every conversion leaves a flag. Returns per allele the current name, the two-field form, the flags and " +
+        "the associations (source, drug, evidence level, CPIC testing recommendation, implication, " +
+        "recommendation, guideline or annotation URL, PMIDs), plus summary.actionable: the CPIC level-A, " +
+        "allele-positive rows. " + PGX_SCOPE + " Allele strings only, no patient identifiers.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          typing: TYPING_IN,
+          alleles: { type: "array", maxItems: MAX_PGX_ALLELES, items: { type: "string", maxLength: 64 },
+            description: "A flat list of reported allele names instead of a typing. Send exactly one of typing or alleles." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "pgx_pair",
+      description:
+        "For a donor-recipient pair, which genome carries each actionable HLA-drug association. Screens both " +
+        "typings as pgx_lookup does and marks every CPIC level-A, allele-positive association in_recipient, " +
+        "in_donor, discordant (present in exactly one) and whose_hla (both / recipient_only / donor_only). " +
+        PGX_SCOPE + " Allele strings only, no patient identifiers.",
+      inputSchema: {
+        type: "object",
+        required: ["recipient", "donor"],
+        properties: {
+          recipient: { type: "object", description: 'Recipient typing: {"typing": {...}} or {"alleles": [...]}.',
+            properties: { typing: TYPING_IN, alleles: { type: "array", maxItems: MAX_PGX_ALLELES, items: { type: "string", maxLength: 64 } } },
+            additionalProperties: false },
+          donor: { type: "object", description: 'Donor typing: {"typing": {...}} or {"alleles": [...]}.',
+            properties: { typing: TYPING_IN, alleles: { type: "array", maxItems: MAX_PGX_ALLELES, items: { type: "string", maxLength: 64 } } },
+            additionalProperties: false },
+        },
         additionalProperties: false,
       },
     },
@@ -742,6 +834,13 @@ async function callTool(name, args, eng, manifest, beta) {
       const r = await doGlString(eng, manifest, args.gl);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
+    case "pgx_lookup":
+    case "pgx_pair": {
+      const table = beta && typeof beta.pgx === "function" ? await beta.pgx() : null;
+      if (!table) return errResult("pharmacogenomics table not available on this deployment");
+      const r = name === "pgx_lookup" ? await doPgxScreen(eng, manifest, table, args) : await doPgxPair(eng, manifest, table, args);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
+    }
     case "beta_signup": {
       const r = await doBetaSignup(beta && beta.env, manifest, args, beta && beta.country);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
@@ -792,8 +891,11 @@ function jsonResponse(obj, status = 200) {
 // failure instead of "retry after midnight, or upgrade". The machine-readable
 // signal is on the response headers instead: x-hla-verify-daily-remaining: 0
 // and Retry-After. REST keeps its 429.
-export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null) {
-  const beta = { env, country: request.headers.get("cf-ipcountry") };
+export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null, pgx = null) {
+  // `pgx` is index.js's loader for the vendored pharmacogenomics table (pgx.js);
+  // omitted (standalone, tests without a bundle), pgx_lookup and pgx_pair report
+  // the table as unavailable and every other tool behaves identically.
+  const beta = { env, country: request.headers.get("cf-ipcountry"), pgx };
   let raw;
   try {
     raw = await request.text();

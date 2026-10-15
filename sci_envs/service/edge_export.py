@@ -4,7 +4,7 @@ Python engine that grades HLA-Bench — the Worker only tokenizes, converts
 legacy strings, and looks rows up.  Licence: PolyForm Noncommercial 1.0.0
 (sci_envs/service/LICENSE).
 
-Run:  python -m sci_envs.service.edge_export [--tag v3.65.0-alpha] [--out edge/public]
+Run:  python -m sci_envs.service.edge_export [--tag v3.66.0-alpha] [--out edge/public]
 
 Row schema (compact keys; absent = null/false):
   s    classify status: v=valid (assigned or valid prefix), g=G/P group, d=deleted/historical
@@ -196,12 +196,18 @@ def export(tag: str, out: Path) -> dict:
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     print(f"exported {n_rows} rows in {len(shards)} shards to {out} in {round(time.time() - t0)}s; "
           f"skipped {len(skipped)}: {skipped[:8]}")
+    # The pharmacogenomics table (edge/src/pgx.js) ships beside the release tables, never
+    # inside them: a separate CC BY-SA bundle from hla-pgx-open, vendored at deploy time.
+    # Fails the deploy on a stale or half-built upstream snapshot (pgx_export.py).
+    if os.environ.get("HLA_VERIFY_SKIP_PGX") != "1":
+        from sci_envs.service.pgx_export import export as export_pgx
+        export_pgx(out)
     return manifest
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tag", default=os.environ.get("HLA_VERIFY_TAG", "v3.65.0-alpha"))
+    ap.add_argument("--tag", default=os.environ.get("HLA_VERIFY_TAG", "v3.66.0-alpha"))
     ap.add_argument("--out", default="edge/public")
     a = ap.parse_args()
     export(a.tag, Path(a.out))

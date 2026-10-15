@@ -230,7 +230,7 @@ def test_compat_kir_missing_direction():
 @pytest.mark.parametrize("gl,code,detail", [
     ("A*01:01//A*02:01", "empty_element", "empty element in 'A*01:01//A*02:01'"),
     ("A*01 01", "whitespace_in_name", "'A*01 01' contains whitespace"),
-    ("A*99:99", "unresolvable_allele", f"'A*99:99' is not a name in release {'3.65.0'}"),
+    ("A*99:99", "unresolvable_allele", f"'A*99:99' is not a name in release {'3.66.0'}"),
     ("A*01:01/B*07:02", "mixed_locus_allele_list", "'A*01:01/B*07:02' mixes loci A, B"),
     ("A*01:01~A*02:01", "haplotype_repeats_locus", "'A*01:01~A*02:01' repeats locus A"),
     ("A*01:01+A*02:01+A*03:01", "more_than_two_haplotypes", "'A*01:01+A*02:01+A*03:01' has 3 haplotypes"),

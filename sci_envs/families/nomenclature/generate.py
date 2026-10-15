@@ -547,7 +547,7 @@ def write_suite(tasks: list[Task], manifest: dict, out_dir: str | Path) -> None:
 
 if __name__ == "__main__":
     import sys
-    tag = sys.argv[1] if len(sys.argv) > 1 else "v3.65.0-alpha"
+    tag = sys.argv[1] if len(sys.argv) > 1 else "v3.66.0-alpha"
     out = sys.argv[2] if len(sys.argv) > 2 else "runs/hla-bench-a"
     ref = ImgtReference.load(tag)
     tasks, manifest = generate_suite(ref)

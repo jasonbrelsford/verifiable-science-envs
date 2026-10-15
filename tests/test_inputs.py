@@ -187,7 +187,7 @@ def test_allele_endpoint_accepts_reported_shorthands(client):
     assert "flags" not in plain and "resolves_to" not in plain
     # a shorthand for a name that does not exist still 404s, and the message names both forms
     r = client.get("/v1/allele/A*99:XX")
-    assert r.status_code == 404 and r.json()["detail"] == "'A*99:XX' stands for 'A*99', which is not assigned in release 3.65.0"
+    assert r.status_code == 404 and r.json()["detail"] == "'A*99:XX' stands for 'A*99', which is not assigned in release 3.66.0"
     r = client.get("/v1/allele/B*9999")
     assert r.status_code == 404 and "stands for 'B*99:99'" in r.json()["detail"]
     assert client.get("/v1/allele/A*02001").status_code == 404   # odd digit count: not a legacy name we can read
@@ -286,3 +286,15 @@ def test_legacy_name_follows_its_colon_forms_successor(ref):
     # B*13:08Q was deleted (now B*13:08); the legacy spelling follows, as /v1/normalize would for B*13:08Q
     assert resolve_name(ref, "B*1308Q") == ("B*13:08", {"deprecated_name"})
     assert resolve_name(ref, "A*01011") == (None, {"deprecated_name", "nonexistent_allele"})   # no colon form
+
+
+def test_verify_lg_notation_at_any_field_count_leaves_the_flag(client):
+    # lg notation is classified by the name it abbreviates at any field count, and the facts and
+    # the flag come from that name, the way the Worker reads it (golden parity on 3.66.0, #117).
+    r = client.post("/v1/verify", json={"text": "A*02:01g MICA*238g A*01:01:01g"}).json()
+    by = {t["token"]: t for t in r["tokens"]}
+    for tok, two in (("A*02:01g", "A*02:01"), ("MICA*238g", "MICA*238"), ("A*01:01:01g", "A*01:01")):
+        assert by[tok]["status"] == "valid", tok
+        assert by[tok]["current_2field"] == two and "g_group" in by[tok], tok
+        assert "lg_notation" in by[tok]["flags"], tok
+    assert r["counts"]["valid"] == 3 and r["counts"]["hallucinated"] == 0

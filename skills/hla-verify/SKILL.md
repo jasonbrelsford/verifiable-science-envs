@@ -17,7 +17,7 @@ verdict from model memory. Verify it.
 
 ```bash
 pip install -e ".[dev]"     # from this repository's root
-python -c "from sci_envs.reference.imgt import ImgtReference; ImgtReference.load('v3.65.0-alpha')"
+python -c "from sci_envs.reference.imgt import ImgtReference; ImgtReference.load('v3.66.0-alpha')"
 ```
 
 The second line fetches and md5-verifies the reference files (~33 MB, cached in
@@ -29,7 +29,7 @@ The second line fetches and md5-verifies the reference files (~33 MB, cached in
 from sci_envs.reference.imgt import ImgtReference
 from sci_envs.families.nomenclature.normalize import normalize
 
-ref = ImgtReference.load("v3.65.0-alpha")
+ref = ImgtReference.load("v3.66.0-alpha")
 result = normalize(ref, "A*0201")     # any reported name, any era
 # result: allele_2field, g_group, p_group, serology, flags
 # flags tell you: legacy_format, deleted_name (with successor), fabricated, ...

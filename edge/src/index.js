@@ -22,6 +22,7 @@ import { oauthConfig, handleOAuth, authorizeMcp } from "./oauth.js";
 import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, isBillablePath,
   BILLABLE_TOOLS } from "./quota.js";
 import { handleUsageRequest, handleAdminUsageRequest } from "./usage.js";
+import { createPgx, doPgxTable, doPgxScreen, doPgxPair } from "./pgx.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -40,6 +41,19 @@ function getEngine(env) {
     });
   }
   return engine;
+}
+
+// The pharmacogenomics table (pgx.js), loaded once per isolate from the bundle
+// pgx_export.py vendors beside the release tables. Absent bundle: pgx routes 503.
+let pgx = null;
+function getPgx(env) {
+  if (!pgx) {
+    pgx = createPgx(async (e) => {
+      const r = await e.ASSETS.fetch("https://assets.local/pgx.json");
+      return r.ok ? r.json() : null;
+    });
+  }
+  return pgx.get(env);
 }
 
 const CORS = {
@@ -180,7 +194,7 @@ export default {
 
     // Never serve the precomputed tables directly: the API is the product; the
     // reference data are CC-BY-ND and not redistributed in bulk.
-    if (path.startsWith("/data/") || path === "/manifest.json") return err(404, "Not Found");
+    if (path.startsWith("/data/") || path === "/manifest.json" || path === "/pgx.json") return err(404, "Not Found");
 
     if (path === "/healthz")
       return json({ ok: true, release: manifest.release, alleles: manifest.alleles, uptime_s: Math.floor((Date.now() - STARTED) / 1000) });
@@ -250,7 +264,8 @@ export default {
         return q.ok ? null : quotaDetail(q);
       };
       const resp = await handleMcp(req, eng, who, manifest,
-        (tool, status, units, unmet) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0, unmet), env, spend);
+        (tool, status, units, unmet) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0, unmet), env, spend,
+        () => getPgx(env));
       const body = await resp.text();
       return new Response(body || null, {
         status: resp.status,
@@ -283,6 +298,22 @@ export default {
       const resp = await handleAdminUsageRequest(req, env, manifest, { json, err, CORS });
       meter(env, ctx, { label: "admin", tier: "admin", keyed: true }, "admin:usage", resp.status, 0, Date.now() - t0);
       return resp;
+    }
+
+    // The whole pharmacogenomics table (pgx.js): open data under CC BY-SA, so
+    // no key, not billable and cacheable for a day — routed before the
+    // authorize() gate the way /docs is. JSON by default, ?format=csv for the file.
+    if (path === "/v1/pgx/table") {
+      if (req.method !== "GET") return err(405, "GET /v1/pgx/table[?format=csv]");
+      const table = await getPgx(env);
+      if (!table) return err(503, "pharmacogenomics table not available on this deployment");
+      const t0 = Date.now();
+      const r = doPgxTable(manifest, table, url.searchParams.get("format") === "csv" ? "csv" : "json");
+      meter(env, ctx, { label: "anonymous", tier: "free", keyed: false }, "pgx/table", 200, 0, Date.now() - t0);
+      const cache = { "cache-control": "public, max-age=86400" };
+      if (r.csv) return new Response(r.csv, { headers: { "content-type": "text/csv; charset=utf-8",
+        "content-disposition": "inline; filename=\"hla_pgx.csv\"", "x-hla-verify-release": manifest.release, ...CORS, ...cache } });
+      return json(r.body, 200, cache);
     }
 
     if (!path.startsWith("/v1/")) return err(404, "Not Found");
@@ -318,15 +349,20 @@ export default {
     // could not fully serve (unmet.js) — computed from the result and, for the
     // strings that did not resolve, the input; after the response has gone out
     // where the runtime allows it, so classification never adds to latency.
-    const finish = async (ep, r, input) => {
+    // `label`, when given, is the endpoint name metered (pgx/screen) while `ep`
+    // stays the classification rule applied (normalize): the pgx routes are
+    // normalize-shaped underneath and classify their unresolved names the same way.
+    const finish = async (ep, r, input, label = ep) => {
       const ms = Date.now() - t0;
       if (!r.ok) {
-        meter(env, ctx, who, ep, r.status, 0, ms, r.unmet ? rejectionUnmet(r.unmet.code, r.unmet.value) : NO_UNMET);
+        meter(env, ctx, who, label, r.status, 0, ms, r.unmet ? rejectionUnmet(r.unmet.code, r.unmet.value) : NO_UNMET);
         return err(r.status, r.detail, hdrs);
       }
       const status = r.status ?? 200;
-      const record = summarizeUnmet(eng, manifest, ep, input, r.body)
-        .then((unmet) => meter(env, ctx, who, ep, status, r.units, ms, unmet));
+      const classified = label === ep ? r.body
+        : { rows: [...(r.body.alleles || []), ...(r.body.recipient?.alleles || []), ...(r.body.donor?.alleles || [])] };
+      const record = summarizeUnmet(eng, manifest, ep, input, classified)
+        .then((unmet) => meter(env, ctx, who, label, status, r.units, ms, unmet));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(record); else await record;
       return json(r.body, status, hdrs);
     };
@@ -378,6 +414,24 @@ export default {
         if (req.method !== "POST") return err(405, "POST {\"gl\": \"...\"}", hdrs);
         const [body, e] = await readJson(req, hdrs); if (e) return e;
         return finish("glstring", await doGlString(eng, manifest, body.gl), { gl: body.gl });
+      }
+      // Pharmacogenomics (pgx.js): every name goes through the normalizer first,
+      // then joins the vendored CPIC/PharmGKB table. Billed like /v1/normalize
+      // and /v1/match; unmet-request classification reads the normalize rows the
+      // same way it does for /v1/normalize.
+      if (path === "/v1/pgx/screen" || path === "/v1/pgx/pair") {
+        if (req.method !== "POST") return err(405, path === "/v1/pgx/screen"
+          ? "POST {\"typing\": {...}} or {\"alleles\": [...]}" : "POST {\"recipient\": {...}, \"donor\": {...}}", hdrs);
+        const table = await getPgx(env);
+        if (!table) return err(503, "pharmacogenomics table not available on this deployment", hdrs);
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
+        if (path === "/v1/pgx/screen") {
+          const r = await doPgxScreen(eng, manifest, table, body);
+          return finish("normalize", r, { typings: r.ok ? r.body.alleles.map((a) => a.reported) : [] }, "pgx/screen");
+        }
+        const r = await doPgxPair(eng, manifest, table, body);
+        return finish("normalize", r, { typings: r.ok ? [...r.body.recipient.alleles, ...r.body.donor.alleles].map((a) => a.reported) : [] },
+          "pgx/pair");
       }
       // Starts a Stripe Checkout Session for a paid tier and hands back the
       // hosted url. Not billable — buying a bigger quota must not cost a call
