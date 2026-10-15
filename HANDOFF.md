@@ -9,7 +9,7 @@ see [Where the rest is](#where-the-rest-is).
 ## What this is
 
 A deterministic verification service for HLA nomenclature. No model in the loop: every
-verdict is a lookup into tables precomputed from a pinned IPD-IMGT/HLA release (3.65.0).
+verdict is a lookup into tables precomputed from a pinned IPD-IMGT/HLA release (3.66.0).
 Sold as an API and an MCP server. The engine and benchmark are Apache-2.0; the hosted
 service code is PolyForm Noncommercial.
 

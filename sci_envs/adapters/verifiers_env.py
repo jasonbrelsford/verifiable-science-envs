@@ -51,7 +51,7 @@ def flags_right(completion, info, **kwargs) -> float:
     return 0.0 if (s["flags_missed"] or s["flags_spurious"]) else 1.0
 
 
-def load_environment(tag: str = "v3.65.0-alpha", split: str = "dev", **kwargs):
+def load_environment(tag: str = "v3.66.0-alpha", split: str = "dev", **kwargs):
     import verifiers as vf
     from datasets import Dataset
 

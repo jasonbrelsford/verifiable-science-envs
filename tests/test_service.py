@@ -9,7 +9,7 @@ client = TestClient(app)
 
 def test_healthz():
     r = client.get("/healthz")
-    assert r.status_code == 200 and r.json()["release"] == "3.65.0"
+    assert r.status_code == 200 and r.json()["release"] == "3.66.0"
 
 
 def test_verify_mixed_text():
@@ -62,7 +62,7 @@ def test_api_key_gate(monkeypatch):
 
 def test_demo_page():
     r = client.get("/")
-    assert r.status_code == 200 and "HLA-Verify" in r.text and "3.65.0" in r.text
+    assert r.status_code == 200 and "HLA-Verify" in r.text and "3.66.0" in r.text
 
 
 def test_match_endpoint_null_trap():

@@ -42,7 +42,7 @@ DEFAULT_POPULATION = "synthetic-pop-1"
 DEFAULT_ALLELES_PER_LOCUS = 12
 DEFAULT_FAMILIES = 20
 DEFAULT_CHILDREN = 2
-DEFAULT_TAG = "v3.65.0-alpha"
+DEFAULT_TAG = "v3.66.0-alpha"
 
 # §1: 2–5 loci among A, C, B, DRB1, DQB1.  Kept in genomic order for output.
 LOCI_ALLOWED = ("A", "C", "B", "DRB1", "DQB1")
