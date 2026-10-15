@@ -482,14 +482,14 @@ export default {
         meter(env, ctx, who, "research-access", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);
       }
-      // Support reports ("this answer looks wrong"). Same rules again: the
-      // anonymous limiter covers it, it is never billable, and the record is not
-      // a key (handlers.js RESERVED_PREFIXES). GET /v1/report/{id} shows only the
-      // public status, never the input or the email.
+      // Support reports ("this answer looks wrong"). Never billable; the
+      // anonymous limiter covers it, plus REPORTS_PER_DAY per IP. Records live in
+      // their own REPORTS namespace, never in KEYS. GET /v1/report/{id} shows only
+      // the public status, never the input or the email.
       if (path === "/v1/report") {
         if (req.method !== "POST") return err(405, "POST {\"input\": \"...\", \"expected\": \"...\", \"kind\": \"wrong_result\"}");
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doReport(env, manifest, body, req.headers.get("cf-ipcountry"));
+        const r = await doReport(env, manifest, body, req.headers.get("cf-ipcountry"), req.headers.get("cf-connecting-ip"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "report", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);

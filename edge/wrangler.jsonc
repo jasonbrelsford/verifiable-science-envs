@@ -44,7 +44,10 @@
   // replacing 8360bbe6d4904699ab019702427fc19d. Until then, env.KEYS is undefined and the API falls
   // back to secret-only keys (HLA_VERIFY_API_KEYS) plus anonymous free tier.
   "kv_namespaces": [
-    { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" }
+    { "binding": "KEYS", "id": "8360bbe6d4904699ab019702427fc19d" },
+    // Support reports (POST /v1/report): free text from the public, kept apart
+    // from KEYS so nothing a stranger writes ever shares a namespace with API keys.
+    { "binding": "REPORTS", "id": "e6fd74a27b094b5f940be1ee97e37735" }
   ],
   "analytics_engine_datasets": [
     { "binding": "USAGE", "dataset": "hlaverify_usage" }

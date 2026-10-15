@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import worker from "../src/index.js";
-import { REPORT_PREFIX, REPORT_KINDS, RESERVED_PREFIXES, REPORT_ID_RE, MAX_REPORT_INPUT } from "../src/handlers.js";
+import { REPORT_PREFIX, REPORT_KINDS, RESERVED_PREFIXES, REPORT_ID_RE, MAX_REPORT_INPUT, REPORTS_PER_DAY } from "../src/handlers.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, "..", "public");
@@ -70,6 +70,7 @@ function baseEnv(extra = {}) {
   return {
     PUBLIC_ACCESS: "1",
     KEYS: fakeKV(),
+    REPORTS: fakeKV(),
     RL: fakeRL(), RL_STARTER: fakeRL(), RL_LAB: fakeRL(), RL_SCALE: fakeRL(),
     QUOTA: fakeQuota(), QUOTA_IP_SALT: "0123456789abcdef0123456789abcdef",
     ASSETS,
@@ -80,18 +81,18 @@ function baseEnv(extra = {}) {
 const ORIGIN = "https://api.hlaverify.com";
 const IP = "203.0.113.42";
 
-async function call(env, method, p, { headers = {}, body } = {}) {
-  const init = { method, headers: { "cf-connecting-ip": IP, "cf-ipcountry": "US", ...headers } };
+async function call(env, method, p, { headers = {}, body, ip = IP } = {}) {
+  const init = { method, headers: { "cf-connecting-ip": ip, "cf-ipcountry": "US", ...headers } };
   if (body !== undefined) init.body = body;
   const resp = await worker.fetch(new Request(ORIGIN + p, init), env, {});
   const text = await resp.text();
   return { status: resp.status, headers: resp.headers, json: text ? JSON.parse(text) : null };
 }
-const report = (env, payload, headers = {}) => call(env, "POST", "/v1/report", {
+const report = (env, payload, headers = {}, ip = IP) => call(env, "POST", "/v1/report", { ip,
   headers: { "content-type": "application/json", ...headers },
   body: typeof payload === "string" ? payload : JSON.stringify(payload),
 });
-const records = (env) => [...env.KEYS._store.keys()].filter((k) => k.startsWith(REPORT_PREFIX));
+const records = (env) => [...env.REPORTS._store.keys()].filter((k) => k.startsWith(REPORT_PREFIX));
 
 const GOOD = {
   kind: "wrong_result",
@@ -124,7 +125,7 @@ test("the record holds what was sent, the release and a status, never the IP", a
   const { json } = await report(env, GOOD);
   const keys = records(env);
   assert.deepEqual(keys, [REPORT_PREFIX + json.id]);
-  const rec = JSON.parse(env.KEYS._store.get(keys[0]));
+  const rec = JSON.parse(env.REPORTS._store.get(keys[0]));
   for (const f of ["kind", "endpoint", "input", "received", "expected", "details", "email", "source"]) assert.equal(rec[f], GOOD[f], f);
   assert.equal(rec.status, "received");
   assert.equal(rec.release, manifest.release);
@@ -137,7 +138,7 @@ test("only input and expected are required; kind defaults to wrong_result", asyn
   const env = baseEnv();
   const { status, json } = await report(env, { input: "A*0201", expected: "should normalize to A*02:01" });
   assert.equal(status, 200);
-  const rec = JSON.parse(env.KEYS._store.get(REPORT_PREFIX + json.id));
+  const rec = JSON.parse(env.REPORTS._store.get(REPORT_PREFIX + json.id));
   assert.equal(rec.kind, "wrong_result");
   assert.equal(rec.email, null);
 });
@@ -206,10 +207,11 @@ test("HLA names, GL strings and release dates are not mistaken for patient data"
 
 // ------------------------------------------------------------- containment and quota
 
-test("a report record can never authenticate as an API key", async () => {
-  assert.ok(RESERVED_PREFIXES.includes(REPORT_PREFIX), "REPORT_PREFIX must be listed in RESERVED_PREFIXES");
+test("reports live in their own namespace and can never authenticate as an API key", async () => {
   const env = baseEnv();
   const { json } = await report(env, GOOD);
+  assert.equal([...env.KEYS._store.keys()].length, 0, "nothing a reporter sends may land in KEYS");
+  assert.ok(!RESERVED_PREFIXES.includes(REPORT_PREFIX), "report/ is not a KEYS prefix any more");
   const key = REPORT_PREFIX + json.id;
   const r = await call(env, "POST", "/v1/verify", {
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
@@ -241,8 +243,8 @@ test("GET /v1/report/{id}: shows the status, note and release the support intake
   const env = baseEnv();
   const { json: made } = await report(env, GOOD);
   const k = REPORT_PREFIX + made.id;
-  const rec = JSON.parse(env.KEYS._store.get(k));
-  env.KEYS._store.set(k, JSON.stringify({ ...rec, status: "fixed", note: "B*07:02 was misread; fixed.", fixed_in: "3.66.0", updated: "2026-10-16T00:00:00Z" }));
+  const rec = JSON.parse(env.REPORTS._store.get(k));
+  env.REPORTS._store.set(k, JSON.stringify({ ...rec, status: "fixed", note: "B*07:02 was misread; fixed.", fixed_in: "3.66.0", updated: "2026-10-16T00:00:00Z" }));
   const { json } = await call(env, "GET", `/v1/report/${made.id}`);
   assert.equal(json.status, "fixed");
   assert.equal(json.note, "B*07:02 was misread; fixed.");
@@ -252,8 +254,8 @@ test("GET /v1/report/{id}: shows the status, note and release the support intake
 test("GET /v1/report/{id}: unknown or malformed ids are 404, and a malformed id never reaches KV", async () => {
   const env = baseEnv();
   let reads = 0;
-  const get = env.KEYS.get.bind(env.KEYS);
-  env.KEYS.get = async (k) => { reads += 1; return get(k); };
+  const get = env.REPORTS.get.bind(env.REPORTS);
+  env.REPORTS.get = async (k) => { reads += 1; return get(k); };
   assert.equal((await call(env, "GET", "/v1/report/r0123456789abcdef")).status, 404);
   assert.equal(reads, 1);
   // An encoded traversal stays in the path (a literal ../ is resolved by URL
@@ -263,6 +265,18 @@ test("GET /v1/report/{id}: unknown or malformed ids are 404, and a malformed id 
     assert.equal((await call(env, "GET", `/v1/report/${bad}`)).status, 404, bad);
   }
   assert.equal(reads, 1);
+});
+
+test(`at most ${REPORTS_PER_DAY} reports a day per IP, counted without storing the IP`, async () => {
+  const env = baseEnv();
+  for (let i = 0; i < REPORTS_PER_DAY; i++) assert.equal((await report(env, GOOD)).status, 200, `report ${i + 1}`);
+  const over = await report(env, GOOD);
+  assert.equal(over.status, 429);
+  assert.match(over.json.detail, new RegExp(`at most ${REPORTS_PER_DAY} reports a day`));
+  assert.equal(records(env).length, REPORTS_PER_DAY, "the refused report is not stored");
+  assert.equal((await report(env, GOOD, {}, "198.51.100.9")).status, 200, "another connection is unaffected");
+  const everything = JSON.stringify([...env.REPORTS._store.entries()]);
+  assert.ok(!everything.includes(IP) && !everything.includes("198.51.100.9"), "no IP in any key or value");
 });
 
 test("every documented kind is accepted", async () => {

@@ -172,7 +172,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/research-access -H 'content-type: a
 
 <h3 id="report"><span class="pill">POST</span><code>/v1/report</code> — report an answer you believe is wrong</h3>
 <p><code>{"kind": "wrong_result", "endpoint": "/v1/verify", "input": "…", "received": "…", "expected": "…", "details": "…", "email": "…", "request_id": "…", "source": "…"}</code>. <code>input</code> (≤2,000 chars: the names or request you sent) and <code>expected</code> (≤1,000: what you expected instead) are required. <code>kind</code> is one of <code>wrong_result</code> (default), <code>docs_mismatch</code>, <code>outdated_release</code>, <code>question</code> or <code>other</code>; <code>endpoint</code> (≤60), <code>received</code> (≤4,000: what the API answered), <code>details</code> (≤2,000), <code>email</code> (to hear back), <code>request_id</code> and <code>source</code> are optional. Returns <code>{"ok":true,"id":"r…","status":"received","status_url":"https://hlaverify.com/support?id=r…","message":"…","release":"…"}</code>. Not billable. The same form is at <a href="https://hlaverify.com/support">hlaverify.com/support</a>.</p>
-<p><b>What happens next:</b> a person reviews every report. It is rerun against the live API and the IPD-IMGT/HLA reference data; a confirmed error is fixed and listed with the release that fixed it. <b>Do not include patient identifiers</b>: send only the HLA names or the request. Anything shaped like a record number, a date of birth or a Social Security number is refused with <code>422</code>, and nothing is stored.</p>
+<p><b>What happens next:</b> every report is rerun against the live API and the IPD-IMGT/HLA reference data, and a person confirms any error before it is published; a confirmed error is fixed and listed with the release that fixed it. <b>Do not include patient identifiers of any kind</b>, names included: send only the HLA names or the request. Obvious identifiers (record-number and date-of-birth labels, Social Security numbers, US-format dates) are refused with <code>422</code> and nothing is stored; a name cannot be detected, so leave names out. At most 20 reports a day from one connection (<code>429</code> after that).</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/report -H 'content-type: application/json' \\
   -d '{"kind": "wrong_result", "endpoint": "/v1/verify", "input": "B*07:02", "expected": "a valid allele, not flagged", "email": "you@lab.example"}'`)}
 
@@ -583,11 +583,12 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           503: { description: "the application store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/report": { post: { summary: "Report an answer you believe is wrong (support portal intake)",
         description: "Files one support report: a verdict, normalization or lookup that looks wrong, a docs page that disagrees with the API, " +
-          "an outdated release, or a question. A person reviews every report; it is rerun against the live API and the IPD-IMGT/HLA reference " +
-          "data, and a confirmed error is fixed and listed with the release that fixed it. Returns an id to follow it with GET /v1/report/{id} " +
-          "or at https://hlaverify.com/support?id=... . Do not include patient identifiers: anything shaped like a record number, a date of " +
-          "birth or a Social Security number is refused with 422 and nothing is stored. Stores what you send plus a timestamp, CF-IPCountry and " +
-          "the live release, and no IP address. The record is not an API key and cannot be used as one. Not billable against the daily quota, " +
+          "an outdated release, or a question. Every report is rerun against the live API and the IPD-IMGT/HLA reference data, and a person " +
+          "confirms any error before it is published; a confirmed error is fixed and listed with the release that fixed it. Returns an id to " +
+          "follow it with GET /v1/report/{id} or at https://hlaverify.com/support?id=... . Do not include patient identifiers of any kind, names " +
+          "included: obvious ones (record-number and DOB labels, SSNs, US-format dates) are refused with 422 and nothing is stored, and a name " +
+          "cannot be detected. Stores what you send plus a timestamp, CF-IPCountry and the live release, and no IP address, in a store separate " +
+          "from API keys. At most 20 reports a day per IP. Not billable against the daily quota, " +
           "but rate limited like every other /v1/ route (60 requests/minute per IP without a key).",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["input", "expected"],
           properties: { kind: { type: "string", enum: ["wrong_result", "docs_mismatch", "outdated_release", "question", "other"], default: "wrong_result" },
@@ -604,7 +605,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           properties: { ok: { type: "boolean" }, id: { type: "string", pattern: "^r[0-9a-f]{16}$" }, status: { type: "string", enum: ["received"] },
             status_url: { type: "string" }, message: { type: "string" }, release: { type: "string" } } } } } },
           422: { description: "a missing or empty required field, an unknown kind, an oversized field, an invalid email, or something shaped like a patient identifier", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
-          429: { description: "rate limited (60 req/min per IP; /v1/report does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          429: { description: "rate limited: 60 req/min per IP, or more than 20 reports today from this IP (/v1/report does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "the report store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/report/{id}": { get: { summary: "Follow a support report: its public status only",
         description: "Status, public note and the release that fixed it. Never the input or the email address. Not billable.",
