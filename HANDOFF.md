@@ -78,8 +78,14 @@ taking the API down. Every billable response carries `x-hla-verify-daily-*` head
   `hlaverify.com/v1/verify`. `public/` is committed; CI fails if it is stale.
 - Always branch, open a PR, wait for CI, merge. Never push to `main`.
 - Concurrent merges can race: an older commit's deploy can finish last. After merging,
-  confirm production matches `main` (`/healthz` reports `uptime_s`; near 0 means the new
-  build is serving); if not, re-run the deploy workflow.
+  confirm production matches `main`: `/healthz` reports `exported_at`, the build marker
+  (the tables are regenerated on every deploy, so it is unique per build — the deploy
+  workflow itself waits for it to match before smoke-testing); if not, re-run the deploy
+  workflow.
+- The smoke step's job log is not readable from the scheduled tasks' sandbox (the log and
+  artifact downloads redirect to Azure blob storage, which the proxy refuses). Every smoke
+  check therefore reports what it got as a check-run annotation
+  (`repos/{o}/{r}/check-runs/{id}/annotations`), which is readable. Keep it that way.
 
 ## How to test before merging
 

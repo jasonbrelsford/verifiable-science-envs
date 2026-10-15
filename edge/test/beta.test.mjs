@@ -346,7 +346,7 @@ test("every pre-existing route behaves exactly as before", async () => {
   const env = baseEnv();
   const body = (b) => ({ headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
   const cases = [
-    ["GET", "/healthz", {}, 200, (j) => assert.equal(j.release, manifest.release)],
+    ["GET", "/healthz", {}, 200, (j) => { assert.equal(j.release, manifest.release); assert.equal(j.exported_at, manifest.exported_at); }],
     ["GET", "/docs", {}, 200, null],
     ["GET", "/", {}, 200, null],
     ["GET", "/pricing", {}, 200, null],

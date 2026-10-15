@@ -196,8 +196,12 @@ export default {
     // reference data are CC-BY-ND and not redistributed in bulk.
     if (path.startsWith("/data/") || path === "/manifest.json" || path === "/pgx.json") return err(404, "Not Found");
 
+    // exported_at is the build marker: the tables are regenerated on every deploy,
+    // so their export time identifies the deployment serving the request — that is
+    // how edge-deploy.yml knows the build it just pushed is live before smoke-testing it.
     if (path === "/healthz")
-      return json({ ok: true, release: manifest.release, alleles: manifest.alleles, uptime_s: Math.floor((Date.now() - STARTED) / 1000) });
+      return json({ ok: true, release: manifest.release, alleles: manifest.alleles, exported_at: manifest.exported_at,
+        uptime_s: Math.floor((Date.now() - STARTED) / 1000) });
     // /docs, /openapi.json and /pricing all read the same cached Stripe answer:
     // the pricing page publishes it, and the other two only use it to decide
     // whether to claim self-serve checkout works. getPricing() never throws and
