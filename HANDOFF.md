@@ -22,11 +22,13 @@ service code is PolyForm Noncommercial.
 ## What is live right now
 
 - **`https://api.hlaverify.com`** — REST (`/v1/verify`, `/normalize`, `/allele/{name}`,
-  `/match`, `/typing/check`, `/compat`, `/glstring`, `/usage`, `/beta-signup`,
-  `/research-access`, `/checkout`) and the MCP server at `/mcp`.
+  `/match`, `/typing/check`, `/compat`, `/glstring`, `/pgx/table`, `/pgx/screen`, `/pgx/pair`,
+  `/usage`, `/beta-signup`, `/research-access`, `/checkout`) and the MCP server at `/mcp`.
+  The three `/pgx/*` routes join normalized alleles to the hla-pgx-open CPIC/PharmGKB table,
+  vendored at deploy time by `sci_envs/service/pgx_export.py` (see below).
 - **MCP**: dual-era. The 2026-07-28 revision (stateless, `server/discover`, per-request
   `_meta`, `MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name` headers validated against the
-  body) **and** the legacy `initialize` handshake. **10 tools**, each with input and output
+  body) **and** the legacy `initialize` handshake. **12 tools**, each with input and output
   schemas and annotations. OAuth sign-in is on. Do not drop either era.
 - **`https://hlaverify.com`** — the site, deployed from the website repo.
 - **MCP Registry**: published as `com.hlaverify/hla-verify` v1.0.1 (`server.json`).
@@ -64,7 +66,14 @@ taking the API down. Every billable response carries `x-hla-verify-daily-*` head
 - **This repo**: a push to `main` touching `edge/src/**`, `edge/wrangler.jsonc`,
   `sci_envs/service/edge_export.py` or `.github/workflows/edge-deploy.yml` **deploys
   production**. The workflow then smoke-tests the live REST API *and* the live MCP endpoint
-  (modern `server/discover`, a modern `tools/call`, a legacy `initialize`).
+  (modern `server/discover`, a modern `tools/call`, a legacy `initialize`) and the pgx routes.
+- `edge_export` also runs `sci_envs.service.pgx_export`, which fetches the hla-pgx-open table
+  from GitHub and writes `edge/public/pgx.json`. **The deploy fails** if hla-pgx-open is
+  unreachable (CI has no previous bundle to keep), if its manifest says a source build was
+  not ok, or if the snapshot is older than 60 days (the weekly rebuild there has stalled).
+  That is deliberate: a stale or half-built drug table must not ship. Escape hatch for an
+  unrelated emergency fix: `HLA_VERIFY_SKIP_PGX=1` on the export step ships the Worker
+  without the bundle and the pgx routes answer 503 until the next full deploy.
 - **Website repo**: every push to `main` builds, deploys and smoke-tests every page plus
   `hlaverify.com/v1/verify`. `public/` is committed; CI fails if it is stale.
 - Always branch, open a PR, wait for CI, merge. Never push to `main`.
@@ -76,14 +85,14 @@ taking the API down. Every billable response carries `x-hla-verify-daily-*` head
 
 ```bash
 python -m sci_envs.service.edge_export      # ~45s, writes the gitignored edge/public tables
-cd edge && node --test                      # 265 tests as of 2026-10-06, incl. golden parity with the Python oracle
-pytest -q                                   # 244 passed, 2 skipped as of 2026-10-07 (needs .[dev,service,mcp])
+cd edge && node --test                      # 276 tests as of 2026-10-13, incl. golden parity with the Python oracle
+pytest -q                                   # 252 passed as of 2026-10-13 (3 skip without the .[dev,service,mcp] extras)
 npx wrangler@4 dev --local --port <free>    # then exercise the change
 node <path>/mcpclient/probe.mjs http://127.0.0.1:<port>/mcp
 ```
 
 `probe.mjs` connects with the official `@modelcontextprotocol/client` in `auto`,
-pinned-`2026-07-28` and `legacy` modes. Expect three lines and ten tools. It is the
+pinned-`2026-07-28` and `legacy` modes. Expect three lines and twelve tools. It is the
 fastest proof the MCP server still works.
 
 Golden parity between the Python oracle (`sci_envs/`) and the Worker

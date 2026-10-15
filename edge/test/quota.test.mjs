@@ -163,14 +163,17 @@ test("the tier table is exactly what /pricing publishes, and pro is an alias for
 });
 
 test("billable routes and tools are exactly the metered ones", () => {
-  for (const p of ["/v1/verify", "/v1/normalize", "/v1/match", "/v1/typing/check", "/v1/compat", "/v1/glstring", "/v1/allele/A*01:01"])
+  for (const p of ["/v1/verify", "/v1/normalize", "/v1/match", "/v1/typing/check", "/v1/compat", "/v1/glstring", "/v1/allele/A*01:01",
+    "/v1/pgx/screen", "/v1/pgx/pair"])
     assert.equal(isBillablePath(p), true, p);
   for (const p of ["/healthz", "/docs", "/openapi.json", "/pricing", "/checkout/success", "/v1/beta-signup",
-    "/webhooks/stripe", "/.well-known/oauth-protected-resource", "/oauth/authorize", "/mcp", "/v1/unknown"])
+    "/webhooks/stripe", "/.well-known/oauth-protected-resource", "/oauth/authorize", "/mcp", "/v1/unknown", "/v1/pgx/table"])
     assert.equal(isBillablePath(p), false, p);
   assert.equal(BILLABLE_TOOLS.has("about"), false);
   assert.equal(BILLABLE_TOOLS.has("beta_signup"), false);
-  assert.equal(BILLABLE_TOOLS.size, 7);
+  assert.equal(BILLABLE_TOOLS.has("pgx_lookup"), true);
+  assert.equal(BILLABLE_TOOLS.has("pgx_pair"), true);
+  assert.equal(BILLABLE_TOOLS.size, 9);
 });
 
 // --------------------------------------------------------------- headers

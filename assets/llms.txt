@@ -57,9 +57,9 @@ release; verification is pinned to an exact release version.
 - MCP server (add HLA-Verify as agent tools):
     Remote (Streamable HTTP, no install): https://api.hlaverify.com/mcp
       tools: verify_text, normalize_allele, allele_info, match_score, check_typing,
-      donor_compat, validate_gl_string, about, beta_signup, research_access (donor_compat
-      is decision support only; beta_signup and research_access are the only tools that
-      write)
+      donor_compat, validate_gl_string, pgx_lookup, pgx_pair, about, beta_signup,
+      research_access (donor_compat, pgx_lookup and pgx_pair are decision support only;
+      beta_signup and research_access are the only tools that write)
       protocol: MCP 2026-07-28 (stateless; call server/discover for versions, capabilities
       and instructions) plus the legacy initialize handshake (2025-11-25, 2025-06-18,
       2025-03-26, 2024-11-05)

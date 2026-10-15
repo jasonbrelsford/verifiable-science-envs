@@ -8,6 +8,7 @@
 import { TIER_LIMITS } from "./keys.js";
 import { MAX_TYPINGS } from "./handlers.js";
 import { priceLabel, SELLABLE_TIERS } from "./pricing.js";
+import { SCOPE as PGX_SCOPE } from "./pgx.js";
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const n = (v) => (v === null ? "uncapped" : v.toLocaleString("en-US"));
@@ -135,6 +136,25 @@ ${curl(`curl -s https://api.hlaverify.com/v1/compat -H 'content-type: applicatio
 <p>Lab Toolkit. <code>{"gl": "A*01:01/A*02:01+A*03:01~B*07:02"}</code> — the <code>^</code> locus-block / <code>|</code> genotype-list / <code>+</code> genotype / <code>~</code> haplotype / <code>/</code> allele-list grammar, up to 5,000 allele tokens. Resolves and renames every allele token and flags structural problems (<code>mixed_locus_allele_list</code>, <code>haplotype_repeats_locus</code>, <code>more_than_two_haplotypes</code>, <code>genotype_loci_differ</code>, <code>genotype_list_loci_differ</code>, <code>locus_repeated_across_blocks</code>, <code>empty_element</code>, <code>whitespace_in_name</code>), returning a normalized string with outdated names rewritten to current. Units metered = allele token count (including empty slots from a doubled separator).</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/glstring -H 'content-type: application/json' -d '{"gl": "A*0101+A*02:01"}'`)}
 
+<h3 id="pgx"><span class="pill">GET</span><code>/v1/pgx/table</code> — the HLA pharmacogenomics table (open data)</h3>
+<p>Pharmacogenomics. The whole <a href="https://github.com/jasonbrelsford/hla-pgx-open">hla-pgx-open</a> table — published CPIC guideline recommendations and PharmGKB clinical annotations that key on an HLA allele (abacavir and <code>B*57:01</code>, carbamazepine and <code>B*15:02</code> / <code>A*31:01</code>, allopurinol and <code>B*58:01</code>, …), one row per source record × allele × drug, with every allele name checked against the pinned IPD-IMGT/HLA release. JSON by default, <code>?format=csv</code> for the file. <b>Free, no key, not billable</b>, cached for a day; CC BY-SA 4.0 — the response carries the attribution block, and every pgx response names the <code>pgx_snapshot</code> (UTC date and git commit of the table) it was answered from, the way every verdict names the release.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/pgx/table?format=csv -o hla_pgx.csv`)}
+
+<h3><span class="pill">POST</span><code>/v1/pgx/screen</code> — which drugs a typing carries a published HLA association for</h3>
+<p>Pharmacogenomics. <code>{"typing": {"A": [...], "B": [...], ...}}</code> (shaped as in <code>/v1/typing/check</code>) or <code>{"alleles": ["B*5701", "A*31:01", ...]}</code> — exactly one of the two, any nomenclature era or shorthand. Every name goes through <code>/v1/normalize</code> first (that is the point: guideline lookups need clean two-field names, and labs report every era), so each row carries <code>current_name</code>, <code>allele_2field</code> and the usual flags — nothing is converted silently — and then joins the table on the two-field form. Per allele: <code>associations[]</code> (source, drug, evidence level, CPIC testing recommendation, allele status, implication, recommendation, guideline or annotation URL, PMIDs). <code>summary.actionable</code> is the subset a prescriber acts on: CPIC level A, allele-positive. Billable like <code>/v1/normalize</code>; units metered = names sent. <b>Decision support only; not a medical device.</b></p>
+${curl(`curl -s https://api.hlaverify.com/v1/pgx/screen -H 'content-type: application/json' -d '{"alleles": ["B*5701", "A*3101"]}'`)}
+${curl(`{"release":"${m.release}","pgx_snapshot":{"date":"2026-10-12","commit":"35bcc18…"},"scope":"Guideline lookup over published CPIC and PharmGKB associations…",
+ "alleles":[{"reported":"B*5701","current_name":"B*57:01:01:01","allele_2field":"B*57:01","flags":["deprecated_name"],
+   "associations":[{"source":"cpic","drug":"abacavir","evidence_level":"CPIC A","pgx_testing":"Testing Required","allele_status":"positive",
+     "recommendation":"Abacavir is not recommended", "guideline_url":"https://www.clinpgx.org/guideline/PA166251444", "…":"…"}]}, "…"],
+ "summary":{"names":2,"unresolvable":0,"with_associations":2,"actionable":["…"],"drugs_actionable":["abacavir","carbamazepine"]},
+ "license":"CC-BY-SA-4.0","attribution":"…"}`)}
+
+<h3><span class="pill">POST</span><code>/v1/pgx/pair</code> — which genome carries each actionable association, donor and recipient</h3>
+<p>Pharmacogenomics. <code>{"recipient": {"typing": {...}} | {"alleles": [...]}, "donor": {...}}</code>. Screens both sides exactly as <code>/v1/pgx/screen</code> does, then lists every actionable association with <code>in_recipient</code>, <code>in_donor</code>, <code>discordant</code> (present in exactly one) and <code>whose_hla</code> (<code>both</code> / <code>recipient_only</code> / <code>donor_only</code>). After an allogeneic transplant the recipient's blood carries the donor's genome, and which genome should drive an HLA-mediated drug alert is an open question (NCT06856226): this endpoint reports both and decides nothing. Billable like <code>/v1/match</code>; units metered = names on both sides. <b>Decision support only; not a medical device.</b></p>
+${curl(`curl -s https://api.hlaverify.com/v1/pgx/pair -H 'content-type: application/json' -d '{
+  "recipient": {"alleles": ["B*57:01", "A*02:01"]}, "donor": {"alleles": ["B*44:02", "A*02:01"]}}'`)}
+
 <h3><span class="pill">POST</span><code>/v1/checkout</code> — start a Stripe Checkout Session for a paid tier</h3>
 <p><code>{"tier": "starter"|"lab"|"scale"}</code> (or a specific active <code>price</code> id, as a cross-check on <code>tier</code>). Returns a hosted Stripe Checkout url to send the buyer to; the buttons on <a href="/pricing">/pricing</a> call this endpoint. On a completed checkout, Stripe's webhook creates the key — see <a href="#self-serve-keys">Self-serve keys</a> above for whether that is switched on for real purchases right now. Free and not billable against the daily quota, but rate limited like every other <code>/v1/</code> route. 503 when self-serve checkout is not configured on this deployment or the tier has no live price.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/checkout -H 'content-type: application/json' -d '{"tier": "starter"}'`)}
@@ -165,7 +185,7 @@ ${curl(`{"release":"${m.release}","tier":"lab","daily_quota":10000,"max_typings"
 <p><code>{"ok":true,"release":"${esc(m.release)}","alleles":${m.alleles},"uptime_s":…}</code></p>
 
 <h2>MCP for agents</h2>
-<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>about</code>, plus the two tools that write: <code>beta_signup</code> (it joins the beta list) and <code>research_access</code> (it files a research access application), each doing exactly what its endpoint above does. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code> is decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back on HTTP 200 as an ordinary tool result with <code>isError:true</code> and a message naming the reset time, with <code>x-hla-verify-daily-remaining: 0</code> and <code>Retry-After</code> on the response: MCP clients treat a non-2xx POST as a transport failure and never read the frame, so the refusal is sent the one way an agent actually sees it. REST keeps its 429.</p>
+<p>A remote MCP server lives at <code>POST /mcp</code> (Streamable HTTP transport, JSON-RPC 2.0, stateless — one JSON response per call, no session to manage). It exposes the same deterministic lookups as the REST API as tools: <code>verify_text</code>, <code>normalize_allele</code>, <code>allele_info</code>, <code>match_score</code>, <code>check_typing</code>, <code>donor_compat</code>, <code>validate_gl_string</code>, <code>pgx_lookup</code>, <code>pgx_pair</code>, <code>about</code>, plus the two tools that write: <code>beta_signup</code> (it joins the beta list) and <code>research_access</code> (it files a research access application), each doing exactly what its endpoint above does. Results are byte-identical to the matching <code>/v1/…</code> response because both run the same code underneath. <code>donor_compat</code>, <code>pgx_lookup</code> and <code>pgx_pair</code> are decision support only; not a medical device. The same input rule applies as on REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. Anonymous access shares the free tier's ${CALLS("free")} calls a day and 60 req/min; an API key on <code>/mcp</code> gets the same tier, daily quota and batch cap as on REST. A tool call over quota comes back on HTTP 200 as an ordinary tool result with <code>isError:true</code> and a message naming the reset time, with <code>x-hla-verify-daily-remaining: 0</code> and <code>Retry-After</code> on the response: MCP clients treat a non-2xx POST as a transport failure and never read the frame, so the refusal is sent the one way an agent actually sees it. REST keeps its 429.</p>
 <p>Protocol versions: <code>2026-07-28</code> (stateless — call <code>server/discover</code> for versions, capabilities and instructions; send the <code>MCP-Protocol-Version</code>, <code>Mcp-Method</code> and, for <code>tools/call</code>, <code>Mcp-Name</code> headers) and, through the <code>initialize</code> handshake, <code>2025-11-25</code>, <code>2025-06-18</code>, <code>2025-03-26</code> and <code>2024-11-05</code>. Clients that support both, such as the Cloudflare Agents SDK, pick the newest automatically.</p>
 <p>Discovery before connecting: an MCP Server Card (SEP-2127) at <a href="/mcp/server-card"><code>GET /mcp/server-card</code></a> (also <code>/.well-known/mcp/server-card.json</code>) gives name, version, endpoint, headers and protocol versions without a handshake. For domain-level crawlers, <a href="/.well-known/ard.json"><code>/.well-known/ard.json</code></a> lists it per the Agentic Resource Discovery spec (identifier, capabilities and representative queries), and <a href="/.well-known/ai-catalog.json"><code>/.well-known/ai-catalog.json</code></a> does the same for its predecessor. Tools are not in the card — call <code>tools/list</code>. The repository's <code>server.json</code> describes the same server (<code>com.hlaverify/hla-verify</code>) for the official MCP Registry.</p>
 <h3>Claude Desktop / claude.ai connectors</h3>
@@ -398,6 +418,11 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           description: "locus -> up to 4 reported allele names. Allele strings only: never patient names, medical record numbers, dates of birth, or accession or case identifiers.",
           additionalProperties: { type: "array", items: { type: "string" }, maxItems: 4 },
           example: { A: ["A*02:01", "A*24:02"], B: ["B*07:02", "B*44:02"], C: ["C*07:02", "C*05:01"], DRB1: ["DRB1*15:01", "DRB1*04:01"] } },
+        PgxInput: { type: "object",
+          description: "One side of a pgx lookup: exactly one of typing (a Typing object) or alleles (a flat list of reported names). Allele strings only, never patient identifiers.",
+          properties: { typing: { $ref: "#/components/schemas/Typing" },
+            alleles: { type: "array", maxItems: 96, items: { type: "string", maxLength: 64 } } },
+          example: { alleles: ["B*57:01", "A*31:01"] } },
       },
     },
     security: [{}, { ApiKey: [] }],
@@ -461,6 +486,26 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           properties: { gl: { type: "string", maxLength: 100000 } } } } } },
         responses: { 200: { description: "release, valid, normalized_gl, changed, loci, alleles, issues, counts, attribution" },
           422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/pgx/table": { get: { summary: "The hla-pgx-open HLA pharmacogenomics table (CPIC + PharmGKB), JSON or CSV. Open data, no key, not billable.",
+        description: "CC BY-SA 4.0 (hla-pgx-open). Every pgx response carries pgx_snapshot (UTC date and git commit of the table), the scope sentence and the attribution block. " + PGX_SCOPE,
+        parameters: [{ name: "format", in: "query", required: false, schema: { type: "string", enum: ["json", "csv"] } }],
+        responses: { 200: { description: "release, pgx_snapshot, scope, license, attribution, row_count, columns, rows (or text/csv)" },
+          503: { description: "table not available on this deployment" } } } },
+      "/v1/pgx/screen": { post: { summary: "Which drugs an HLA typing carries a published pharmacogenomic association for (names normalized first)",
+        description: "Exactly one of typing or alleles. Each name is normalized as /v1/normalize does, then joined to the table on its two-field form; summary.actionable is the CPIC level-A, allele-positive subset. Billable like /v1/normalize. " + PGX_SCOPE,
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object",
+          properties: { typing: { $ref: "#/components/schemas/Typing" },
+            alleles: { type: "array", maxItems: 96, items: { type: "string", maxLength: 64 } } } } } } },
+        responses: { 200: { description: "release, pgx_snapshot, scope, alleles[] (reported, current_name, allele_2field, flags, associations[]), summary, license, attribution" },
+          422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "table not available on this deployment" } } } },
+      "/v1/pgx/pair": { post: { summary: "Donor and recipient: which genome carries each actionable HLA-drug association",
+        description: "Screens both sides as /v1/pgx/screen does and marks every actionable association in_recipient, in_donor, discordant and whose_hla. Billable like /v1/match. " + PGX_SCOPE,
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["recipient", "donor"],
+          properties: { recipient: { $ref: "#/components/schemas/PgxInput" }, donor: { $ref: "#/components/schemas/PgxInput" } } } } } },
+        responses: { 200: { description: "release, pgx_snapshot, scope, recipient, donor, actionable[], summary, license, attribution" },
+          422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "table not available on this deployment" } } } },
       "/pricing": { get: { summary: "Published prices and limits (HTML)",
         description: "Amount, currency and billing interval are read from Stripe at request time and cached for ten minutes, so a price change in Stripe " +
           "publishes without a deploy. An existing subscription is not re-rated: it keeps the price it was created with until it is deliberately migrated. " +
@@ -544,8 +589,8 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           401: { description: "missing or invalid admin token", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "admin dashboard or usage reporting not configured on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/mcp": { post: { summary: "Remote MCP endpoint (Streamable HTTP transport, JSON-RPC 2.0, stateless)",
-        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, beta_signup, research_access, about. " +
-          "Every tool call but about, beta_signup and research_access consumes one call of the caller's daily quota, the same one /v1/* spends. donor_compat is decision support only; not a medical device. beta_signup and research_access are the only tools that write. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",
+        description: "Tools: verify_text, normalize_allele, allele_info, match_score, check_typing, donor_compat, validate_gl_string, pgx_lookup, pgx_pair, beta_signup, research_access, about. " +
+          "Every tool call but about, beta_signup and research_access consumes one call of the caller's daily quota, the same one /v1/* spends. donor_compat, pgx_lookup and pgx_pair are decision support only; not a medical device. beta_signup and research_access are the only tools that write. Same input rule as REST: send allele names, typing strings, GL strings and HLA report text, never patient identifiers. See the MCP for agents section above.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object",
           required: ["jsonrpc", "method"],
           properties: { jsonrpc: { type: "string", enum: ["2.0"] }, id: {}, method: { type: "string" }, params: { type: "object" } } } } } },
