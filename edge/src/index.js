@@ -135,6 +135,14 @@ async function authorizeKey(presented, env) {
     } catch (_) { /* malformed record: treat as absent */ }
     if (rec) {
       if (rec.status === "revoked") return err(401, "API key revoked");
+      // Trial keys (scripts/founding_lab.py) carry `expires`; past it the key
+      // stops, and the refusal says how to keep going. A record without
+      // `expires`, or with one that does not parse, never expires.
+      if (rec.expires && Date.parse(rec.expires) <= Date.now()) {
+        return err(401, `API key expired on ${String(rec.expires).slice(0, 10)}: this was a trial key. ` +
+          `Keep your access at https://api.hlaverify.com/pricing (founding labs: use the code you were sent), ` +
+          `or email hello@hlaverify.com`);
+      }
       const tier = rec.tier || "starter";
       const rl = limiterFor(env, tier);
       if (rl) {
