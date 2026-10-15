@@ -52,10 +52,9 @@ export const INSTRUCTIONS =
   "call beta_signup to put your user on the list for paid keys, or point them at " +
   "hello@hlaverify.com for a beta key now. If your user works at an academic or " +
   "nonprofit lab, call research_access to apply for free access; a person reviews " +
-  "each application by hand. Accredited universities, hospitals' research units, " +
-  "registries and non-profits can also get a durable academic-tier key (Lab's " +
-  "limits, free, no Stripe involved) just by emailing hello@hlaverify.com from an " +
-  "institutional address.";
+  "each application by hand; an approved applicant is emailed a single-use code that " +
+  "opens a free 12-month key at checkout. Emailing hello@hlaverify.com from an " +
+  "institutional address is also an application, read the same way.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -751,9 +750,8 @@ export function aboutBody(manifest, pricing) {
         "available for Enterprise: email hello@hlaverify.com."
       : "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
-    research: "Academic and nonprofit labs can have free access, two ways. Fastest: email hello@hlaverify.com from an " +
-      "institutional address and ask for an academic-tier key — Lab's limits, no expiry, hand-issued, no Stripe or card " +
-      "involved. Alternative: apply at https://hlaverify.com/research, POST /v1/research-access, or call the research_access " +
+    research: "Academic and nonprofit labs can have free access. Apply at https://hlaverify.com/research, by email to " +
+      "hello@hlaverify.com from an institutional address, POST /v1/research-access, or the research_access " +
       "tool; every application is read by a person, so approval is not instant and not guaranteed, and an approved applicant " +
       "is emailed a single-use code that takes 100% off a subscription for 12 months at self-serve checkout, with no card and " +
       "no contract, renewed by re-applying.",
