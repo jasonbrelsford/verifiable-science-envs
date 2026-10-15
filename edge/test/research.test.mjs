@@ -369,9 +369,10 @@ test("a research/ record can never be presented as an API key", async () => {
 
 test("every reserved prefix is declared, and the beta guard still holds", async () => {
   // The list is the mechanism: a prefix added to the KEYS namespace without an
-  // entry here is the bug this file exists to prevent recurring. (Support reports
-  // live in their own REPORTS namespace, not here: test/report.test.mjs.)
-  assert.deepEqual([...RESERVED_PREFIXES].sort(), [BETA_PREFIX, RESEARCH_PREFIX].sort());
+  // entry here is the bug this file exists to prevent recurring. "founding/" is the
+  // Founding Lab trial records (test/founding.test.mjs); support reports live in
+  // their own REPORTS namespace, not here (test/report.test.mjs).
+  assert.deepEqual([...RESERVED_PREFIXES].sort(), [BETA_PREFIX, RESEARCH_PREFIX, "founding/"].sort());
   const env = baseEnv();
   for (const presented of [`${BETA_PREFIX}x@example.com`, `${RESEARCH_PREFIX}x@example.com`]) {
     const resp = await call(env, "GET", "/v1/allele/A*01:01", { headers: { "x-api-key": presented } });
