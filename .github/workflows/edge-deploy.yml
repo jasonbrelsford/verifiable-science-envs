@@ -33,13 +33,46 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_WORKERS_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: cd edge && npx --yes wrangler@4 deploy
-      - name: smoke
+      - name: wait for the new build to be live
+        # wrangler returns before the new version has reached every edge location, and
+        # a smoke check that needs new code can race it (2026-10-15: the first pgx check
+        # ran 1s after the deploy and got the previous build). The tables are regenerated
+        # on every deploy, so their export time is the build marker: /healthz reports it,
+        # and the smoke step starts only once it matches the manifest this run just built.
         run: |
-          curl -sf https://api.hlaverify.com/healthz
-          curl -sf https://api.hlaverify.com/v1/verify -H 'content-type: application/json' -d '{"text":"A*0101 DQB1*05:03:26:99"}' | grep -q '"hallucinated":1'
+          want=$(python3 -c 'import json; print(json.load(open("edge/public/manifest.json"))["exported_at"])')
+          for i in $(seq 1 30); do
+            got=$(curl -sf --max-time 10 https://api.hlaverify.com/healthz | python3 -c 'import json,sys; print(json.load(sys.stdin).get("exported_at", ""))' 2>/dev/null || true)
+            if [ "$got" = "$want" ]; then echo "build $want is live after $((i * 5 - 5))s"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::the new build (exported_at $want) was not serving after 150s; /healthz last reported '$got'"
+          exit 1
+      - name: smoke
+        # Every check names what it got on failure, as a check-run annotation: the job log
+        # is not readable from the scheduled tasks' sandbox, the annotations are. Each check
+        # reads the whole body and tests the HTTP status explicitly, in bash rather than
+        # through a pipe. The old `curl -sf … | grep -q` form reported only grep's status
+        # (no `shell:` is set here, so this is `bash -e` without pipefail): a 404 or 503 was
+        # indistinguishable from a wrong body, and a `| head -1` would have hidden a curl
+        # failure entirely.
+        run: |
+          check() {  # check <name> <ERE the 200 body must match> <curl args...>
+            local name=$1 re=$2; shift 2
+            local out code body
+            out=$(curl -s --max-time 20 -w '\n%{http_code}' "$@") || { echo "::error::smoke $name: curl failed (exit $?)"; exit 1; }
+            code=${out##*$'\n'}; body=${out%$'\n'*}
+            if [ "$code" != 200 ] || ! [[ $body =~ $re ]]; then
+              echo "::error::smoke $name failed: HTTP $code, body: ${body:0:300}"
+              exit 1
+            fi
+            echo "smoke $name ok"
+          }
+          check healthz '"ok": ?true' https://api.hlaverify.com/healthz
+          check verify '"hallucinated":1' https://api.hlaverify.com/v1/verify -H 'content-type: application/json' -d '{"text":"A*0101 DQB1*05:03:26:99"}'
           # pharmacogenomics: the vendored bundle shipped and the normalize-then-join path works
-          curl -sf 'https://api.hlaverify.com/v1/pgx/table?format=csv' | head -1 | grep -q '^source,source_record_id,'
-          curl -sf https://api.hlaverify.com/v1/pgx/screen -H 'content-type: application/json' -d '{"alleles":["B*5701"]}' | grep -q '"drugs_actionable":\["abacavir"\]'
+          check pgx-table '^source,source_record_id,' 'https://api.hlaverify.com/v1/pgx/table?format=csv'
+          check pgx-screen '"drugs_actionable":\["abacavir"\]' https://api.hlaverify.com/v1/pgx/screen -H 'content-type: application/json' -d '{"alleles":["B*5701"]}'
       - name: smoke mcp
         env:
           MCP: https://api.hlaverify.com/mcp
