@@ -16,23 +16,30 @@ byte-identical output, which is the property ``docs/RELEASE_BUMP.md`` relies on 
 the other families.  The §6 question-1 parameters (pool size, locus set, population)
 are arguments whose defaults are the spec's proposal, not constants.
 
-No grading, no subtypes, no bench split here — those are the next sub-steps.
+Layer 3 (§8.1) adds two purpose-built pool parameters, ``null_per_locus`` and
+``sibling_pairs_per_locus``, as post-draw relabellings of the default pool under their
+own seeded streams (the default pool's bytes do not change), plus the two enumeration
+oracles the pedigree subtype needs, ``phased_pairs`` and ``pedigree_phasings``.  The
+Mendel oracle over unphased parents, ``mendelian_phasings``, lives here too.
+
+No grading, no subtypes, no bench split here — those are ``tasks.py`` and ``grade.py``.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import random
 import sys
 from dataclasses import dataclass, field
 from typing import Optional, Sequence
 
-from sci_envs.reference.imgt import ImgtReference, split_allele
+from sci_envs.reference.imgt import ImgtReference, split_allele, truncate
 from sci_envs.families.nomenclature.task import dumps
 
 FAMILY = "hla_phasing"
 LAYER = "synthetic_mendelian_truth"
-GENERATOR_REV = "B1-r1"      # bump on any change that alters output for a fixed seed
+GENERATOR_REV = "B1-r2"      # bump on any change that alters output for a fixed seed
 BASE_SEED = 20260831
 
 # TASK_SPEC_FAMILY_B §6 question 1 — the proposal, as defaults.  Change the flag, not the code.
@@ -132,7 +139,9 @@ def draw_founder_pool(ref: ImgtReference, seed: int = BASE_SEED,
                       loci: Sequence[str] = DEFAULT_LOCI,
                       population: str = DEFAULT_POPULATION,
                       alleles_per_locus: int = DEFAULT_ALLELES_PER_LOCUS,
-                      allow_suffix: bool = False) -> FounderPool:
+                      allow_suffix: bool = False,
+                      null_per_locus: int = 0,
+                      sibling_pairs_per_locus: int = 0) -> FounderPool:
     """Draw ``n_founders`` distinct phased haplotypes over ``loci`` from the pinned release.
 
     Each locus contributes ``alleles_per_locus`` distinct alleles with skewed per-locus
@@ -140,12 +149,28 @@ def draw_founder_pool(ref: ImgtReference, seed: int = BASE_SEED,
     across haplotypes and phase is not trivially forced), de-duplicated, then given
     skewed frequencies.  The pool is small by design: §2 needs posteriors computed by
     exact enumeration over it.
+
+    The two layer-3 parameters (§8.1) relabel the drawn pool after the draw, each under
+    its own seeded stream, so a pool with both at zero is byte-identical to layer 1's:
+
+    ``null_per_locus``          k of the alleles at every locus are replaced by N-suffixed
+                                (null) names from the release — a promise the random
+                                ``allow_suffix`` cannot make;
+    ``sibling_pairs_per_locus`` p pairs of alleles at every locus are replaced by pairs
+                                of full-resolution names that share one two-field prefix
+                                (and share it with nothing else at that locus), so a
+                                two-field input covers two pool alleles.
     """
     loci = normalize_loci(loci)
     if n_founders < 2:
         raise PhasingError("a founder pool needs at least 2 haplotypes")
     if alleles_per_locus < 2:
         raise PhasingError("need at least 2 alleles per locus")
+    if null_per_locus < 0 or sibling_pairs_per_locus < 0:
+        raise PhasingError("null_per_locus and sibling_pairs_per_locus cannot be negative")
+    if null_per_locus + 2 * sibling_pairs_per_locus > alleles_per_locus:
+        raise PhasingError(f"{null_per_locus} null + {2 * sibling_pairs_per_locus} sibling slots exceed "
+                           f"{alleles_per_locus} alleles per locus")
     rng = _rng(seed, "pool", ref.tag, population, n_founders, ",".join(loci), alleles_per_locus,
                int(allow_suffix))
     alleles_by_locus: dict[str, list[str]] = {}
@@ -169,8 +194,55 @@ def draw_founder_pool(ref: ImgtReference, seed: int = BASE_SEED,
         seen.add(h)
         haps.append(h)
     freqs = _round_to_one(_skewed_weights(rng, n_founders))
+    if null_per_locus or sibling_pairs_per_locus:
+        relabel = _relabel_map(ref, seed, loci, population, alleles_by_locus, null_per_locus,
+                               sibling_pairs_per_locus)
+        alleles_by_locus = {l: [relabel.get(a, a) for a in alleles] for l, alleles in alleles_by_locus.items()}
+        haps = [tuple(relabel.get(a, a) for a in h) for h in haps]
+        assert len(set(haps)) == len(haps)           # a bijective relabel keeps the pool distinct
     return FounderPool(loci=loci, population=population, haplotypes=haps, frequencies=freqs,
                        alleles_by_locus={l: sorted(a) for l, a in alleles_by_locus.items()})
+
+
+def _relabel_map(ref: ImgtReference, seed: int, loci: tuple[str, ...], population: str,
+                 alleles_by_locus: dict[str, list[str]], null_per_locus: int,
+                 sibling_pairs_per_locus: int) -> dict[str, str]:
+    """old name -> new name for the layer-3 pool parameters.  Slots are chosen and
+    replacements drawn under streams keyed on the parameter, so the default pool is
+    untouched and each parameter is independent of the other."""
+    relabel: dict[str, str] = {}
+    for locus in loci:
+        current = list(alleles_by_locus[locus])
+        free = list(range(len(current)))               # slot indices not yet relabelled
+        if null_per_locus:
+            rng = _rng(seed, "null", ref.tag, population, locus, null_per_locus)
+            nulls = [n for n in ref.alleles(locus)
+                     if split_allele(n)[2] == "N" and len(split_allele(n)[1]) >= 2 and n not in current]
+            if len(nulls) < null_per_locus:
+                raise PhasingError(f"{locus}: only {len(nulls)} null alleles in {ref.release}")
+            slots = sorted(rng.sample(free, null_per_locus))
+            for slot, new in zip(slots, rng.sample(nulls, null_per_locus)):
+                relabel[current[slot]] = new
+                free.remove(slot)
+        if sibling_pairs_per_locus:
+            rng = _rng(seed, "siblings", ref.tag, population, locus, sibling_pairs_per_locus)
+            taken_prefixes = {truncate(a, 2) for a in current}
+            by_prefix: dict[str, list[str]] = {}
+            for n in ref.alleles(locus):
+                _, fields, suffix = split_allele(n)
+                if suffix or len(fields) < 3 or n in current:
+                    continue
+                by_prefix.setdefault(truncate(n, 2), []).append(n)
+            prefixes = sorted(p for p, names in by_prefix.items() if len(names) >= 2 and p not in taken_prefixes)
+            if len(prefixes) < sibling_pairs_per_locus:
+                raise PhasingError(f"{locus}: only {len(prefixes)} two-field prefixes with siblings in {ref.release}")
+            slots = sorted(rng.sample(free, 2 * sibling_pairs_per_locus))
+            for i, prefix in enumerate(rng.sample(prefixes, sibling_pairs_per_locus)):
+                pair = rng.sample(by_prefix[prefix], 2)
+                for slot, new in zip(slots[2 * i:2 * i + 2], pair):
+                    relabel[current[slot]] = new
+                    free.remove(slot)
+    return relabel
 
 
 # ------------------------------------------------------------------------ individuals, families
@@ -266,15 +338,96 @@ def check_mendelian(family: Family) -> list[str]:
     return problems
 
 
+# ------------------------------------------------------------------------- Mendel oracles
+Genotype = dict[str, list[str]]
+
+
+def order_normalise(h1: Haplotype, h2: Haplotype) -> list[list[str]]:
+    """The pair as the grader compares it: sorted, so neither position carries phase."""
+    a, b = sorted((tuple(h1), tuple(h2)))
+    return [list(a), list(b)]
+
+
+def mendelian_phasings(child: Genotype, father: Genotype, mother: Genotype,
+                       loci: Sequence[str]) -> set[tuple[Haplotype, Haplotype]]:
+    """Every order-normalised haplotype pair for ``child`` that Mendel allows given the
+    parents' *unphased* genotypes: at each locus one allele must come from the father's
+    pair and the other from the mother's.  Whole-haplotype transmission adds no further
+    constraint when the parents are unphased, so per-locus assignment is the whole rule.
+
+    Empty set  == the genotype is inconsistent with these parents (``consistency_check``).
+    One member == the phase is decidable by Mendel alone (``family_phase``).
+    Two members == the Mendel set (``phase_ambiguous``); three cannot happen (§8.2).
+    """
+    per_locus: list[set[tuple[str, str]]] = []
+    for l in loci:
+        c = sorted(child[l])
+        options = {(p, m) for p in father[l] for m in mother[l] if sorted([p, m]) == c}
+        if not options:
+            return set()
+        per_locus.append(options)
+    out: set[tuple[Haplotype, Haplotype]] = set()
+    for combo in itertools.product(*per_locus):
+        paternal = tuple(p for p, _ in combo)
+        maternal = tuple(m for _, m in combo)
+        a, b = sorted((paternal, maternal))
+        out.add((a, b))
+    return out
+
+
+def phased_pairs(father: Sequence[Haplotype], mother: Sequence[Haplotype],
+                 child: Optional[Genotype] = None,
+                 loci: Optional[Sequence[str]] = None) -> set[tuple[Haplotype, Haplotype]]:
+    """Every order-normalised child pair reachable by whole-haplotype transmission from
+    *phased* parents: one of the father's two haplotypes with one of the mother's.
+    With ``child`` (and ``loci``) given, only the pairs whose unphasing matches the
+    child at every locus that is typed (``child[l]`` is not None) are kept — the
+    ``impute_missing_locus`` oracle (§8.2)."""
+    out: set[tuple[Haplotype, Haplotype]] = set()
+    for f in father:
+        for m in mother:
+            if child is not None:
+                ok = all(child[l] is None or sorted([f[i], m[i]]) == sorted(child[l])
+                         for i, l in enumerate(loci))
+                if not ok:
+                    continue
+            a, b = sorted((tuple(f), tuple(m)))
+            out.add((a, b))
+    return out
+
+
+def pedigree_phasings(child: Genotype, father: Genotype, mother: Genotype,
+                      grandparents: dict[str, Genotype],
+                      loci: Sequence[str]) -> set[tuple[Haplotype, Haplotype]]:
+    """The ``pedigree_phase`` oracle (§8.2): the union, over every Mendel-allowed phasing
+    of each parent given *its* unphased parents, of the child pairs reachable by
+    whole-haplotype transmission from those phased parents.  Unphased parents never
+    constrain transmission; phased ones do, which is what the grandparents buy.
+
+    ``grandparents`` is keyed ``paternal_grandfather``, ``paternal_grandmother``,
+    ``maternal_grandfather``, ``maternal_grandmother``."""
+    f_phasings = mendelian_phasings(father, grandparents["paternal_grandfather"],
+                                    grandparents["paternal_grandmother"], loci)
+    m_phasings = mendelian_phasings(mother, grandparents["maternal_grandfather"],
+                                    grandparents["maternal_grandmother"], loci)
+    out: set[tuple[Haplotype, Haplotype]] = set()
+    for fp in f_phasings:
+        for mp in m_phasings:
+            out |= phased_pairs(fp, mp, child, loci)
+    return out
+
+
 # ---------------------------------------------------------------------------------- dataset
 def generate_dataset(ref: ImgtReference, seed: int = BASE_SEED,
                      n_founders: int = DEFAULT_FOUNDERS, loci: Sequence[str] = DEFAULT_LOCI,
                      population: str = DEFAULT_POPULATION,
                      alleles_per_locus: int = DEFAULT_ALLELES_PER_LOCUS,
                      n_families: int = DEFAULT_FAMILIES, n_children: int = DEFAULT_CHILDREN,
-                     grandparents: bool = False, allow_suffix: bool = False) -> dict:
+                     grandparents: bool = False, allow_suffix: bool = False,
+                     null_per_locus: int = 0, sibling_pairs_per_locus: int = 0) -> dict:
     """Pool + families as one JSON-serialisable record; ``dumps()`` it for a stable file."""
-    pool = draw_founder_pool(ref, seed, n_founders, loci, population, alleles_per_locus, allow_suffix)
+    pool = draw_founder_pool(ref, seed, n_founders, loci, population, alleles_per_locus, allow_suffix,
+                             null_per_locus, sibling_pairs_per_locus)
     families = []
     for i in range(1, n_families + 1):
         fam_rng = _rng(seed, "family", ref.tag, population, i)
@@ -289,6 +442,8 @@ def generate_dataset(ref: ImgtReference, seed: int = BASE_SEED,
                        "population": population, "alleles_per_locus": alleles_per_locus,
                        "families": n_families, "children": n_children,
                        "grandparents": grandparents, "allow_suffix": allow_suffix,
+                       "null_per_locus": null_per_locus,
+                       "sibling_pairs_per_locus": sibling_pairs_per_locus,
                        "recombination": "none (v0: whole-haplotype transmission)"},
         "pool": pool.to_dict(),
         "families": [f.to_dict(pool.loci) for f in families],
@@ -311,13 +466,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p.add_argument("--children", type=int, default=DEFAULT_CHILDREN)
     p.add_argument("--grandparents", action="store_true", help="three-generation families")
     p.add_argument("--allow-suffix", action="store_true", help="let N/L/S/C/A/Q alleles into the pool")
+    p.add_argument("--null-per-locus", type=int, default=0,
+                   help="relabel this many alleles per locus as null (N) alleles (§8.1)")
+    p.add_argument("--sibling-pairs-per-locus", type=int, default=0,
+                   help="relabel this many allele pairs per locus as two-field siblings (§8.1)")
     p.add_argument("--out", default="-", help="output path (default stdout)")
     a = p.parse_args(argv)
     ref = ImgtReference.load(a.tag)
     try:
         data = generate_dataset(ref, a.seed, a.founders, [l for l in a.loci.split(",") if l],
                                 a.population, a.alleles_per_locus, a.families, a.children,
-                                a.grandparents, a.allow_suffix)
+                                a.grandparents, a.allow_suffix, a.null_per_locus, a.sibling_pairs_per_locus)
     except PhasingError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2

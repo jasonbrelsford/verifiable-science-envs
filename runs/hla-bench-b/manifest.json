@@ -1,0 +1,131 @@
+{
+  "base_seed": 20260831,
+  "benchmark": "HLA-Bench-B-v0.1@IMGT-3.66.0",
+  "by_subtype": {
+    "consistency_check": 30,
+    "family_phase": 30,
+    "impute_missing_locus": 30,
+    "null_in_haplotype": 30,
+    "pedigree_phase": 30,
+    "phase_ambiguous": 30,
+    "phase_trivial": 30,
+    "resolution_lift": 30
+  },
+  "dataset_parameters": {
+    "alleles_per_locus": 12,
+    "allow_suffix": false,
+    "children": 2,
+    "families": 300,
+    "founders": 40,
+    "grandparents": false,
+    "loci": [
+      "A",
+      "B",
+      "DRB1"
+    ],
+    "null_per_locus": 0,
+    "population": "synthetic-pop-1",
+    "recombination": "none (v0: whole-haplotype transmission)",
+    "seed": 20260831,
+    "sibling_pairs_per_locus": 0
+  },
+  "datasets": {
+    "D-lift": {
+      "alleles_per_locus": 12,
+      "allow_suffix": false,
+      "children": 2,
+      "families": 300,
+      "founders": 40,
+      "grandparents": false,
+      "loci": [
+        "A",
+        "B",
+        "DRB1"
+      ],
+      "null_per_locus": 0,
+      "population": "synthetic-pop-1",
+      "recombination": "none (v0: whole-haplotype transmission)",
+      "seed": 20260831,
+      "sibling_pairs_per_locus": 3
+    },
+    "D-main": {
+      "alleles_per_locus": 12,
+      "allow_suffix": false,
+      "children": 2,
+      "families": 300,
+      "founders": 40,
+      "grandparents": false,
+      "loci": [
+        "A",
+        "B",
+        "DRB1"
+      ],
+      "null_per_locus": 0,
+      "population": "synthetic-pop-1",
+      "recombination": "none (v0: whole-haplotype transmission)",
+      "seed": 20260831,
+      "sibling_pairs_per_locus": 0
+    },
+    "D-null": {
+      "alleles_per_locus": 12,
+      "allow_suffix": false,
+      "children": 2,
+      "families": 300,
+      "founders": 40,
+      "grandparents": false,
+      "loci": [
+        "A",
+        "B",
+        "DRB1"
+      ],
+      "null_per_locus": 2,
+      "population": "synthetic-pop-1",
+      "recombination": "none (v0: whole-haplotype transmission)",
+      "seed": 20260831,
+      "sibling_pairs_per_locus": 0
+    },
+    "D-ped": {
+      "alleles_per_locus": 12,
+      "allow_suffix": false,
+      "children": 2,
+      "families": 600,
+      "founders": 40,
+      "grandparents": true,
+      "loci": [
+        "A",
+        "B",
+        "DRB1"
+      ],
+      "null_per_locus": 0,
+      "population": "synthetic-pop-1",
+      "recombination": "none (v0: whole-haplotype transmission)",
+      "seed": 20260831,
+      "sibling_pairs_per_locus": 0
+    }
+  },
+  "family": "hla_phasing",
+  "generator_rev": "B1-r2",
+  "layer": "synthetic_mendelian_truth (TASK_SPEC_FAMILY_B §5 layer 1; no frequency model)",
+  "reference": {
+    "db": "IPD-IMGT/HLA",
+    "release": "3.66.0",
+    "tag": "v3.66.0-alpha"
+  },
+  "split": {
+    "dev": 41,
+    "test": 199
+  },
+  "subtype_dataset": {
+    "consistency_check": "D-main",
+    "family_phase": "D-main",
+    "impute_missing_locus": "D-main",
+    "null_in_haplotype": "D-null",
+    "pedigree_phase": "D-ped",
+    "phase_ambiguous": "D-main",
+    "phase_trivial": "D-main",
+    "resolution_lift": "D-lift"
+  },
+  "suite_rev": "B3-r1",
+  "tag": "v3.66.0-alpha",
+  "total": 240
+}

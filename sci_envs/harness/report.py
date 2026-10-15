@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 
 TIERS = {1: "T1 syntax", 2: "T2 groups", 3: "T3 history", 4: "T4 adversarial"}
+TIERS_BY_FAMILY = {
+    "hla_phasing": {1: "T1 forced", 2: "T2 imputation", 3: "T3 lift / Mendel set", 4: "T4 family reasoning"},
+}
 SLICES_SHOWN = ["null_allele", "unconfirmed", "partial_sequence", "post_cutoff", "deleted_name",
                 "class_II_secondary_locus", "expression_suffix", "serology_uncertain"]
 
@@ -26,9 +29,18 @@ def render(suite_dir: Path, out: Path) -> Path:
     ref_info = manifest.get("reference") or {"release": manifest.get("tag", "?"), "tag": manifest.get("tag", "?")}
     rel = ref_info["release"]
 
+    tiers = TIERS_BY_FAMILY.get(manifest.get("family"), TIERS)
+
     L = []
     L.append(f"# {bench}\n")
-    if manifest.get("family") == "hla_matching":
+    if manifest.get("family") == "hla_phasing":
+        L.append("**Can a model phase an HLA genotype the way a family study does?** "
+                 f"{manifest['total']} generated tasks across {len(manifest.get('by_subtype', {}))} subtypes, graded by "
+                 "exact order-normalised match against phase known by construction: synthetic founder haplotypes "
+                 f"drawn from IPD-IMGT/HLA {manifest['tag']} and inherited under Mendel's rules (no frequency "
+                 "table, no LD model; `docs/TASK_SPEC_FAMILY_B.md`). A confident single pair where Mendel leaves "
+                 "two, and a pair the individual cannot carry, are the headline errors.\n")
+    elif manifest.get("family") == "hla_matching":
         L.append("**Can a model score a donor-recipient HLA match the way a transplant lab must?** "
                  f"{manifest['total']} generated pairs across 8 subtypes, graded by exact match against an executable "
                  f"encoding of published matching rules over IPD-IMGT/HLA {manifest['tag']} "
@@ -53,10 +65,10 @@ def render(suite_dir: Path, out: Path) -> Path:
     L.append("")
 
     L.append("## By tier\n")
-    L.append("| Model | Split | " + " | ".join(TIERS.values()) + " |")
-    L.append("|---|---|" + "---:|" * len(TIERS))
+    L.append("| Model | Split | " + " | ".join(tiers.values()) + " |")
+    L.append("|---|---|" + "---:|" * len(tiers))
     for r in results:
-        L.append(f"| `{r['model']}` | {r['split']} | " + " | ".join(_pct(r["by_tier"].get(str(t)) or r["by_tier"].get(t)) for t in TIERS) + " |")
+        L.append(f"| `{r['model']}` | {r['split']} | " + " | ".join(_pct(r["by_tier"].get(str(t)) or r["by_tier"].get(t)) for t in tiers) + " |")
     L.append("")
 
     L.append("## By slice (where clinical risk concentrates)\n")

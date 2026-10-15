@@ -86,7 +86,7 @@ taking the API down. Every billable response carries `x-hla-verify-daily-*` head
 ```bash
 python -m sci_envs.service.edge_export      # ~45s, writes the gitignored edge/public tables
 cd edge && node --test                      # 276 tests as of 2026-10-13, incl. golden parity with the Python oracle
-pytest -q                                   # 252 passed as of 2026-10-13 (3 skip without the .[dev,service,mcp] extras)
+pytest -q                                   # 288 passed as of 2026-10-15 (2–3 skip without the .[dev,service,mcp] extras)
 npx wrangler@4 dev --local --port <free>    # then exercise the change
 node <path>/mcpclient/probe.mjs http://127.0.0.1:<port>/mcp
 ```
@@ -94,6 +94,14 @@ node <path>/mcpclient/probe.mjs http://127.0.0.1:<port>/mcp
 `probe.mjs` connects with the official `@modelcontextprotocol/client` in `auto`,
 pinned-`2026-07-28` and `legacy` modes. Expect three lines and twelve tools. It is the
 fastest proof the MCP server still works.
+
+Family B (`sci_envs/families/phasing/`, `hla-bench generate --family b`) is the
+synthetic-Mendelian benchmark: 240 tasks in eight frequency-free subtypes
+(`docs/TASK_SPEC_FAMILY_B.md` §7–§8), graded by its own grader, which the harness picks
+by the task's `family` field. Its tests run at the pinned release (3.66.0) because the
+§8.5 supply guard is deliberate: a release or base seed on which a subtype's supply falls
+under 30 fails generation instead of shipping thin, and `phase_ambiguous` is the thin one.
+No family B results are published yet (`bench/HLA-Bench-B.md` does not exist).
 
 Golden parity between the Python oracle (`sci_envs/`) and the Worker
 (`edge/src/engine.js`) is enforced by `edge/test/golden.test.mjs` over

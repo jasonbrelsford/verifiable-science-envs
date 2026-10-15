@@ -36,6 +36,32 @@ def test_baselines_and_oracle(suite_dir):
     assert "oracle-reference" in text and "baseline-naive-string" in text and "## By slice" in text
 
 
+def test_family_b_suite_dispatches_its_own_grader(tmp_path):
+    """`hla-bench generate --family b`, then the oracle and the abstainer through the
+    harness: grading is dispatched on the task's family, not imported from family A."""
+    from sci_envs.harness.run import main, grader_for, grade
+    from sci_envs.families.phasing.grade import grade as grade_b
+    from sci_envs.families.nomenclature.grade import grade as grade_a
+    tag = "v3.66.0-alpha"
+    d = tmp_path / "hla-bench-b"
+    assert main(["generate", "--family", "b", "--tag", tag, "--out", str(d)]) == 0
+    manifest, full = load_suite(d, "dev")
+    assert manifest["family"] == "hla_phasing" and manifest["total"] == 240 and len(full) == manifest["split"]["dev"]
+    assert all(t["family"] == "hla_phasing" for t in full.values())
+    t = next(iter(full.values()))
+    assert grader_for(t) is grade_b and grader_for({"family": "hla_nomenclature"}) is grade_a
+    assert grader_for({}) is grade_a
+    ref = ImgtReference.load(tag)
+    _, oracle = run_model(M.ReferenceOracle(full), full, ref, d, "dev", verbose=False)
+    assert oracle["overall"]["acc"] == 1.0 and oracle["primary_failure_modes"] == {"clean_correct": len(full)}
+    _, abst = run_model(M.CautiousAbstainer(), full, ref, d, "dev", verbose=False)
+    assert abst["primary_failure_modes"].get("refused", 0) > 0
+    assert grade(t, {"answer": "UNRESOLVABLE"}, ref).grader_version.startswith("B-")
+    out = render(d, d / "bench.md")
+    text = out.read_text()
+    assert "HLA-Bench-B" in text and "T4 family reasoning" in text and "oracle-reference" in text
+
+
 def test_resolve_specs():
     assert M.resolve("baseline-naive-string").name == "baseline-naive-string"
     with pytest.raises(ValueError):
