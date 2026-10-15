@@ -10,7 +10,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cache/sci_envs/imgt
-          key: imgt-v3.65.0-alpha
+          key: imgt-v3.66.0-alpha
       - run: pip install -e ".[dev,service,mcp]"
       - run: pytest -q
   edge:
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cache/sci_envs/imgt
-          key: imgt-v3.65.0-alpha
+          key: imgt-v3.66.0-alpha
       - run: pip install -e ".[service]"
       - name: Export edge tables from the pinned release
         run: python -m sci_envs.service.edge_export

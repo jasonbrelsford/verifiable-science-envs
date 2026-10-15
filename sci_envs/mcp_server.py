@@ -28,7 +28,7 @@ from sci_envs.families.nomenclature.normalize import normalize
 from sci_envs.families.matching.rules import FRAMEWORKS, flat_answer, score
 from sci_envs.service import lab
 
-TAG = "v3.65.0-alpha"
+TAG = "v3.66.0-alpha"
 _REF: ImgtReference | None = None
 
 

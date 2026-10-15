@@ -24,7 +24,7 @@ from sci_envs.service.app import app  # noqa: E402
 
 rng = random.Random(20260910)
 client = TestClient(app)
-r = ImgtReference.load("v3.65.0-alpha")
+r = ImgtReference.load("v3.66.0-alpha")
 alleles = r.alleles()
 by_locus: dict[str, list[str]] = {}
 for a in alleles:
