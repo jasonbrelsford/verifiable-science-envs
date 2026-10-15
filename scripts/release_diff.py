@@ -15,6 +15,13 @@ Usage:
     python scripts/release_diff.py v3.65.0-alpha v3.66.0-alpha
     python scripts/release_diff.py v3.65.0-alpha v3.66.0-alpha --out notice.md --json diff.json
 
+The JSON is also what hlaverify.com/releases renders (hlaverify-website,
+`src/releases/<old>-to-<new>.json`, see docs/RELEASE_BUMP.md step 7): its
+`removed` list carries, for every name that left the current table, the
+verdict `/v1/verify` gave it under the old release and under the new one, and
+the successor the new release records, so the page can say what a caller will
+actually see rather than just that the name went.
+
 Fetches both releases the same way every other reference load does (cached
 under ~/.cache/sci_envs/imgt, md5-verified). No secrets, no network calls
 outside the existing IMGT/HLA mirror fetch, no Stripe/Cloudflare/deploy.
@@ -37,6 +44,8 @@ def diff_releases(old_tag: str, new_tag: str) -> dict:
     added = sorted(new_names - old_names)
     deleted = sorted(old_names - new_names)
     renamed = [{"name": n, "successor": new.renamed_to(n)} for n in deleted if new.is_deleted(n)]
+    removed = [{"name": n, "was": verdict_of(old, n), "now": verdict_of(new, n), "successor": new.renamed_to(n)}
+               for n in deleted]
 
     def by_locus(names: list[str]) -> dict:
         return dict(sorted(Counter(n.split("*", 1)[0] for n in names).items()))
@@ -47,8 +56,20 @@ def diff_releases(old_tag: str, new_tag: str) -> dict:
         "added_count": len(added), "deleted_count": len(deleted),
         "renamed_count": sum(1 for r in renamed if r["successor"]),
         "added_by_locus": by_locus(added), "deleted_by_locus": by_locus(deleted),
-        "added": added, "deleted": deleted, "renamed": renamed,
+        "removed_now": dict(sorted(Counter(r["now"] for r in removed).items())),
+        "added": added, "deleted": deleted, "renamed": renamed, "removed": removed,
     }
+
+
+def verdict_of(ref: ImgtReference, name: str) -> str:
+    """The /v1/verify status this release gives one allele name (valid, deleted,
+    hallucinated, ...), via the same classifier the service uses. A name that
+    was extended to a longer one (A*01:284 -> A*01:284:01) stays `valid` as a
+    prefix, so most names that leave the table do not change verdict at all."""
+    for status, toks in ref.classify_tokens(name).items():
+        if name in toks:
+            return status
+    return "hallucinated"
 
 
 def render_markdown(d: dict) -> str:
@@ -70,6 +91,11 @@ def render_markdown(d: dict) -> str:
     if renames:
         lines += ["", "## Renamed (deleted name -> successor)", ""]
         lines += [f"- `{r['name']}` -> `{r['successor']}`" for r in renames]
+    if d.get("removed"):
+        lines += ["", "## Removed names: verdict before and after", "",
+                  "| Name | Was | Now | Successor recorded |", "|---|---|---|---|"]
+        lines += [f"| `{r['name']}` | {r['was']} | {r['now']} | "
+                  f"{('`' + r['successor'] + '`') if r['successor'] else '(none)'} |" for r in d["removed"]]
     return "\n".join(lines) + "\n"
 
 

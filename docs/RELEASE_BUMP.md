@@ -266,6 +266,17 @@ tool list, so open this PR only after step 5's deploy is verified. In that repo'
   `pages/how-it-works.html` — release number and allele count
 - `pages/api.html` and `pages/index.html` — the sample responses' `"release": "3.65.0"`
 
+Then the published diff. The pricing page promises that when the pin moves "we publish
+what changed between releases", and `https://hlaverify.com/releases` is that record: one
+entry per pin move, rendered by the site's `build.py` from `src/releases/*.json`. Copy the
+JSON from step 6 into that directory, named `<old>-to-<new>.json` (e.g.
+`3.65.0-to-3.66.0.json`), and add one key, `"moved_on": "<date the API deploy went live,
+YYYY-MM-DD>"`. The build sorts entries newest first and renders the counts, the added
+names by locus and the per-name table of removed names (`removed`: verdict before, verdict
+after, recorded successor). The JSON's full `added`/`deleted` name lists are kept in the
+file but not rendered. Nothing else on the site needs editing for a new entry: the footer link,
+the pricing, beta and trust copy and `llms.txt` already point at `/releases`.
+
 Leave `HLA-Bench-A-v0.1@IMGT-3.65.0` on the benchmark pages alone (step 4). Then
 `python3 build.py && python3 check_links.py`, commit the rebuilt `public/`, PR, merge; a
 push to `main` deploys and smoke-tests every page. `build.py`'s `ENGINE_REF` pins the
