@@ -367,9 +367,10 @@ test("a research/ record can never be presented as an API key", async () => {
   assert.equal(keyed.headers.get("x-hla-verify-tier"), "pro");
 });
 
-test("both reserved prefixes are declared, and the beta guard still holds", async () => {
+test("every reserved prefix is declared, and the beta guard still holds", async () => {
   // The list is the mechanism: a prefix added to the KEYS namespace without an
-  // entry here is the bug this file exists to prevent recurring.
+  // entry here is the bug this file exists to prevent recurring. (Support reports
+  // live in their own REPORTS namespace, not here: test/report.test.mjs.)
   assert.deepEqual([...RESERVED_PREFIXES].sort(), [BETA_PREFIX, RESEARCH_PREFIX].sort());
   const env = baseEnv();
   for (const presented of [`${BETA_PREFIX}x@example.com`, `${RESEARCH_PREFIX}x@example.com`]) {

@@ -170,6 +170,16 @@ ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: appli
 ${curl(`curl -s https://api.hlaverify.com/v1/research-access -H 'content-type: application/json' \\
   -d '{"email": "you@lab.example", "institution": "Example University", "use_case": "Retyping QC for a 4,000-donor registry cohort study", "expected_volume": "about 20,000 typings a month", "source": "docs"}'`)}
 
+<h3 id="report"><span class="pill">POST</span><code>/v1/report</code> — report an answer you believe is wrong</h3>
+<p><code>{"kind": "wrong_result", "endpoint": "/v1/verify", "input": "…", "received": "…", "expected": "…", "details": "…", "email": "…", "request_id": "…", "source": "…"}</code>. <code>input</code> (≤2,000 chars: the names or request you sent) and <code>expected</code> (≤1,000: what you expected instead) are required. <code>kind</code> is one of <code>wrong_result</code> (default), <code>docs_mismatch</code>, <code>outdated_release</code>, <code>question</code> or <code>other</code>; <code>endpoint</code> (≤60), <code>received</code> (≤4,000: what the API answered), <code>details</code> (≤2,000), <code>email</code> (to hear back), <code>request_id</code> and <code>source</code> are optional. Returns <code>{"ok":true,"id":"r…","status":"received","status_url":"https://hlaverify.com/support?id=r…","message":"…","release":"…"}</code>. Not billable. The same form is at <a href="https://hlaverify.com/support">hlaverify.com/support</a>.</p>
+<p><b>What happens next:</b> every report is rerun against the live API and the IPD-IMGT/HLA reference data, and a person confirms any error before it is published; a confirmed error is fixed and listed with the release that fixed it. <b>Do not include patient identifiers of any kind</b>, names included: send only the HLA names or the request. Obvious identifiers (record-number and date-of-birth labels, Social Security numbers, US-format dates) are refused with <code>422</code> and nothing is stored; a name cannot be detected, so leave names out. At most 20 reports a day from one connection (<code>429</code> after that).</p>
+${curl(`curl -s https://api.hlaverify.com/v1/report -H 'content-type: application/json' \\
+  -d '{"kind": "wrong_result", "endpoint": "/v1/verify", "input": "B*07:02", "expected": "a valid allele, not flagged", "email": "you@lab.example"}'`)}
+
+<h3><span class="pill">GET</span><code>/v1/report/{id}</code> — follow a report</h3>
+<p>Returns <code>{"id","kind","status","created","updated","note","fixed_in","release_at_report"}</code>, where <code>status</code> is <code>received</code>, <code>investigating</code>, <code>confirmed</code>, <code>fixed</code>, <code>expected_behavior</code>, <code>duplicate</code> or <code>needs_info</code>, <code>note</code> is the public explanation and <code>fixed_in</code> the release that fixed it. Never the input or the email address. Unknown ids are <code>404</code>. Not billable.</p>
+${curl(`curl -s https://api.hlaverify.com/v1/report/r0123456789abcdef`)}
+
 <h3 id="usage"><span class="pill">GET</span><code>/v1/usage</code> - your own call volume</h3>
 <p>Any keyed caller, any tier, can read back its own usage: calls and units today, over the last 7 days and over the last 30 days, each broken down by endpoint and by response status, plus the tier's published daily quota (<code>keys.js TIER_LIMITS</code>) so a dashboard can show "calls used vs allowed" without separately parsing the <code>x-hla-verify-daily-*</code> headers on every call. Scoped strictly to the presented key's own label; there is no cross-key view here (that is the operator dashboard below, a different secret). Anonymous callers get <code>401</code>: anonymous traffic is counted per IP-day for quota purposes (quota.js), not per caller, so there is no label to report on. Answers are cached for 60 seconds per key, so a dashboard refresh cannot turn into Analytics Engine SQL API traffic. Not billable against the daily quota. <code>503</code> if this deployment has no Analytics Engine read access configured.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/usage -H 'X-API-Key: YOUR_KEY'`)}
@@ -406,7 +416,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         `starter ${CALLS("starter")}/${TYPINGS("starter")}, lab ${CALLS("lab")}/${TYPINGS("lab")}, scale ${CALLS("scale")}/${TYPINGS("scale")}, enterprise uncapped/${TYPINGS("enterprise")}, ` +
         `academic ${CALLS("academic")}/${TYPINGS("academic")} (hand-issued to accredited institutions, never sold); ` +
         "'pro' is the legacy name for 'lab'. Quotas reset at UTC midnight and every billable response carries x-hla-verify-daily-limit, -daily-remaining, -daily-reset and -max-typings. " +
-        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout, /v1/beta-signup, /v1/research-access and /v1/usage are not billable. " +
+        "/healthz, /docs, /openapi.json, /pricing, /v1/checkout, /v1/beta-signup, /v1/research-access, /v1/report and /v1/usage are not billable. " +
         "Per-key usage reporting: GET /v1/usage returns the caller's own calls and units for today/7d/30d, by endpoint and by status, plus the tier's daily quota; cached 60s per key; 401 without a key. " + buying,
       contact: { email: "hello@hlaverify.com", url: "https://hlaverify.com" } },
     servers: [{ url: "https://api.hlaverify.com" }, { url: "https://hlaverify.com" }],
@@ -571,6 +581,42 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           422: { description: "invalid email, a missing or empty required field, or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           429: { description: "rate limited (60 req/min per IP; /v1/research-access does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "the application store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/report": { post: { summary: "Report an answer you believe is wrong (support portal intake)",
+        description: "Files one support report: a verdict, normalization or lookup that looks wrong, a docs page that disagrees with the API, " +
+          "an outdated release, or a question. Every report is rerun against the live API and the IPD-IMGT/HLA reference data, and a person " +
+          "confirms any error before it is published; a confirmed error is fixed and listed with the release that fixed it. Returns an id to " +
+          "follow it with GET /v1/report/{id} or at https://hlaverify.com/support?id=... . Do not include patient identifiers of any kind, names " +
+          "included: obvious ones (record-number and DOB labels, SSNs, US-format dates) are refused with 422 and nothing is stored, and a name " +
+          "cannot be detected. Stores what you send plus a timestamp, CF-IPCountry and the live release, and no IP address, in a store separate " +
+          "from API keys. At most 20 reports a day per IP. Not billable against the daily quota, " +
+          "but rate limited like every other /v1/ route (60 requests/minute per IP without a key).",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["input", "expected"],
+          properties: { kind: { type: "string", enum: ["wrong_result", "docs_mismatch", "outdated_release", "question", "other"], default: "wrong_result" },
+            endpoint: { type: "string", maxLength: 60, example: "/v1/verify" },
+            input: { type: "string", maxLength: 2000, example: "B*07:02", description: "The HLA names or request you sent. No patient identifiers." },
+            received: { type: "string", maxLength: 4000, description: "What the API answered." },
+            expected: { type: "string", maxLength: 1000, example: "a valid allele, not flagged", description: "What you expected instead." },
+            details: { type: "string", maxLength: 2000 },
+            email: { type: "string", maxLength: 254, example: "you@lab.example", description: "Optional; where we reply." },
+            request_id: { type: "string", maxLength: 100 },
+            source: { type: "string", maxLength: 120, description: "Free-text hint: site, mcp, docs." } } } } } },
+        responses: { 200: { description: "recorded", content: { "application/json": { schema: { type: "object",
+          required: ["ok", "id", "status", "status_url", "message", "release"],
+          properties: { ok: { type: "boolean" }, id: { type: "string", pattern: "^r[0-9a-f]{16}$" }, status: { type: "string", enum: ["received"] },
+            status_url: { type: "string" }, message: { type: "string" }, release: { type: "string" } } } } } },
+          422: { description: "a missing or empty required field, an unknown kind, an oversized field, an invalid email, or something shaped like a patient identifier", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          429: { description: "rate limited: 60 req/min per IP, or more than 20 reports today from this IP (/v1/report does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          503: { description: "the report store is not available on this deployment", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+      "/v1/report/{id}": { get: { summary: "Follow a support report: its public status only",
+        description: "Status, public note and the release that fixed it. Never the input or the email address. Not billable.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", pattern: "^r[0-9a-f]{16}$" } }],
+        responses: { 200: { description: "the report's public status", content: { "application/json": { schema: { type: "object",
+          required: ["id", "kind", "status", "created", "updated"],
+          properties: { id: { type: "string" }, kind: { type: "string" },
+            status: { type: "string", enum: ["received", "investigating", "confirmed", "fixed", "expected_behavior", "duplicate", "needs_info"] },
+            created: { type: "string" }, updated: { type: "string" }, note: { type: ["string", "null"] },
+            fixed_in: { type: ["string", "null"] }, release_at_report: { type: ["string", "null"] } } } } } },
+          404: { description: "no report with that id", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/usage": { get: { summary: "The caller's own usage: calls/units today, 7d and 30d, by endpoint and status, plus the tier's daily quota",
         description: "Scoped strictly to the presented key's own label (index1 in the Analytics Engine dataset); no cross-key view. Requires an API key: " +
           "anonymous callers are counted per IP-day for quota purposes, not per caller, so there is nothing to report back to them. Answers are cached " +

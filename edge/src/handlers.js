@@ -254,3 +254,136 @@ export async function doResearchAccess(env, manifest, body, country) {
   return good({ ok: true, status: already ? "already_recorded" : "recorded",
     message: researchMessage(already), release: manifest.release }, 1);
 }
+
+// ------------------------------------------------------------ support reports
+// "This answer looks wrong": the support portal's intake. Anyone can report a
+// verdict, normalization or lookup they believe is incorrect, a docs page that
+// disagrees with the API, or an outdated release, from hlaverify.com/support,
+// from POST /v1/report or from the report_result MCP tool. Free, never billable.
+//
+// One record per report in the REPORTS namespace (its own binding, never KEYS:
+// nothing a stranger writes shares a namespace with API keys), keyed by a random
+// id the reporter gets back. It holds what they typed plus a timestamp,
+// cf-ipcountry and the release that was live, never the IP or headers. Each IP
+// may file REPORTS_PER_DAY reports a UTC day, counted under a salted digest of
+// the day and the address (the quota's scheme), so the IP is not stored either.
+//
+// WHAT HAPPENS NEXT is outside the Worker. The private site repo's support
+// intake reads new records, opens one private issue per report, and an agent
+// reruns the input against the live API and the reference data. The issue's
+// status label is written back here as `status`, `note` and `fixed_in`, which
+// is all GET /v1/report/{id} shows: never the input, never the email.
+//
+// PATIENT DATA: an HLA typing on its own is not an identifier, but a report is
+// free text. Obvious identifiers (record-number and DOB labels, SSNs, US-format
+// dates) are refused before anything is stored, and the refusal says why. No
+// filter can recognise a name, so the form and the docs say plainly not to
+// include any, and promise only that obvious identifiers are refused.
+export const REPORT_PREFIX = "report/";
+export const REPORT_KINDS = ["wrong_result", "docs_mismatch", "outdated_release", "question", "other"];
+export const REPORT_STATUSES = ["received", "investigating", "confirmed", "fixed", "expected_behavior",
+  "duplicate", "needs_info"];
+export const MAX_REPORT_ENDPOINT = 60, MAX_REPORT_INPUT = 2000, MAX_REPORT_RECEIVED = 4000,
+  MAX_REPORT_EXPECTED = 1000, MAX_REPORT_DETAILS = 2000, MAX_REPORT_REQUEST_ID = 100;
+export const REPORT_ID_RE = /^r[0-9a-f]{16}$/;
+export const REPORTS_PER_DAY = 20;
+
+const PATIENT_DATA = [
+  [/\b\d{3}-\d{2}-\d{4}\b/, "something shaped like a Social Security number"],
+  [/\b(?:MRN|DOB|medical record|date of birth|patient name|birth ?date)\b/i, "a patient identifier label (MRN, DOB, patient name)"],
+  [/\b(?:0?[1-9]|1[0-2])[/.-](?:0?[1-9]|[12]\d|3[01])[/.-](?:19|20)\d{2}\b/, "a date that could be a date of birth"],
+];
+
+// Every free-text field is checked, so the refusal names the field.
+function patientData(fields) {
+  for (const [name, value] of Object.entries(fields)) {
+    if (!value) continue;
+    for (const [re, what] of PATIENT_DATA) {
+      if (re.test(value)) return `${name} contains ${what}. Reports must not include patient identifiers: ` +
+        `send only the HLA names or the request, and remove names, record numbers and dates.`;
+    }
+  }
+  return null;
+}
+
+const reportMessage = (id) =>
+  `Thanks — report ${id} is recorded. It will be rerun against the reference data, and a person ` +
+  `confirms any error before it is published. Follow it at https://hlaverify.com/support?id=${id}. ` +
+  `If you left an email address we will reply there.`;
+
+// Reports a caller has filed today, under a digest of the salt, the UTC day and
+// the address, so the address itself is never written. Expires after two days.
+async function reportCounter(env, ip) {
+  const day = new Date().toISOString().slice(0, 10);
+  const salt = env.QUOTA_IP_SALT || "";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${salt}|report|${day}|${ip || "unknown"}`));
+  const key = "rl/" + day + "/" + [...new Uint8Array(buf)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
+  let n = 0;
+  try { n = parseInt((await env.REPORTS.get(key)) || "0", 10) || 0; } catch (_) { n = 0; }
+  return { key, n };
+}
+
+function newReportId() {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return "r" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// body: {kind, input, expected, endpoint?, received?, details?, email?, request_id?, source?}
+export async function doReport(env, manifest, body, country, ip = null) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return bad(422, "body must be a JSON object");
+  const kind = body.kind === undefined ? "wrong_result" : body.kind;
+  if (!REPORT_KINDS.includes(kind)) return bad(422, `kind must be one of ${REPORT_KINDS.join(", ")}`);
+  if (typeof body.input !== "string" || !body.input.trim()) return bad(422, "input must be a non-empty string: the HLA names or request you sent");
+  const input = body.input.trim();
+  if (input.length > MAX_REPORT_INPUT) return bad(422, `input must be at most ${MAX_REPORT_INPUT} characters`);
+  if (typeof body.expected !== "string" || !body.expected.trim()) return bad(422, "expected must be a non-empty string: what you expected instead");
+  const expected = body.expected.trim();
+  if (expected.length > MAX_REPORT_EXPECTED) return bad(422, `expected must be at most ${MAX_REPORT_EXPECTED} characters`);
+
+  const fields = { input, expected };
+  for (const [name, max] of [["endpoint", MAX_REPORT_ENDPOINT], ["received", MAX_REPORT_RECEIVED],
+    ["details", MAX_REPORT_DETAILS], ["request_id", MAX_REPORT_REQUEST_ID], ["source", MAX_SOURCE]]) {
+    const [v, e] = optional(body[name], name, max);
+    if (e) return bad(422, e);
+    fields[name] = v;
+  }
+  let email = null;
+  if (body.email !== undefined && body.email !== null && body.email !== "") {
+    if (typeof body.email !== "string") return bad(422, "email must be a string");
+    email = body.email.trim();
+    if (email.length > MAX_EMAIL) return bad(422, `email must be at most ${MAX_EMAIL} characters`);
+    if (!EMAIL_RE.test(email)) return bad(422, "email must look like an address, e.g. name@lab.example");
+  }
+  const phi = patientData({ input, expected, received: fields.received, details: fields.details });
+  if (phi) return bad(422, phi);
+
+  if (!env || !env.REPORTS) return bad(503, "reports are not available on this deployment — email hello@hlaverify.com");
+  const rl = await reportCounter(env, ip);
+  if (rl.n >= REPORTS_PER_DAY) {
+    return bad(429, `at most ${REPORTS_PER_DAY} reports a day from one connection; email hello@hlaverify.com with the rest`);
+  }
+  const id = newReportId();
+  const ts = new Date().toISOString();
+  await env.REPORTS.put(rl.key, String(rl.n + 1), { expirationTtl: 172800 });
+  await env.REPORTS.put(REPORT_PREFIX + id, JSON.stringify({
+    id, kind, ...fields, email,
+    release: manifest.release, ts, updated: ts, country: country || null,
+    status: "received", note: null, fixed_in: null,
+  }));
+  return good({ ok: true, id, status: "received", status_url: `https://hlaverify.com/support?id=${id}`,
+    message: reportMessage(id), release: manifest.release }, 1);
+}
+
+// GET /v1/report/{id}: the public half of a report. Only what the reporter
+// needs to follow it; the input and the email address never leave the record.
+export async function doReportStatus(env, id) {
+  if (!REPORT_ID_RE.test(id || "")) return bad(404, "no report with that id");
+  if (!env || !env.REPORTS) return bad(503, "reports are not available on this deployment");
+  let rec = null;
+  try { rec = JSON.parse((await env.REPORTS.get(REPORT_PREFIX + id)) || "null"); } catch (_) { rec = null; }
+  if (!rec) return bad(404, "no report with that id");
+  const status = REPORT_STATUSES.includes(rec.status) ? rec.status : "received";
+  return good({ id, kind: rec.kind, status, created: rec.ts, updated: rec.updated || rec.ts,
+    note: rec.note || null, fixed_in: rec.fixed_in || null, release_at_report: rec.release || null });
+}
