@@ -87,6 +87,20 @@ const LIGANDS = {
   },
 };
 
+// engine.js resolutionOf(): what a name with fewer than four fields does and does not
+// distinguish, so a caller does not have to count colons to know whether a member_count
+// on a valid_prefix result means the name is ambiguous or just reported coarsely on purpose.
+const RESOLUTION = {
+  type: "object",
+  description: "Present on a name with fewer than four fields: what this resolution level does and does not distinguish.",
+  required: ["fields", "level", "distinguishes"],
+  properties: {
+    fields: { type: "integer", enum: [1, 2, 3], description: "Number of colon-separated fields in the name." },
+    level: { type: "string", enum: ["allele_group", "protein", "coding_sequence"], description: "1 field: allele_group; 2: protein; 3: coding_sequence." },
+    distinguishes: { type: "string", description: "What finer typing at the next field would add." },
+  },
+};
+
 const TYPING_ISSUE = {
   type: "object",
   required: ["severity", "locus", "code", "detail"],
@@ -153,6 +167,7 @@ const VERIFY_OUT = {
           current_2field: { type: "string", description: "valid/deleted tokens that resolve: current 2-field form." },
           g_group: { type: "string", description: "G group; NONE or AMBIGUOUS when there is no single group." },
           flags: STR_LIST,
+          resolution: RESOLUTION,
         },
       },
     },
@@ -189,6 +204,7 @@ const ALLELE_OUT = {
     group_type: { type: "string", enum: ["G", "P"], description: "group: whether the name is a G group (identical exons 2+3 / exon 2) or a P group (identical peptide-binding domain)." },
     members_count: { type: "integer", description: "valid_prefix / group: number of assigned alleles under the prefix or in the group." },
     members_sample: { type: "array", items: STR, description: "valid_prefix / group: up to 10 member alleles." },
+    resolution: RESOLUTION,
     attribution: ATTRIBUTION,
   },
 };
@@ -450,7 +466,8 @@ function toolDefs() {
       description:
         "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
         "classify each one: valid / legacy spelling such as A*0201 or Cw*0702 (valid, with modern form and flag deprecated_name) / G-P group / deleted (with successor) / " +
-        "fabricated / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked). " +
+        "fabricated / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked); a valid " +
+        "token with fewer than four fields carries resolution, what that field count does and does not distinguish. " +
         "Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
         "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
         "HLA. Send the HLA content only, with patient identifiers removed first.",
@@ -487,7 +504,8 @@ function toolDefs() {
       description:
         "Look up one name in the pinned release and return what it is: " +
         "assigned (G/P group, first release, confirmed status, WMDA serology, null flag), " +
-        "valid_prefix (member count and sample), group (a G or P group name: member count and sample), " +
+        "valid_prefix (member count and sample, plus resolution: what a name with fewer than four fields " +
+        "does and does not distinguish), group (a G or P group name: member count and sample), " +
         "or deleted (successor). Reported shorthands are accepted as /v1/normalize accepts them — legacy " +
         "spellings (A*0101, Cw*0702, Cw*07:02), the XX code (A*02:XX), two-field A*02:01g, an optional HLA- " +
         "prefix — and answer with the facts of the name they stand for plus resolves_to and a flag " +

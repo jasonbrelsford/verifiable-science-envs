@@ -86,6 +86,39 @@ STATUS_HELP = {
     "out_of_scope": "a KIR allele name (IPD-KIR) — a gene family outside IPD-IMGT/HLA, not checked here",
 }
 
+# Standard field-count meanings (issue #102): what each resolution level does and does not
+# distinguish. 4-field (full_sequence) is deliberately left out — optional, and nothing below
+# asks for it, since only names with fewer than four fields carry the ambiguity this field
+# exists to explain.
+_RESOLUTION_LEVELS = {
+    1: ("allele_group", "the allele group (first field) only; not protein, coding or non-coding differences"),
+    2: ("protein", "protein sequence differences; not synonymous coding or non-coding differences"),
+    3: ("coding_sequence", "synonymous coding differences; not intron/UTR differences"),
+}
+
+
+def _resolution_of(fields: int) -> dict | None:
+    r = _RESOLUTION_LEVELS.get(fields)
+    return {"fields": fields, "level": r[0], "distinguishes": r[1]} if r else None
+
+
+def _fields_of(raw: str) -> int | None:
+    """normalize.name_parts() field count, reported-shorthand-aware (legacy spellings, the
+    old Cw label, two-field lg notation), so a caller gets the same number regardless of
+    which era they typed in. None for anything that isn't a plain allele name (XX/MAC
+    codes, G/P groups) — those are not what this field is for."""
+    t = strip_prefix(raw).strip()
+    if LG_RE.match(t):
+        return 2
+    c = cw_to_c(t) or (legacy_to_colon(t) if is_legacy_name(t) else t)
+    if not c:
+        return None
+    try:
+        _, fields, _ = split_allele(c)
+    except ImgtError:
+        return None
+    return len(fields)
+
 
 @app.get("/healthz")
 def healthz():
@@ -118,6 +151,10 @@ def verify(body: VerifyIn, _: None = Depends(_auth)):
                     row["current_2field"], row["g_group"] = n["allele_2field"], n["g_group"]
                     if n["flags"]:
                         row["flags"] = n["flags"].split(";")
+            if status == "valid":
+                fields = _fields_of(t)
+                if fields is not None and fields < 4:
+                    row["resolution"] = _resolution_of(fields)
             tokens.append(row)
     tokens.sort(key=lambda x: x["token"])
     _stats["tokens_checked"] += len(tokens)
@@ -247,6 +284,11 @@ def _allele_facts(r: ImgtReference, bare: str, name: str) -> dict:
             members = [m for m in members if split_allele(m)[2] == suffix]
         out["members_count"] = len(members)
         out["members_sample"] = members[:10]
+        fields = _fields_of(bare)
+        if fields is not None:
+            resolution = _resolution_of(fields)
+            if resolution is not None:
+                out["resolution"] = resolution
     ligs = lab.ligands(r, pf(), bare)
     if ligs is not None:
         out["ligands"] = ligs

@@ -441,7 +441,8 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           tokens: { type: "array", items: { type: "object", properties: { token: { type: "string" },
             status: { type: "string", enum: ["valid", "group", "deleted", "fabricated_group", "hallucinated", "mac_code", "out_of_scope"] },
             note: { type: "string" }, successor: { type: "string" }, current_2field: { type: "string" },
-            g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } } } } },
+            g_group: { type: "string" }, flags: { type: "array", items: { type: "string" } },
+            resolution: { type: "object", description: "valid tokens with fewer than four fields: {fields, level, distinguishes} — what this resolution does and does not distinguish." } } } },
           attribution } } } } }, 422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/normalize": { post: { summary: "Normalize reported typings to the current release",
         description: `maxItems is the ceiling. The cap that applies to a request is the caller's tier's (` +
@@ -458,6 +459,9 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           "deleted names, G/P group names, the XX code (A*02:XX), two-field A*02:01g and an optional HLA- prefix. A shorthand " +
           "answers with the facts of the name it stands for plus 'resolves_to' and a flag (deprecated_name, xx_code, lg_notation); " +
           "an NMDP multiple allele code (A*02:AB) returns status mac_code, recognised but not expanded. " +
+          "valid_prefix results also carry 'resolution' ({fields, level, distinguishes}): what a name with fewer than " +
+          "four fields does and does not distinguish, so a lab that typed to that resolution on purpose knows the " +
+          "member count is not telling it the typing is ambiguous. " +
           "Class I (A/B/C) names carry a trailing 'ligands' object (leader_21, bw, c_group, kir_ligand; see /v1/typing/check).",
         parameters: [{ name: "name", in: "path", required: true, schema: { type: "string" }, example: "A*24:09N" }],
         responses: { 200: { description: "assigned | valid_prefix | group | deleted | mac_code (+ resolves_to and flags for a shorthand)" },
