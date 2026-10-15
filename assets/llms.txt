@@ -77,8 +77,9 @@ release; verification is pinned to an exact release version.
   -daily-limit, -daily-remaining, -daily-reset and -max-typings, and an exhausted quota is a
   429 naming the reset time. /v1/verify takes 200,000 characters on every tier. /healthz,
   /docs, /openapi.json, /pricing, /v1/beta-signup, /v1/research-access and /v1/usage are not
-  billable. Paid keys (a per-key notice before a release moves is still on the roadmap) are
-  hand-issued free during the beta and
+  billable. Paid keys (keyed customers are emailed a diff of changed verdicts before the
+  release pin moves — a manual runbook step; per-key pinning is still on the roadmap)
+  are hand-issued free during the beta and
   self-serve via Stripe checkout at https://api.hlaverify.com/pricing shortly after;
   enterprise keys and commercial licensing by request: hello@hlaverify.com
 - Per-key usage reporting: GET /v1/usage (any tier, needs an API key) returns the caller's
