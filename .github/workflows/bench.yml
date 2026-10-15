@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - uses: actions/cache@v6
-        with: { path: ~/.cache/sci_envs/imgt, key: imgt-v3.65.0-alpha }
+        with: { path: ~/.cache/sci_envs/imgt, key: imgt-v3.66.0-alpha }
       - uses: actions/cache@v6          # raw model responses: a re-run never re-pays for tasks already answered
         with:
           path: runs/hla-bench-a/responses
