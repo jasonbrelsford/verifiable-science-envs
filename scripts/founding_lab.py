@@ -19,6 +19,10 @@ HOW IT WORKS.
            https://api.hlaverify.com/pricing and enters it; the webhook issues
            their permanent key as for any customer. Needs Stripe in live mode.
   extend   moves a trial's end date, for a lab that needs longer.
+  invoice  the other way to convert: one net-30 invoice for 12 months at the
+           founding price ($1,435.20), optionally with the lab's PO number. Most
+           hospital and academic labs pay by PO and invoice (ACH or check), not by
+           card; Stripe emails the invoice. On payment, `extend --days 365`.
   list     every trial: lab, contact, days left, converted or not.
   coupon   creates the FOUNDING-LAB coupon once (--product limits it to Lab).
 
@@ -32,7 +36,8 @@ USAGE
   python3 scripts/founding_lab.py list
   python3 scripts/founding_lab.py extend lab@hospital.example --days 30
   python3 scripts/founding_lab.py coupon --product prod_...          # once
-  python3 scripts/founding_lab.py convert lab@hospital.example
+  python3 scripts/founding_lab.py convert lab@hospital.example            # card / P-card at checkout
+  python3 scripts/founding_lab.py invoice lab@hospital.example --po 4500123   # annual invoice, net 30
 
 Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 """
@@ -226,6 +231,48 @@ def cmd_convert(args, kv: KV) -> int:
     return 0
 
 
+def cmd_invoice(args, kv: KV) -> int:
+    """Bill a founding lab a year up front by invoice, the way hospital procurement pays.
+
+    Most hospital and academic labs pay by purchase order and invoice, net 30, by
+    ACH or check, and prefer one invoice a year to twelve card charges. This
+    creates (or reuses) the Stripe customer, adds one line for 12 months of Lab at
+    the founding price, and sends a net-30 invoice that Stripe emails; it can be
+    paid by ACH, wire, check or card. When it is paid, run `extend --days 365`.
+    """
+    idx = FOUNDING_PREFIX + args.email.strip().lower()
+    rec = kv.get(idx) or die(f"no founding-lab trial for {args.email}")
+    if rec.get("invoice_id") and not args.force:
+        die(f"{rec['lab']} already has invoice {rec['invoice_id']}; --force sends another")
+    cents = LAB_LIST_PRICE * (100 - PERCENT_OFF) * 12  # $/mo x (1 - discount) x 12, in cents
+    po = f" (PO {args.po})" if args.po else ""
+    out(f"{rec.get('lab')}: invoice ${cents / 100:,.2f} for 12 months of Lab at the founding price{po}, "
+        f"net {args.days_due}, emailed to {rec['email']}")
+    if args.dry_run:
+        out("--dry-run: nothing sent to Stripe or written to KV.")
+        return 0
+    key = stripe_key()
+    try:
+        cust = stripe_post("/v1/customers", [("email", rec["email"]), ("name", str(rec.get("lab"))[:200]),
+                                             ("metadata[program]", "founding-lab")], key)
+        inv = stripe_post("/v1/invoices", [
+            ("customer", cust["id"]), ("collection_method", "send_invoice"), ("days_until_due", str(args.days_due)),
+            ("description", "HLA-Verify Lab tier, Founding Lab price, 12 months"),
+            ("metadata[program]", "founding-lab"), ("metadata[email]", rec["email"])]
+            + ([("custom_fields[0][name]", "PO number"), ("custom_fields[0][value]", args.po)] if args.po else []), key)
+        stripe_post("/v1/invoiceitems", [
+            ("customer", cust["id"]), ("invoice", inv["id"]), ("currency", "usd"), ("amount", str(cents)),
+            ("description", f"HLA-Verify Lab, 12 months at {PERCENT_OFF}% off (Founding Lab)")], key)
+        stripe_post(f"/v1/invoices/{inv['id']}/finalize", [], key)
+        sent = stripe_post(f"/v1/invoices/{inv['id']}/send", [], key)
+    except StripeError as e:
+        die(f"Stripe would not create or send the invoice (check the dashboard for a draft): {e.message}")
+    _rewrite(kv, idx, rec, invoice_id=sent["id"], invoice_url=sent.get("hosted_invoice_url"), status="invoiced")
+    out(f"Sent {sent['id']}: {sent.get('hosted_invoice_url')}")
+    out(f"When it is paid: python3 {sys.argv[0]} extend {rec['email']} --days 365")
+    return 0
+
+
 def main(argv=None) -> int:
     edge = str(pathlib.Path(__file__).resolve().parent.parent / "edge")
     p = argparse.ArgumentParser(prog="founding_lab.py", description=__doc__.split("\n\n")[0])
@@ -244,6 +291,10 @@ def main(argv=None) -> int:
     s = sub.add_parser("convert"); s.add_argument("email"); s.add_argument("--days", type=int, default=45)
     s.add_argument("--force", action="store_true"); s.add_argument("--dry-run", action="store_true")
     s.set_defaults(func=cmd_convert)
+    s = sub.add_parser("invoice", help="bill a year up front by net-30 invoice (hospital procurement)")
+    s.add_argument("email"); s.add_argument("--po", help="the lab's purchase order number, printed on the invoice")
+    s.add_argument("--days-due", type=int, default=30); s.add_argument("--force", action="store_true")
+    s.add_argument("--dry-run", action="store_true"); s.set_defaults(func=cmd_invoice)
     args = p.parse_args(argv)
     if getattr(args, "days", 1) < 1:
         die("--days must be at least 1")
