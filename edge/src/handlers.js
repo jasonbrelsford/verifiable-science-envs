@@ -191,7 +191,9 @@ export const RESEARCH_PREFIX = "research/";
 // API key but does parse as truthy JSON. Adding a prefix to this list is what
 // keeps it out of authorizeKey(); adding one without it is the bug that made
 // a beta/ record presentable as a paid key.
-export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX, "report/"];
+// "report/" is the support portal's (doReport below); "founding/" holds the
+// Founding Lab trial records scripts/founding_lab.py writes.
+export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX, "report/", "founding/"];
 
 // use_case carries the reason the owner will approve or refuse on, so it gets
 // more room than the beta list's; institution is a name, expected_volume a

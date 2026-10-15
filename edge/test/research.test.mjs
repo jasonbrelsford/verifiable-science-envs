@@ -371,7 +371,7 @@ test("every reserved prefix is declared, and the beta guard still holds", async 
   // The list is the mechanism: a prefix added to the KEYS namespace without an
   // entry here is the bug this file exists to prevent recurring. "report/" is
   // the support portal's (test/report.test.mjs).
-  assert.deepEqual([...RESERVED_PREFIXES].sort(), [BETA_PREFIX, RESEARCH_PREFIX, "report/"].sort());
+  assert.deepEqual([...RESERVED_PREFIXES].sort(), [BETA_PREFIX, RESEARCH_PREFIX, "report/", "founding/"].sort());
   const env = baseEnv();
   for (const presented of [`${BETA_PREFIX}x@example.com`, `${RESEARCH_PREFIX}x@example.com`]) {
     const resp = await call(env, "GET", "/v1/allele/A*01:01", { headers: { "x-api-key": presented } });
