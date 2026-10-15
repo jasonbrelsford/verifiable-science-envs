@@ -177,7 +177,7 @@ human picking this up should expect their footprints and leave them intact:
    not the counts.
 5. **No uptime commitment.** `uptime.yml` pings the API from GitHub Actions; that is a
    check, not an availability measurement, so nothing promises an SLA. `probe.yml` is the
-   deeper read-only check (documents' release fields, a 14-name allele panel, fixed
+   deeper read-only check (documents' release fields, a 16-name allele panel, fixed
    `/v1/verify` and `/v1/normalize` strings, the site's pages): dispatch it and read the
    `probe.json` log group of the run it starts, which is how the scheduled tasks see the
    live service from a sandbox that cannot reach it.
