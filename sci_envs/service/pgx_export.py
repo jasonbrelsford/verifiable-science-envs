@@ -27,8 +27,9 @@ import argparse
 import datetime as dt
 import json
 import sys
-import urllib.request
 from pathlib import Path
+
+from sci_envs.reference.netfetch import fetch_bytes
 
 REPO_RAW = "https://raw.githubusercontent.com/jasonbrelsford/hla-pgx-open/{ref}/{path}"
 MAX_AGE_DAYS = 60
@@ -46,9 +47,7 @@ class PgxExportError(RuntimeError):
 
 
 def _fetch(url: str, timeout: float = 60.0) -> bytes:
-    req = urllib.request.Request(url, headers={"user-agent": "hlaverify-pgx-export/1"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - fixed https host
-        return r.read()
+    return fetch_bytes(url, headers={"user-agent": "hlaverify-pgx-export/1"}, timeout=timeout)
 
 
 def bundle(table: list[dict], manifest: dict, attribution: str | None,

@@ -39,7 +39,8 @@ import re
 import time
 from pathlib import Path
 
-from sci_envs.reference.imgt import ImgtReference, ImgtError, GROUP_RE, split_allele, strip_prefix
+from sci_envs.reference.imgt import ImgtReference, ImgtError, GROUP_RE, RAW_BASE, ALL_FILES, split_allele, strip_prefix
+from sci_envs.reference.netfetch import fetch_bytes
 from sci_envs.families.nomenclature.normalize import normalize, resolve_name, _members
 from sci_envs.families.matching.rules import antigen_of
 from sci_envs.service import lab
@@ -152,8 +153,19 @@ def keys_for(r: ImgtReference) -> set[str]:
     return keys
 
 
+def prefetch(tag: str, cache_dir: str | Path = "~/.cache/sci_envs/imgt") -> None:
+    """Download any missing release file with retries before ImgtReference.load, whose own
+    fetch is a single 60 s attempt: one slow read from the mirror must not fail the export."""
+    root = Path(cache_dir).expanduser() / tag
+    for f in ALL_FILES:
+        if not (root / f).exists():
+            (root / f).parent.mkdir(parents=True, exist_ok=True)
+            (root / f).write_bytes(fetch_bytes(RAW_BASE.format(tag=tag, path=f)))
+
+
 def export(tag: str, out: Path) -> dict:
     t0 = time.time()
+    prefetch(tag)
     r = ImgtReference.load(tag)
     # memoize the two O(n) scans the normalizer leans on; pure functions of their argument
     r.alleles = functools.lru_cache(maxsize=None)(r.alleles)  # type: ignore[method-assign]
