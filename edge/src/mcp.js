@@ -448,6 +448,7 @@ const OUTPUT_SCHEMAS = {
   verify_text: VERIFY_OUT, normalize_allele: NORMALIZE_OUT, allele_info: ALLELE_OUT, match_score: MATCH_OUT,
   check_typing: TYPING_OUT, donor_compat: COMPAT_OUT, validate_gl_string: GL_OUT, beta_signup: BETA_OUT,
   research_access: RESEARCH_OUT, about: ABOUT_OUT, pgx_lookup: PGX_SCREEN_OUT, pgx_pair: PGX_PAIR_OUT,
+  translate_names: { type: "object" }, release_diff: { type: "object" }, allele_history: { type: "object" },
 };
 
 // Every typing input is the same shape and carries the same rule about what may
@@ -637,6 +638,63 @@ function toolDefs() {
           donor: { type: "object", description: 'Donor typing: {"typing": {...}} or {"alleles": [...]}.',
             properties: { typing: TYPING_IN, alleles: { type: "array", maxItems: MAX_PGX_ALLELES, items: { type: "string", maxLength: 64 } } },
             additionalProperties: false },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "translate_names",
+      description:
+        "Translate HLA allele names from one IPD-IMGT/HLA release to another, through each allele's HLA ID, using the " +
+        "official Allelelist_history.txt (every release since 1.05.0). Give the names as they were written in release " +
+        "`from` (omit `from` to accept a name used in any release); `to` defaults to the current release. Each row says " +
+        "unchanged, renamed (to_name), deleted (reason, successor and its name in `to`), not_yet_named, " +
+        "not_in_from_release, ambiguous (each allele listed) or unknown. Use it when data typed under an older release " +
+        "has to be compared with or reported under a newer one. Lab shorthand (B*1501, A*02:XX) belongs in " +
+        "normalize_allele first. Allele strings only, no patient identifiers.",
+      inputSchema: {
+        type: "object",
+        required: ["names"],
+        properties: {
+          names: { type: "array", minItems: 1, maxItems: 5000, items: { type: "string", maxLength: 64 },
+            description: "Allele names exactly as written in the `from` release." },
+          from: { type: "string", maxLength: 16, description: "An IPD-IMGT/HLA release, like \"3.40.0\" (1.05.0 to the current one)." },
+          to: { type: "string", maxLength: 16, description: "An IPD-IMGT/HLA release, like \"3.40.0\" (1.05.0 to the current one)." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "release_diff",
+      description:
+        "Which HLA allele names were added, removed (with the deletion reason and successor) and renamed between two " +
+        "IPD-IMGT/HLA releases, optionally for one locus. Counts are complete; each list is cut at `limit` and " +
+        "`truncated` says so. Use it to see what a release update changes before re-running or re-reporting typings.",
+      inputSchema: {
+        type: "object",
+        required: ["from", "to"],
+        properties: {
+          from: { type: "string", maxLength: 16, description: "An IPD-IMGT/HLA release, like \"3.40.0\" (1.05.0 to the current one)." },
+          to: { type: "string", maxLength: 16, description: "An IPD-IMGT/HLA release, like \"3.40.0\" (1.05.0 to the current one)." },
+          locus: { type: "string", maxLength: 8, description: "One locus, like \"A\" or \"DRB1\"." },
+          limit: { type: "integer", minimum: 1, maximum: 5000, description: "Maximum items per list (default 500)." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "allele_history",
+      description:
+        "Every name the allele behind an HLA name has had, release by release since IPD-IMGT/HLA 1.05.0: its HLA ID, " +
+        "current name, the first and last release that used this name, the full timeline of names, and the deletion " +
+        "note if the name was retired. `as_of` adds what it was called in that release. Use it to answer when a name " +
+        "appeared, changed or disappeared. An allele string only, no patient identifiers.",
+      inputSchema: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", maxLength: 64, description: "An allele name as written in any release, like \"A*0101\"." },
+          as_of: { type: "string", maxLength: 16, description: "An IPD-IMGT/HLA release, like \"3.40.0\" (1.05.0 to the current one)." },
         },
         additionalProperties: false,
       },
@@ -834,6 +892,18 @@ async function callTool(name, args, eng, manifest, beta) {
       const r = await doGlString(eng, manifest, args.gl);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail, r.unmet);
     }
+    case "translate_names":
+    case "release_diff":
+    case "allele_history": {
+      const hist = beta && typeof beta.history === "function" ? beta.history() : null;
+      if (!hist) return errResult("release history is not available on this deployment");
+      const tier = (beta.who && beta.who.tier) || "free";
+      const cap = (TIER_LIMITS[tier] || TIER_LIMITS.free).typings;
+      const r = name === "translate_names" ? await hist.translate(args.names, args.from, args.to, { cap, tier })
+        : name === "release_diff" ? await hist.diff(args.from, args.to, { locus: args.locus ?? null, limit: args.limit })
+        : await hist.history(args.name, args.as_of);
+      return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
+    }
     case "pgx_lookup":
     case "pgx_pair": {
       const table = beta && typeof beta.pgx === "function" ? await beta.pgx() : null;
@@ -891,11 +961,13 @@ function jsonResponse(obj, status = 200) {
 // failure instead of "retry after midnight, or upgrade". The machine-readable
 // signal is on the response headers instead: x-hla-verify-daily-remaining: 0
 // and Retry-After. REST keeps its 429.
-export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null, pgx = null) {
+export async function handleMcp(request, engine, who, manifest, onCall = () => {}, env = null, spend = null, pgx = null, history = null) {
   // `pgx` is index.js's loader for the vendored pharmacogenomics table (pgx.js);
   // omitted (standalone, tests without a bundle), pgx_lookup and pgx_pair report
   // the table as unavailable and every other tool behaves identically.
-  const beta = { env, country: request.headers.get("cf-ipcountry"), pgx };
+  // `history` is index.js's loader for the release history (history.js); omitted, the
+  // three history tools report it as unavailable.
+  const beta = { env, country: request.headers.get("cf-ipcountry"), pgx, history, who };
   let raw;
   try {
     raw = await request.text();

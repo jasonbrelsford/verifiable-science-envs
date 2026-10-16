@@ -199,6 +199,11 @@ def export(tag: str, out: Path) -> dict:
     # The pharmacogenomics table (edge/src/pgx.js) ships beside the release tables, never
     # inside them: a separate CC BY-SA bundle from hla-pgx-open, vendored at deploy time.
     # Fails the deploy on a stale or half-built upstream snapshot (pgx_export.py).
+    # Every allele name in every release since 1.05.0, for the release endpoints
+    # (/v1/translate, /v1/releases/diff, /v1/allele/{name}/history; edge/src/history.js).
+    from sci_envs.service.history_export import export as export_history
+    manifest["history"] = export_history(r, out)
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     if os.environ.get("HLA_VERIFY_SKIP_PGX") != "1":
         from sci_envs.service.pgx_export import export as export_pgx
         export_pgx(out)

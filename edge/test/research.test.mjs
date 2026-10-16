@@ -442,7 +442,7 @@ test("MCP research_access is advertised with write annotations and an outputSche
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
   });
   const tools = (await resp.json()).result.tools;
-  assert.equal(tools.length, 12);
+  assert.equal(tools.length, 15);
   const t = tools.find((x) => x.name === "research_access");
   assert.ok(t, "research_access missing from tools/list");
   assert.deepEqual(t.annotations, { readOnlyHint: false, idempotentHint: true, openWorldHint: false });

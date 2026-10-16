@@ -201,8 +201,9 @@ test("tools/list: exact tool names", async () => {
   const { json } = await rpc("tools/list", {});
   const names = json.result.tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
-    "about", "allele_info", "beta_signup", "check_typing", "donor_compat", "match_score",
-    "normalize_allele", "pgx_lookup", "pgx_pair", "research_access", "validate_gl_string", "verify_text",
+    "about", "allele_history", "allele_info", "beta_signup", "check_typing", "donor_compat", "match_score",
+    "normalize_allele", "pgx_lookup", "pgx_pair", "release_diff", "research_access", "translate_names",
+    "validate_gl_string", "verify_text",
   ]);
   for (const t of json.result.tools) {
     assert.equal(typeof t.description, "string");
@@ -457,7 +458,7 @@ const BRANCH_CALLS = [
 ];
 
 test("tools/list: every tool has an object outputSchema using only validator-supported keywords", async () => {
-  assert.equal(Object.keys(outputSchemas).length, 12);
+  assert.equal(Object.keys(outputSchemas).length, 15);
   for (const [name, schema] of Object.entries(outputSchemas)) {
     assert.ok(schema, `${name} has no outputSchema`);
     assert.equal(schema.type, "object", `${name}: outputSchema root must be type object`);

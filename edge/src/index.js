@@ -23,6 +23,7 @@ import { DailyQuota, spendQuota, quotaHeaders, quotaDetail, retryAfterSeconds, i
   BILLABLE_TOOLS } from "./quota.js";
 import { handleUsageRequest, handleAdminUsageRequest } from "./usage.js";
 import { createPgx, doPgxTable, doPgxScreen, doPgxPair } from "./pgx.js";
+import { createHistory } from "./history.js";
 
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
@@ -54,6 +55,19 @@ function getPgx(env) {
     });
   }
   return pgx.get(env);
+}
+
+// IPD-IMGT/HLA release history (history.js), loaded lazily per isolate from the files
+// history_export.py writes beside the release tables. Absent files: those routes 503.
+let history = null;
+function getHistory(env) {
+  if (!history) {
+    history = createHistory(async (path) => {
+      const r = await env.ASSETS.fetch(`https://assets.local/${path}`);
+      return r.ok ? r.json() : null;
+    });
+  }
+  return history;
 }
 
 const CORS = {
@@ -277,7 +291,7 @@ export default {
       };
       const resp = await handleMcp(req, eng, who, manifest,
         (tool, status, units, unmet) => meter(env, ctx, who, `mcp:${tool}`, status, units, Date.now() - t0, unmet), env, spend,
-        () => getPgx(env));
+        () => getPgx(env), () => getHistory(env));
       const body = await resp.text();
       return new Response(body || null, {
         status: resp.status,
@@ -398,6 +412,34 @@ export default {
         const [body, e] = await readJson(req, hdrs); if (e) return e;
         return finish("normalize", await doNormalize(eng, manifest, body.typings, { tier: who.tier, cap: q.maxTypings }),
           { typings: body.typings });
+      }
+      // Release history (history.js): the release list is metadata and free; translate,
+      // diff and an allele's history are lookups and billable like /v1/allele.
+      const answer = (label, r) => {
+        meter(env, ctx, who, label, r.ok ? 200 : r.status, r.ok ? r.units : 0, Date.now() - t0);
+        return r.ok ? json(r.body, 200, hdrs) : err(r.status, r.detail, hdrs);
+      };
+      if (path === "/v1/releases") {
+        if (req.method !== "GET") return err(405, "GET /v1/releases", hdrs);
+        return answer("releases", await getHistory(env).releases());
+      }
+      if (path === "/v1/releases/diff") {
+        if (req.method !== "GET") return err(405, "GET /v1/releases/diff?from=3.58.0&to=3.66.0[&locus=A][&limit=500]", hdrs);
+        const p = url.searchParams;
+        return answer("releases/diff", await getHistory(env).diff(p.get("from"), p.get("to"),
+          { locus: p.get("locus"), limit: p.get("limit") }));
+      }
+      if (path === "/v1/translate") {
+        if (req.method !== "POST") return err(405, "POST {\"names\": [...], \"from\": \"3.39.0\", \"to\": \"3.66.0\"}", hdrs);
+        const [body, e] = await readJson(req, hdrs); if (e) return e;
+        return answer("translate", await getHistory(env).translate(body.names, body.from, body.to,
+          { cap: q ? q.maxTypings : 250, tier: who.tier }));
+      }
+      if (path.startsWith("/v1/allele/") && path.endsWith("/history")) {
+        if (req.method !== "GET") return err(405, "GET /v1/allele/{name}/history[?as_of=3.40.0]", hdrs);
+        let name;
+        try { name = decodeURIComponent(url.pathname.slice("/v1/allele/".length, -"/history".length)); } catch (_) { return err(400, "bad name encoding", hdrs); }
+        return answer("allele/history", await getHistory(env).history(name, url.searchParams.get("as_of")));
       }
       if (path.startsWith("/v1/allele/")) {
         if (req.method !== "GET") return err(405, "GET /v1/allele/{name}", hdrs);
