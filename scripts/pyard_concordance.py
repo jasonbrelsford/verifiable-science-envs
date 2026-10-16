@@ -12,7 +12,7 @@ silently absorb a real bug. The classifier is pure (no py-ard, no reference)
 so tests/test_concordance_triage.py can exercise it without the database."""
 import random, re, sys, time
 
-REF_TAG, PYARD_VER = "v3.65.0-alpha", "3650"
+REF_TAG, PYARD_VER = "v3.66.0-alpha", "3660"
 SUFFIXES = "NLSCAQ"  # expression suffixes, as in sci_envs.families.nomenclature.normalize
 _TWO_FIELD = re.compile(r"^[A-Z0-9]+\*\d+:\d+$")
 

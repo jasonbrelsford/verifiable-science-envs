@@ -96,11 +96,13 @@ a partially-cached old release during the transition):**
 
 **Docs/results that describe a specific past release — do NOT bump, these are historical
 records of what was measured under the old release and stay pinned:**
-- `bench/HLA-Bench-A.md`, `bench/HLA-Bench-C.md`, `docs/pyard-concordance.md`,
+- `bench/HLA-Bench-A.md`, `bench/HLA-Bench-C.md`,
   `docs/research-rel_dna_ser-3.65.md`, `docs/paper/hla-bench-draft.md` — leave as-is; a
   new release gets a new results run and a new dated entry, not an edit to old numbers.
 - `scripts/pyard_concordance.py` — `REF_TAG, PYARD_VER` are a matched pair (py-ard's own
   data build); it is a dated comparison, not a runtime default.
+  `docs/pyard-concordance.md` is *not* frozen: it describes the pin the live service
+  answers from, so it is re-run after a bump (step 3).
 - `scripts/train_grpo_modal.py` — training run, pinned to what it was trained on.
 - `scripts/release_diff.py` — the tag strings there are usage examples only.
 - `harbor/**` (`solution/solve.py`, `tests/build_truth.py`, `README.md`) — the Harbor
@@ -148,6 +150,13 @@ to match the new release's actual data (verified from the loader's own output, n
 guessed), re-run, and only then continue. Skips for missing optional extras
 (`verifiers`, `inspect_ai`, `mcp`) are normal in a `[dev,service]` venv; a skip anywhere
 else is not.
+
+Then re-run the py-ard concordance against the new tag so `docs/pyard-concordance.md`
+keeps describing the live pin (needs open internet; py-ard downloads its database):
+edit `REF_TAG, PYARD_VER` in `scripts/pyard_concordance.py` (`v<new>-alpha`, db `<new>`
+without dots), run `PYTHONUTF8=1 python scripts/pyard_concordance.py`, convert the report
+to LF if it came out CRLF, and note in the PR whether the identical/different counts
+moved. Any `UNTRIAGED` row is a real finding, not noise.
 
 The `edge_export` output lists ~2,156 skipped `DPB1*1000`-style names; that is the
 expected five-digit-legacy exclusion, not a bump problem.
