@@ -195,7 +195,7 @@ const ALLELE_OUT = {
     first_release: { type: ["string", "null"], description: "assigned: first release the exact name appeared in." },
     confirmed: { type: "boolean", description: "assigned: confirmed (vs unconfirmed) allele." },
     serology: {
-      type: "object", description: "assigned: WMDA serologic equivalents by column (non-empty columns only).",
+      type: "object", description: "assigned: WMDA serologic equivalents by column (non-empty columns only), as published in rel_dna_ser.txt: an antigen number, '?' (undetermined equivalent) or '∅' (no serological equivalent, null). The lab tools report these as 'uncertain' and 'null'.",
       properties: { unambiguous: STR_LIST, possible: STR_LIST, assumed: STR_LIST, expert: STR_LIST },
       additionalProperties: STR_LIST,
     },
