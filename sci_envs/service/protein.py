@@ -17,12 +17,12 @@ numbering skips 0 (… -2, -1, 1, 2 …), so mature position 1 follows leader -1
 from __future__ import annotations
 
 import re
-import urllib.request
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
 from sci_envs.reference.imgt import ImgtReference, ImgtError, RAW_BASE
+from sci_envs.reference.netfetch import fetch_bytes
 
 PROTEIN_LOCI = ("A", "B", "C")
 UNKNOWN = "?"
@@ -37,8 +37,7 @@ def _fetch(ref: ImgtReference, rel_path: str) -> Path:
     if not p.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
         url = RAW_BASE.format(tag=ref.tag, path=rel_path)
-        with urllib.request.urlopen(url, timeout=120) as r:
-            data = r.read()
+        data = fetch_bytes(url)
         tmp = p.with_suffix(".part")
         tmp.write_bytes(data)
         tmp.replace(p)
