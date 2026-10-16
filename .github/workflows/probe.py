@@ -19,9 +19,14 @@ What it checks
      locus+2-field shard was a subrequest, and a batch past the plan's cap answered 500), and
      one POST /v1/pgx/screen on B*5701 (abacavir actionable, deprecated_name flag kept).
   5. The site's public pages: HTTP status, and the release string on /llms.txt.
+  6. The release-history routes and support reports (2026-10-16): GET /v1/releases, GET
+     /v1/releases/diff (limit=1), POST /v1/translate, GET /v1/allele/{name}/history, and a valid
+     and an empty-input POST /v1/report. Each must answer as documented and state the release
+     /healthz states. The valid report stores one record in the REPORTS namespace, labelled as
+     the probe (source hlaverify-probe, input says so): a daily record to ignore when triaging.
 
-Budget: 21 billable anonymous calls per run (17 + 1 + 1 + 1 + 1) out of the 100/day the runner's IP
-gets; the documents and site pages are free. Exit status is 1 when anything is off, so a
+Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
+the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
 
 Usage: probe.py [--api URL] [--site URL] [--no-site] [--out FILE] [--no-fail]
@@ -114,6 +119,20 @@ FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", 
 BATCH_SIZE = 60
 
 PGX_ALLELES = ["B*5701"]
+
+# The release-history routes (#141) and the support report (#135). A1's first name, A*0101, was
+# renamed A*01:01:01:01 in 3.00.0 (HLA00001) and has kept that name since, so a translate from 1.05.0
+# is stable across releases; the diff window is fixed and only its envelope is asserted.
+TRANSLATE_BODY = {"names": ["A*0101"], "from": "1.05.0"}
+TRANSLATE_EXPECTED = {"status": "renamed", "to_name": "A*01:01:01:01", "hla_id": "HLA00001"}
+DIFF_FROM, DIFF_TO = "3.58.0", "3.66.0"
+HISTORY_NAME = "A*01:01:01:01"
+# The one valid report stores a real record, so it says plainly that it is the probe. Never
+# resend it more than once a run: REPORTS_PER_DAY is 20 per IP.
+REPORT_VALID = {"kind": "other", "source": "hlaverify-probe",
+                "input": "hlaverify-probe: automated daily check of POST /v1/report",
+                "expected": "No action needed: this is the scheduled probe, not a user report."}
+REPORT_INVALID = {"kind": "other", "input": "", "expected": "an empty input must be refused"}
 
 
 def batch_names(path: str = FIXTURES, size: int = BATCH_SIZE) -> tuple[dict[str, str], str | None]:
@@ -306,6 +325,92 @@ def probe(api: str, site: str | None) -> dict:
     if not ok:
         failures.append(f"/v1/pgx/screen {PGX_ALLELES}: HTTP {r['status']}, abacavir actionable {abacavir}, deprecated_name flag {flagged}")
 
+    # 3c. release history and support reports. Billable: translate, diff, allele history (3).
+    # Free: releases, and both reports (never billable; the valid one stores a labelled record).
+    def check(key: str, label: str, r: dict, want_http: int, problems: list[str], b: dict) -> None:
+        if r["status"] != want_http:
+            problems.append(f"HTTP {r['status']} (expected {want_http})")
+        out[key] = {"http": r["status"], "ms": r["ms"], "ok": not problems, "problems": problems}
+        if problems:
+            failures.append(f"{label}: " + "; ".join(problems))
+
+    r = fetch(api + "/v1/releases")
+    b = as_json(r["text"]) or {}
+    rels = b.get("releases") if isinstance(b.get("releases"), list) else []
+    problems = []
+    if r["status"] == 200:
+        if b.get("latest") != healthz_release:
+            problems.append(f"latest {b.get('latest')!r} != /healthz {healthz_release!r}")
+        if not rels or rels[-1] != b.get("latest") or b.get("count") != len(rels):
+            problems.append("releases list is empty, does not end at latest, or count differs")
+        if DIFF_FROM not in rels:
+            problems.append(f"{DIFF_FROM} missing from the list")
+    check("releases", "/v1/releases", r, 200, problems, b)
+    out["releases"].update({"latest": b.get("latest"), "count": b.get("count")})
+
+    r = fetch(api + "/v1/releases/diff?" + urllib.parse.urlencode({"from": DIFF_FROM, "to": DIFF_TO, "limit": 1}))
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    counts = b.get("counts") if isinstance(b.get("counts"), dict) else {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("to") != DIFF_TO or b.get("from") != DIFF_FROM:
+            problems.append(f"window {b.get('from')!r}..{b.get('to')!r} (asked {DIFF_FROM}..{DIFF_TO})")
+        if not all(isinstance(counts.get(k), int) for k in ("added", "removed", "renamed")):
+            problems.append(f"counts not integers: {counts}")
+        elif counts["added"] < 1:
+            problems.append("no names added between the two releases")
+        if not isinstance(b.get("added"), list) or len(b["added"]) > 1 or b.get("limit") != 1:
+            problems.append("limit=1 not honoured")
+    check("releases_diff", "/v1/releases/diff", r, 200, problems, b)
+    out["releases_diff"]["counts"] = counts
+
+    body = dict(TRANSLATE_BODY, to=healthz_release) if healthz_release else dict(TRANSLATE_BODY)
+    r = fetch(api + "/v1/translate", "POST", body)
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    row = next((x for x in b.get("rows", []) if isinstance(x, dict)), {}) if r["status"] == 200 else {}
+    problems = []
+    if r["status"] == 200:
+        got = {k: row.get(k) for k in TRANSLATE_EXPECTED}
+        if got != TRANSLATE_EXPECTED:
+            problems.append(f"row {got} (expected {TRANSLATE_EXPECTED})")
+        if b.get("to") != healthz_release:
+            problems.append(f"to {b.get('to')!r} != /healthz {healthz_release!r}")
+    check("translate", "/v1/translate", r, 200, problems, b)
+
+    r = fetch(api + "/v1/allele/" + urllib.parse.quote(HISTORY_NAME, safe="*:") + "/history")
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    al = next((x for x in b.get("alleles", []) if isinstance(x, dict)), {}) if r["status"] == 200 else {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("latest") != healthz_release:
+            problems.append(f"latest {b.get('latest')!r} != /healthz {healthz_release!r}")
+        if al.get("hla_id") != "HLA00001" or al.get("current_name") != HISTORY_NAME:
+            problems.append(f"allele {al.get('hla_id')!r} current_name {al.get('current_name')!r}")
+        tl = al.get("timeline") if isinstance(al.get("timeline"), list) else []
+        if not tl or tl[0].get("name") != "A*0101" or tl[-1].get("to") != healthz_release:
+            problems.append("timeline does not run from A*0101 to the serving release")
+    check("allele_history", "/v1/allele/{name}/history", r, 200, problems, b)
+
+    r = fetch(api + "/v1/report", "POST", REPORT_VALID)
+    b = as_json(r["text"]) or {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("ok") is not True or b.get("status") != "received" or not b.get("id"):
+            problems.append(f"body ok={b.get('ok')!r} status={b.get('status')!r} id={bool(b.get('id'))}")
+        if b.get("release") != healthz_release:
+            problems.append(f"release {b.get('release')!r} != /healthz {healthz_release!r}")
+    check("report_valid", "POST /v1/report (valid)", r, 200, problems, b)
+
+    r = fetch(api + "/v1/report", "POST", REPORT_INVALID)
+    b = as_json(r["text"]) or {}
+    problems = []
+    if r["status"] == 422 and "input" not in str(b.get("detail", "")):
+        problems.append(f"detail does not name the input field: {str(b.get('detail'))[:80]!r}")
+    check("report_invalid", "POST /v1/report (empty input)", r, 422, problems, b)
+
     # 4. the site
     if site:
         pages = []
@@ -342,6 +447,12 @@ def summary(res: dict) -> str:
     v, n = res["verify"], res["normalize"]
     lines += ["", f"- `/v1/verify`: HTTP {v['http']}, {v['ms']} ms, {'ok' if v['ok'] else 'MISMATCH'} — {v['tokens']}",
               f"- `/v1/normalize`: HTTP {n['http']}, {n['ms']} ms, {'ok' if n['ok'] else 'MISMATCH'}"]
+    for key, label in (("releases", "GET /v1/releases"), ("releases_diff", "GET /v1/releases/diff"),
+                       ("translate", "POST /v1/translate"), ("allele_history", "GET /v1/allele/{name}/history"),
+                       ("report_valid", "POST /v1/report (valid)"), ("report_invalid", "POST /v1/report (empty input)")):
+        x = res.get(key)
+        if x:
+            lines.append(f"- `{label}`: HTTP {x['http']}, {x['ms']} ms, {'ok' if x['ok'] else 'MISMATCH'}")
     nb, pg = res.get("normalize_batch"), res.get("pgx_screen")
     if nb:
         lines.append(f"- `/v1/normalize` batch of {nb['names']}: HTTP {nb['http']}, {nb['rows']} rows, {nb['ms']} ms, "
