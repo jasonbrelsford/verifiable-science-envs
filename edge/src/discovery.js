@@ -78,7 +78,8 @@ export function ardManifest() {
       description: "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
       version: SERVER_INFO.version,
       tags: ["hla", "immunogenetics", "mcp"],
-      capabilities: ["verify_text", "normalize_allele", "allele_info", "match_score", "check_typing", "donor_compat", "validate_gl_string"],
+      capabilities: ["verify_text", "normalize_allele", "allele_info", "match_score", "check_typing", "donor_compat", "validate_gl_string",
+        "translate_names", "release_diff", "allele_history"],
       representativeQueries: [
         "is DRB1*04:01:01 a valid HLA allele name in the current release",
         "normalize this HLA typing to two-field resolution",

@@ -173,7 +173,8 @@ test("billable routes and tools are exactly the metered ones", () => {
   assert.equal(BILLABLE_TOOLS.has("beta_signup"), false);
   assert.equal(BILLABLE_TOOLS.has("pgx_lookup"), true);
   assert.equal(BILLABLE_TOOLS.has("pgx_pair"), true);
-  assert.equal(BILLABLE_TOOLS.size, 9);
+  for (const t of ["translate_names", "release_diff", "allele_history"]) assert.equal(BILLABLE_TOOLS.has(t), true, t);
+  assert.equal(BILLABLE_TOOLS.size, 12);
 });
 
 // --------------------------------------------------------------- headers

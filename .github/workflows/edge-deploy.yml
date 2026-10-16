@@ -9,6 +9,7 @@ on:
       - "edge/src/**"
       - "edge/wrangler.jsonc"
       - "sci_envs/service/edge_export.py"
+      - "sci_envs/service/history_export.py"
       - ".github/workflows/edge-deploy.yml"
   workflow_dispatch:
 jobs:

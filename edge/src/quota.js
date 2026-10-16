@@ -44,7 +44,7 @@ const SWEEP_AFTER_MS = 36 * 3600 * 1000;
 // /v1/pgx/table is open data and not billable; the two pgx lookups are billed
 // exactly like /v1/normalize and /v1/match (one call each, same daily quota).
 const BILLABLE_PATHS = new Set(["/v1/verify", "/v1/normalize", "/v1/match", "/v1/typing/check", "/v1/compat", "/v1/glstring",
-  "/v1/pgx/screen", "/v1/pgx/pair"]);
+  "/v1/pgx/screen", "/v1/pgx/pair", "/v1/translate", "/v1/releases/diff"]);
 export function isBillablePath(path) {
   return BILLABLE_PATHS.has(path) || path.startsWith("/v1/allele/");
 }
@@ -55,7 +55,8 @@ export function isBillablePath(path) {
 // and nor does initialize, tools/list or server/discover, which never reach a
 // tool at all.
 export const BILLABLE_TOOLS = new Set(["verify_text", "normalize_allele", "allele_info", "match_score",
-  "check_typing", "donor_compat", "validate_gl_string", "pgx_lookup", "pgx_pair"]);
+  "check_typing", "donor_compat", "validate_gl_string", "pgx_lookup", "pgx_pair",
+  "translate_names", "release_diff", "allele_history"]);
 
 // ------------------------------------------------------------- the UTC day
 // Day boundary is UTC midnight, everywhere, for every tier: the quota key is
