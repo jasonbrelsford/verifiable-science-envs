@@ -9,6 +9,7 @@ import { TIER_LIMITS } from "./keys.js";
 import { MAX_TYPINGS } from "./handlers.js";
 import { priceLabel, SELLABLE_TIERS } from "./pricing.js";
 import { SCOPE as PGX_SCOPE } from "./pgx.js";
+import { pinNote } from "./pin.js";
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const n = (v) => (v === null ? "uncapped" : v.toLocaleString("en-US"));
@@ -66,7 +67,7 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 </style></head><body><div class="wrap">
 <nav><a href="https://hlaverify.com">hlaverify.com</a><a href="https://hlaverify.com/demo">in-browser demo</a><a href="/openapi.json">openapi.json</a><a href="https://github.com/jasonbrelsford/verifiable-science-envs">source &amp; benchmark</a></nav>
 <h1>HLA-Verify API</h1>
-<p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
+<p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles.${pinNote(m) ? ` ${esc(pinNote(m))}` : ""} Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
 <p class="send"><b>What to send.</b> HLA-Verify checks allele nomenclature, typing-report consistency and match arithmetic against a pinned IPD-IMGT/HLA release. Send <b>allele names, typing strings, GL strings and report text about HLA typing</b>. Do not send patient identifiers: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. The service neither needs nor wants them, request bodies are processed in memory and never stored, and de-identifying before you send is the caller's responsibility. This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor.</p>
 <p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
 
@@ -126,7 +127,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/translate -H 'content-type: applica
 ${curl(`curl -s 'https://api.hlaverify.com/v1/releases/diff?from=3.58.0&to=3.66.0&locus=A&limit=50'`)}
 
 <h3><span class="pill">GET</span><code>/v1/releases</code> — the releases the history covers</h3>
-<p>Every IPD-IMGT/HLA release from 1.05.0 to the current one, oldest first, and the loci in the history. Free and never counted.</p>
+<p>Every IPD-IMGT/HLA release from 1.05.0 to the current one, oldest first, and the loci in the history, plus <code>pin</code>: the release, the git tag it is pinned to, and a one-sentence note when that tag is a pre-release (alpha) tag ahead of the latest official release. Free and never counted.</p>
 
 <h3><span class="pill">POST</span><code>/v1/match</code> — donor–recipient match verdict</h3>
 <p>Two reported alleles per locus, any nomenclature era, G/P group names included (a typing reported at G-group resolution matches by the 2-field name it is written under). Frameworks <code>6/6</code>, <code>8/8</code>, <code>10/10</code>, <code>12/12</code>, <code>antigen</code>. Counts per <em>chromosome</em>, not per locus; GvH and HvG mismatches reported separately; a locus whose typing is too coarse to call is <code>potential</code> and excluded from the denominator with <code>resolution_insufficient</code> — a confident count over unresolvable typing is itself the error. Null alleles hiding inside serologic matches (the A*24:09N trap) raise <code>null_allele_mismatch</code>. Rules R1–R6 are published in <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/sci_envs/families/matching/rules.py">rules.py</a> for lab audit.</p>
@@ -237,7 +238,7 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 <p>The same verification service as a container, no API key or network dependency on <code>hlaverify.com</code>: <code>docker run -p 8000:8000 ghcr.io/jasonbrelsford/hla-verify:latest</code> (once a tagged release publishes one), or build it yourself from the repository (<code>docker build -t hla-verify -f sci_envs/service/Dockerfile .</code>), or run the Python service directly (<code>pip install -e ".[service]" \&\& uvicorn sci_envs.service.app:app</code>). Details and the current image tags: <a href="https://github.com/jasonbrelsford/verifiable-science-envs#self-host">README</a>.</p>
 
 <h2 id="release-pinning">Release pinning</h2>
-<p>This deployment is pinned to <b>${esc(m.release)}</b> for every caller — one release for the whole deployment, not a value that varies by key. The tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; when this deployment's pin moves to a new release, that move is a deliberate, recorded step (see <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/RELEASE_BUMP.md">the release runbook</a>), not a silent change. Keyed customers are told by email before the deployment-wide pin moves, with a diff of changed verdicts — a manual step in that runbook, not an automated feature. <b>Per-key pinning — holding an individual key on an older release — is on the roadmap and not built today.</b></p>
+<p>This deployment is pinned to <b>${esc(m.release)}</b> for every caller — one release for the whole deployment, not a value that varies by key. ${pinNote(m) ? `${esc(pinNote(m))} ` : ""}The tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; when this deployment's pin moves to a new release, that move is a deliberate, recorded step (see <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/RELEASE_BUMP.md">the release runbook</a>), not a silent change. Keyed customers are told by email before the deployment-wide pin moves, with a diff of changed verdicts — a manual step in that runbook, not an automated feature. <b>Per-key pinning — holding an individual key on an older release — is on the roadmap and not built today.</b></p>
 
 <h2>Errors</h2>
 <p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 missing/invalid/revoked key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 rate limited or daily quota exhausted (tier-specific, with <code>Retry-After</code>), 500 (nothing stored). MCP <code>tools/call</code> validation failures are not HTTP or JSON-RPC errors — they come back as a normal tool result with <code>isError:true</code> and an explanatory text block, per the MCP spec.</p>
@@ -507,8 +508,8 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         responses: { 200: { description: "counts and the added, removed and renamed names" },
           422: { description: "a missing or unknown release, an unknown locus, or a bad limit", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/releases": { get: { summary: "The IPD-IMGT/HLA releases the history covers, oldest first",
-        description: "Every release from 1.05.0 to the current one, and the loci in the history. Free; not counted against the daily quota.",
-        responses: { 200: { description: "releases, latest, count and loci" } } } },
+        description: "Every release from 1.05.0 to the current one, and the loci in the history, plus a pin object (release, tag, and a note when the pinned tag is a pre-release ahead of the latest official release). Free; not counted against the daily quota.",
+        responses: { 200: { description: "releases, latest, count, loci and pin" } } } },
       "/v1/allele/{name}": { get: { summary: "Facts for one allele, prefix, group, deleted name, or reported shorthand",
         description: "Accepts what /v1/normalize accepts: current names at 1-4 fields, legacy spellings (A*0101, Cw*0702, Cw*07:02), " +
           "deleted names, G/P group names, the XX code (A*02:XX), two-field A*02:01g and an optional HLA- prefix. A shorthand " +

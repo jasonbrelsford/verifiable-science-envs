@@ -10,6 +10,7 @@
 import { createEngine, FRAMEWORKS } from "./engine.js";
 import { summarizeUnmet, rejectionUnmet, callerBucket, EMPTY as NO_UNMET } from "./unmet.js";
 import manifest from "../public/manifest.json" with { type: "json" };
+import { pinInfo } from "./pin.js";
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
@@ -421,7 +422,9 @@ export default {
       };
       if (path === "/v1/releases") {
         if (req.method !== "GET") return err(405, "GET /v1/releases", hdrs);
-        return answer("releases", await getHistory(env).releases());
+        const r = await getHistory(env).releases();
+        if (r.ok) r.body.pin = pinInfo(manifest);
+        return answer("releases", r);
       }
       if (path === "/v1/releases/diff") {
         if (req.method !== "GET") return err(405, "GET /v1/releases/diff?from=3.58.0&to=3.66.0[&locus=A][&limit=500]", hdrs);
