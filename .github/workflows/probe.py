@@ -25,6 +25,12 @@ What it checks
      /healthz states. The valid report stores one record in the REPORTS namespace, labelled as
      the probe (source hlaverify-probe, input says so): a daily record to ignore when triaging.
 
+Latency (#148): every call's wall time is kept (`latency` in the JSON: p50, max, slowest call,
+and the Cloudflare `cf-ray` / `cf-cache-status` / colo hint of each slow call). A call over its budget
+is a WARNING (`warnings`, `::warning::`), never a failure: the 60-name batch over BATCH_BUDGET_MS, any
+other API call over SLOW_FACTOR x the median of this run's API calls (floor SLOW_FLOOR_MS). The
+trailing median across runs is not available to a stateless job, so the run's own median stands in.
+
 Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
 the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
@@ -120,6 +126,13 @@ BATCH_SIZE = 60
 
 PGX_ALLELES = ["B*5701"]
 
+# Latency budgets (#148). The 60-name batch took 2856 ms once against 783 ms another time, same input.
+# Over budget is a warning in the log and the JSON, never a failed run.
+BATCH_BUDGET_MS = 2000
+SLOW_FACTOR = 3
+SLOW_FLOOR_MS = 1000
+CALLS: list[dict] = []   # every fetch() of the run, in order
+
 # The release-history routes (#141) and the support report (#135). A1's first name, A*0101, was
 # renamed A*01:01:01:01 in 3.00.0 (HLA00001) and has kept that name since, so a translate from 1.05.0
 # is stable across releases; the diff window is fixed and only its envelope is asserted.
@@ -179,6 +192,13 @@ def fetch(url: str, method: str = "GET", body: dict | None = None) -> dict:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     t0 = time.perf_counter()
+    result = _fetch(req, t0)
+    CALLS.append({"host": urllib.parse.urlsplit(url).netloc, "call": f"{method} {urllib.parse.urlsplit(url).path}", "ms": result["ms"], "http": result["status"],
+                  "cf_ray": result["headers"].get("cf-ray"), "cf_cache": result["headers"].get("cf-cache-status")})
+    return result
+
+
+def _fetch(req: urllib.request.Request, t0: float) -> dict:
     try:
         with OPENER.open(req, timeout=TIMEOUT) as resp:
             text = resp.read().decode("utf-8", "replace")
@@ -190,6 +210,32 @@ def fetch(url: str, method: str = "GET", body: dict | None = None) -> dict:
         return {"status": None, "error": f"{type(e).__name__}: {e}", "ms": round((time.perf_counter() - t0) * 1000), "headers": {}, "text": ""}
     return {"status": status, "ms": round((time.perf_counter() - t0) * 1000),
             "headers": {k.lower(): v for k, v in hdrs.items()}, "text": text}
+
+
+def median(xs: list[float]) -> float:
+    s = sorted(xs)
+    n = len(s)
+    return float(s[n // 2]) if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+
+def latency_report(api_calls: list[dict]) -> tuple[dict, list[str]]:
+    """p50 / max / slowest of the API calls, plus a warning for each call over its budget."""
+    timed = [c for c in api_calls if c["http"] is not None]
+    if not timed:
+        return {}, []
+    p50 = median([c["ms"] for c in timed])
+    slowest = max(timed, key=lambda c: c["ms"])
+    limit = max(SLOW_FACTOR * p50, SLOW_FLOOR_MS)
+    warnings = []
+    for c in timed:
+        budget = BATCH_BUDGET_MS if c.get("batch") else limit
+        if c["ms"] > budget:
+            warnings.append(f"slow: {c['call']}{' (batch)' if c.get('batch') else ''} took {c['ms']} ms "
+                            f"(budget {round(budget)} ms; run p50 {round(p50)} ms; cf-ray {c['cf_ray'] or 'n/a'})")
+    return ({"calls": len(timed), "p50_ms": round(p50), "max_ms": slowest["ms"], "slowest": slowest["call"],
+             "slow_limit_ms": round(limit), "batch_budget_ms": BATCH_BUDGET_MS,
+             "slow": [c for c in timed if c["ms"] > (BATCH_BUDGET_MS if c.get("batch") else limit)]},
+            warnings)
 
 
 def stated_release(text: str) -> str | None:
@@ -205,6 +251,7 @@ def as_json(text: str):
 
 
 def probe(api: str, site: str | None) -> dict:
+    CALLS.clear()
     failures: list[str] = []
     out: dict = {"probed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  "api": api, "site": site, "billable_calls": 0}
@@ -294,6 +341,7 @@ def probe(api: str, site: str | None) -> dict:
         failures.append(f"/v1/normalize batch: cannot read fixtures ({type(e).__name__}: {e})")
     if names:
         r = fetch(api + "/v1/normalize", "POST", {"typings": list(names)})
+        CALLS[-1]["batch"] = True
         out["billable_calls"] += 1
         b = as_json(r["text"]) or {}
         got_rows = b.get("rows") if isinstance(b.get("rows"), list) else []
@@ -428,6 +476,8 @@ def probe(api: str, site: str | None) -> dict:
             pages.append(row)
         out["site_pages"] = pages
 
+    api_calls = [c for c in CALLS if c["host"] == urllib.parse.urlsplit(api).netloc]
+    out["latency"], out["warnings"] = latency_report(api_calls)
     out["failures"] = failures
     out["ok"] = not failures
     return out
@@ -439,6 +489,12 @@ def summary(res: dict) -> str:
              f"{res['billable_calls']} billable anonymous calls spent.", ""]
     if res["failures"]:
         lines += ["**Failures**", ""] + [f"- {f}" for f in res["failures"]] + [""]
+    lat = res.get("latency")
+    if lat:
+        lines += [f"Latency: {lat['calls']} API calls, p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
+                  f"slow limit {lat['slow_limit_ms']} ms, batch budget {lat['batch_budget_ms']} ms.", ""]
+    if res.get("warnings"):
+        lines += ["**Latency warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
     lines += ["| document | HTTP | ms | release |", "|---|---:|---:|---|"]
     lines += [f"| `{d['path']}` | {d['http']} | {d['ms']} | {d['release'] or ''} |" for d in res["documents"]]
     lines += ["", "| allele | HTTP | status | flags | ms | ok |", "|---|---:|---|---|---:|---|"]
@@ -488,6 +544,8 @@ def main() -> int:
     if step_summary:
         with open(step_summary, "a") as f:
             f.write(md)
+    for w in res.get("warnings", []):
+        print(f"::warning::{w}")
     if not res["ok"]:
         for fl in res["failures"]:
             print(f"::error::{fl}")
