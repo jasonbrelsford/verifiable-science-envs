@@ -19,9 +19,20 @@ What it checks
      locus+2-field shard was a subrequest, and a batch past the plan's cap answered 500), and
      one POST /v1/pgx/screen on B*5701 (abacavir actionable, deprecated_name flag kept).
   5. The site's public pages: HTTP status, and the release string on /llms.txt.
+  6. The release-history routes and support reports (2026-10-16): GET /v1/releases, GET
+     /v1/releases/diff (limit=1), POST /v1/translate, GET /v1/allele/{name}/history, and a valid
+     and an empty-input POST /v1/report. Each must answer as documented and state the release
+     /healthz states. The valid report stores one record in the REPORTS namespace, labelled as
+     the probe (source hlaverify-probe, input says so): a daily record to ignore when triaging.
 
-Budget: 21 billable anonymous calls per run (17 + 1 + 1 + 1 + 1) out of the 100/day the runner's IP
-gets; the documents and site pages are free. Exit status is 1 when anything is off, so a
+Latency (#148): every call's wall time is kept (`latency` in the JSON: p50, max, slowest call,
+and the Cloudflare `cf-ray` / `cf-cache-status` / colo hint of each slow call). A call over its budget
+is a WARNING (`warnings`, `::warning::`), never a failure: the 60-name batch over BATCH_BUDGET_MS, any
+other API call over SLOW_FACTOR x the median of this run's API calls (floor SLOW_FLOOR_MS). The
+trailing median across runs is not available to a stateless job, so the run's own median stands in.
+
+Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
+the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
 
 Usage: probe.py [--api URL] [--site URL] [--no-site] [--out FILE] [--no-fail]
@@ -115,6 +126,27 @@ BATCH_SIZE = 60
 
 PGX_ALLELES = ["B*5701"]
 
+# Latency budgets (#148). The 60-name batch took 2856 ms once against 783 ms another time, same input.
+# Over budget is a warning in the log and the JSON, never a failed run.
+BATCH_BUDGET_MS = 2000
+SLOW_FACTOR = 3
+SLOW_FLOOR_MS = 1000
+CALLS: list[dict] = []   # every fetch() of the run, in order
+
+# The release-history routes (#141) and the support report (#135). A1's first name, A*0101, was
+# renamed A*01:01:01:01 in 3.00.0 (HLA00001) and has kept that name since, so a translate from 1.05.0
+# is stable across releases; the diff window is fixed and only its envelope is asserted.
+TRANSLATE_BODY = {"names": ["A*0101"], "from": "1.05.0"}
+TRANSLATE_EXPECTED = {"status": "renamed", "to_name": "A*01:01:01:01", "hla_id": "HLA00001"}
+DIFF_FROM, DIFF_TO = "3.58.0", "3.66.0"
+HISTORY_NAME = "A*01:01:01:01"
+# The one valid report stores a real record, so it says plainly that it is the probe. Never
+# resend it more than once a run: REPORTS_PER_DAY is 20 per IP.
+REPORT_VALID = {"kind": "other", "source": "hlaverify-probe",
+                "input": "hlaverify-probe: automated daily check of POST /v1/report",
+                "expected": "No action needed: this is the scheduled probe, not a user report."}
+REPORT_INVALID = {"kind": "other", "input": "", "expected": "an empty input must be refused"}
+
 
 def batch_names(path: str = FIXTURES, size: int = BATCH_SIZE) -> tuple[dict[str, str], str | None]:
     """{reported: current_name} for `size` fixture names in distinct 2-field groups, and the fixtures' release."""
@@ -160,6 +192,13 @@ def fetch(url: str, method: str = "GET", body: dict | None = None) -> dict:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     t0 = time.perf_counter()
+    result = _fetch(req, t0)
+    CALLS.append({"host": urllib.parse.urlsplit(url).netloc, "call": f"{method} {urllib.parse.urlsplit(url).path}", "ms": result["ms"], "http": result["status"],
+                  "cf_ray": result["headers"].get("cf-ray"), "cf_cache": result["headers"].get("cf-cache-status")})
+    return result
+
+
+def _fetch(req: urllib.request.Request, t0: float) -> dict:
     try:
         with OPENER.open(req, timeout=TIMEOUT) as resp:
             text = resp.read().decode("utf-8", "replace")
@@ -171,6 +210,32 @@ def fetch(url: str, method: str = "GET", body: dict | None = None) -> dict:
         return {"status": None, "error": f"{type(e).__name__}: {e}", "ms": round((time.perf_counter() - t0) * 1000), "headers": {}, "text": ""}
     return {"status": status, "ms": round((time.perf_counter() - t0) * 1000),
             "headers": {k.lower(): v for k, v in hdrs.items()}, "text": text}
+
+
+def median(xs: list[float]) -> float:
+    s = sorted(xs)
+    n = len(s)
+    return float(s[n // 2]) if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+
+def latency_report(api_calls: list[dict]) -> tuple[dict, list[str]]:
+    """p50 / max / slowest of the API calls, plus a warning for each call over its budget."""
+    timed = [c for c in api_calls if c["http"] is not None]
+    if not timed:
+        return {}, []
+    p50 = median([c["ms"] for c in timed])
+    slowest = max(timed, key=lambda c: c["ms"])
+    limit = max(SLOW_FACTOR * p50, SLOW_FLOOR_MS)
+    warnings = []
+    for c in timed:
+        budget = BATCH_BUDGET_MS if c.get("batch") else limit
+        if c["ms"] > budget:
+            warnings.append(f"slow: {c['call']}{' (batch)' if c.get('batch') else ''} took {c['ms']} ms "
+                            f"(budget {round(budget)} ms; run p50 {round(p50)} ms; cf-ray {c['cf_ray'] or 'n/a'})")
+    return ({"calls": len(timed), "p50_ms": round(p50), "max_ms": slowest["ms"], "slowest": slowest["call"],
+             "slow_limit_ms": round(limit), "batch_budget_ms": BATCH_BUDGET_MS,
+             "slow": [c for c in timed if c["ms"] > (BATCH_BUDGET_MS if c.get("batch") else limit)]},
+            warnings)
 
 
 def stated_release(text: str) -> str | None:
@@ -186,6 +251,7 @@ def as_json(text: str):
 
 
 def probe(api: str, site: str | None) -> dict:
+    CALLS.clear()
     failures: list[str] = []
     out: dict = {"probed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  "api": api, "site": site, "billable_calls": 0}
@@ -275,6 +341,7 @@ def probe(api: str, site: str | None) -> dict:
         failures.append(f"/v1/normalize batch: cannot read fixtures ({type(e).__name__}: {e})")
     if names:
         r = fetch(api + "/v1/normalize", "POST", {"typings": list(names)})
+        CALLS[-1]["batch"] = True
         out["billable_calls"] += 1
         b = as_json(r["text"]) or {}
         got_rows = b.get("rows") if isinstance(b.get("rows"), list) else []
@@ -306,6 +373,92 @@ def probe(api: str, site: str | None) -> dict:
     if not ok:
         failures.append(f"/v1/pgx/screen {PGX_ALLELES}: HTTP {r['status']}, abacavir actionable {abacavir}, deprecated_name flag {flagged}")
 
+    # 3c. release history and support reports. Billable: translate, diff, allele history (3).
+    # Free: releases, and both reports (never billable; the valid one stores a labelled record).
+    def check(key: str, label: str, r: dict, want_http: int, problems: list[str], b: dict) -> None:
+        if r["status"] != want_http:
+            problems.append(f"HTTP {r['status']} (expected {want_http})")
+        out[key] = {"http": r["status"], "ms": r["ms"], "ok": not problems, "problems": problems}
+        if problems:
+            failures.append(f"{label}: " + "; ".join(problems))
+
+    r = fetch(api + "/v1/releases")
+    b = as_json(r["text"]) or {}
+    rels = b.get("releases") if isinstance(b.get("releases"), list) else []
+    problems = []
+    if r["status"] == 200:
+        if b.get("latest") != healthz_release:
+            problems.append(f"latest {b.get('latest')!r} != /healthz {healthz_release!r}")
+        if not rels or rels[-1] != b.get("latest") or b.get("count") != len(rels):
+            problems.append("releases list is empty, does not end at latest, or count differs")
+        if DIFF_FROM not in rels:
+            problems.append(f"{DIFF_FROM} missing from the list")
+    check("releases", "/v1/releases", r, 200, problems, b)
+    out["releases"].update({"latest": b.get("latest"), "count": b.get("count")})
+
+    r = fetch(api + "/v1/releases/diff?" + urllib.parse.urlencode({"from": DIFF_FROM, "to": DIFF_TO, "limit": 1}))
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    counts = b.get("counts") if isinstance(b.get("counts"), dict) else {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("to") != DIFF_TO or b.get("from") != DIFF_FROM:
+            problems.append(f"window {b.get('from')!r}..{b.get('to')!r} (asked {DIFF_FROM}..{DIFF_TO})")
+        if not all(isinstance(counts.get(k), int) for k in ("added", "removed", "renamed")):
+            problems.append(f"counts not integers: {counts}")
+        elif counts["added"] < 1:
+            problems.append("no names added between the two releases")
+        if not isinstance(b.get("added"), list) or len(b["added"]) > 1 or b.get("limit") != 1:
+            problems.append("limit=1 not honoured")
+    check("releases_diff", "/v1/releases/diff", r, 200, problems, b)
+    out["releases_diff"]["counts"] = counts
+
+    body = dict(TRANSLATE_BODY, to=healthz_release) if healthz_release else dict(TRANSLATE_BODY)
+    r = fetch(api + "/v1/translate", "POST", body)
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    row = next((x for x in b.get("rows", []) if isinstance(x, dict)), {}) if r["status"] == 200 else {}
+    problems = []
+    if r["status"] == 200:
+        got = {k: row.get(k) for k in TRANSLATE_EXPECTED}
+        if got != TRANSLATE_EXPECTED:
+            problems.append(f"row {got} (expected {TRANSLATE_EXPECTED})")
+        if b.get("to") != healthz_release:
+            problems.append(f"to {b.get('to')!r} != /healthz {healthz_release!r}")
+    check("translate", "/v1/translate", r, 200, problems, b)
+
+    r = fetch(api + "/v1/allele/" + urllib.parse.quote(HISTORY_NAME, safe="*:") + "/history")
+    out["billable_calls"] += 1
+    b = as_json(r["text"]) or {}
+    al = next((x for x in b.get("alleles", []) if isinstance(x, dict)), {}) if r["status"] == 200 else {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("latest") != healthz_release:
+            problems.append(f"latest {b.get('latest')!r} != /healthz {healthz_release!r}")
+        if al.get("hla_id") != "HLA00001" or al.get("current_name") != HISTORY_NAME:
+            problems.append(f"allele {al.get('hla_id')!r} current_name {al.get('current_name')!r}")
+        tl = al.get("timeline") if isinstance(al.get("timeline"), list) else []
+        if not tl or tl[0].get("name") != "A*0101" or tl[-1].get("to") != healthz_release:
+            problems.append("timeline does not run from A*0101 to the serving release")
+    check("allele_history", "/v1/allele/{name}/history", r, 200, problems, b)
+
+    r = fetch(api + "/v1/report", "POST", REPORT_VALID)
+    b = as_json(r["text"]) or {}
+    problems = []
+    if r["status"] == 200:
+        if b.get("ok") is not True or b.get("status") != "received" or not b.get("id"):
+            problems.append(f"body ok={b.get('ok')!r} status={b.get('status')!r} id={bool(b.get('id'))}")
+        if b.get("release") != healthz_release:
+            problems.append(f"release {b.get('release')!r} != /healthz {healthz_release!r}")
+    check("report_valid", "POST /v1/report (valid)", r, 200, problems, b)
+
+    r = fetch(api + "/v1/report", "POST", REPORT_INVALID)
+    b = as_json(r["text"]) or {}
+    problems = []
+    if r["status"] == 422 and "input" not in str(b.get("detail", "")):
+        problems.append(f"detail does not name the input field: {str(b.get('detail'))[:80]!r}")
+    check("report_invalid", "POST /v1/report (empty input)", r, 422, problems, b)
+
     # 4. the site
     if site:
         pages = []
@@ -323,6 +476,8 @@ def probe(api: str, site: str | None) -> dict:
             pages.append(row)
         out["site_pages"] = pages
 
+    api_calls = [c for c in CALLS if c["host"] == urllib.parse.urlsplit(api).netloc]
+    out["latency"], out["warnings"] = latency_report(api_calls)
     out["failures"] = failures
     out["ok"] = not failures
     return out
@@ -334,6 +489,12 @@ def summary(res: dict) -> str:
              f"{res['billable_calls']} billable anonymous calls spent.", ""]
     if res["failures"]:
         lines += ["**Failures**", ""] + [f"- {f}" for f in res["failures"]] + [""]
+    lat = res.get("latency")
+    if lat:
+        lines += [f"Latency: {lat['calls']} API calls, p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
+                  f"slow limit {lat['slow_limit_ms']} ms, batch budget {lat['batch_budget_ms']} ms.", ""]
+    if res.get("warnings"):
+        lines += ["**Latency warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
     lines += ["| document | HTTP | ms | release |", "|---|---:|---:|---|"]
     lines += [f"| `{d['path']}` | {d['http']} | {d['ms']} | {d['release'] or ''} |" for d in res["documents"]]
     lines += ["", "| allele | HTTP | status | flags | ms | ok |", "|---|---:|---|---|---:|---|"]
@@ -342,6 +503,12 @@ def summary(res: dict) -> str:
     v, n = res["verify"], res["normalize"]
     lines += ["", f"- `/v1/verify`: HTTP {v['http']}, {v['ms']} ms, {'ok' if v['ok'] else 'MISMATCH'} — {v['tokens']}",
               f"- `/v1/normalize`: HTTP {n['http']}, {n['ms']} ms, {'ok' if n['ok'] else 'MISMATCH'}"]
+    for key, label in (("releases", "GET /v1/releases"), ("releases_diff", "GET /v1/releases/diff"),
+                       ("translate", "POST /v1/translate"), ("allele_history", "GET /v1/allele/{name}/history"),
+                       ("report_valid", "POST /v1/report (valid)"), ("report_invalid", "POST /v1/report (empty input)")):
+        x = res.get(key)
+        if x:
+            lines.append(f"- `{label}`: HTTP {x['http']}, {x['ms']} ms, {'ok' if x['ok'] else 'MISMATCH'}")
     nb, pg = res.get("normalize_batch"), res.get("pgx_screen")
     if nb:
         lines.append(f"- `/v1/normalize` batch of {nb['names']}: HTTP {nb['http']}, {nb['rows']} rows, {nb['ms']} ms, "
@@ -377,6 +544,8 @@ def main() -> int:
     if step_summary:
         with open(step_summary, "a") as f:
             f.write(md)
+    for w in res.get("warnings", []):
+        print(f"::warning::{w}")
     if not res["ok"]:
         for fl in res["failures"]:
             print(f"::error::{fl}")
