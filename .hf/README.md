@@ -39,9 +39,45 @@ pip install -e ".[dev]"
 hla-bench generate && hla-bench run ollama/qwen2.5:7b --suite runs/hla-bench-a --split dev
 ```
 
+## Check model outputs with HLA-Verify
+
+HLA-Bench's graders and the HLA-Verify API share one engine, so the same allele-name check can
+score any model's HLA answers, not only these tasks. Try it without code in the
+**[HLA-Verify Space](https://huggingface.co/spaces/jason-brelsford/hla-verify)**: paste an
+answer and every allele name is highlighted as valid, fabricated, deleted (with its successor) or
+a legacy form, checked against the pinned IPD-IMGT/HLA release.
+
+From a script, one call per answer:
+
+```python
+import os, requests
+
+KEY = os.environ.get("HLAVERIFY_API_KEY")  # optional; see below
+
+def allele_check(answer: str) -> dict:
+    r = requests.post("https://api.hlaverify.com/v1/verify", json={"text": answer},
+                      headers={"x-api-key": KEY} if KEY else {})
+    r.raise_for_status()
+    d = r.json()  # d["tokens"]: one verdict per distinct allele name; d["release"]: IPD-IMGT/HLA version
+    c = d["counts"]
+    return {"fabricated": c["hallucinated"] + c["fabricated_group"], "deleted": c["deleted"],
+            "clean": d["clean"], "release": d["release"]}
+
+allele_check("Exclude B*57:01 and B*57:01:99 before abacavir.")
+# -> {'fabricated': 1, 'deleted': 0, 'clean': False, 'release': '3.66.0'}
+```
+
+- **Free API key for academic research:** apply at https://hlaverify.com/research. HLA-Verify is
+  free during early access; without a key the API allows 100 calls a day, enough to try it but not
+  to score a full run.
+- **Agents:** the same checks are an MCP server at `https://api.hlaverify.com/mcp`.
+- **Reference:** https://api.hlaverify.com/docs. Every response names the release it was computed
+  against, so put that version in your methods.
+
 ## Links
 
 - **Code, graders, full results with CIs:** https://github.com/jasonbrelsford/verifiable-science-envs
+- **Interactive verifier (Hugging Face Space):** https://huggingface.co/spaces/jason-brelsford/hla-verify
 - **In-browser verifier demo** (nothing leaves your machine): https://hlaverify.com/demo
 - **For AI agents:** https://hlaverify.com/llms.txt
 - Evaluation/training licensing & partnerships: hello@hlaverify.com (Brelsford Software LLC)

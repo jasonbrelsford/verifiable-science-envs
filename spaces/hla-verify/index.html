@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HLA-Verify: catch fabricated HLA allele names</title>
+<meta name="description" content="Check LLM output, typing reports and GL strings for fabricated, deleted and legacy HLA allele names against a pinned IPD-IMGT/HLA release. Deterministic; no LLM.">
+<link rel="icon" href="favicon.png">
+<style>
+:root {
+  --bg: #ffffff; --fg: #18181b; --muted: #52525b; --line: #e4e4e7; --card: #fafafa;
+  --accent: #047857; --accent-fg: #ffffff; --accent-soft: #ecfdf5;
+  --ok: #15803d; --ok-bg: #dcfce7; --bad: #b91c1c; --bad-bg: #fee2e2;
+  --warn: #b45309; --warn-bg: #fef3c7; --info: #1d4ed8; --info-bg: #dbeafe;
+  --grey: #52525b; --grey-bg: #f4f4f5; --legacy: #4d7c0f; --legacy-bg: #ecfccb;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f0e; --fg: #e4e4e7; --muted: #a1a1aa; --line: #27272a; --card: #121816;
+    --accent: #34d399; --accent-fg: #052e1f; --accent-soft: #0b2a20;
+    --ok: #86efac; --ok-bg: #14321f; --bad: #fca5a5; --bad-bg: #3b1515;
+    --warn: #fcd34d; --warn-bg: #3a2a0c; --info: #93c5fd; --info-bg: #142540;
+    --grey: #d4d4d8; --grey-bg: #27272a; --legacy: #bef264; --legacy-bg: #233012;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 0 0 6px; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+.lede { color: var(--muted); margin: 0 0 14px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+.cta p { margin: 0; flex: 1 1 360px; }
+.btn { display: inline-block; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 8px;
+  padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn:disabled { opacity: .55; cursor: progress; }
+.links { font-size: .92em; color: var(--muted); margin: 0 0 10px; }
+.links a { margin-right: 4px; }
+.phi { font-size: .9em; color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 8px 12px; margin: 0 0 16px; }
+details.key { margin: 0 0 16px; font-size: .93em; }
+details.key summary { cursor: pointer; color: var(--muted); }
+details.key input { width: 100%; max-width: 420px; margin-top: 6px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);
+  padding: 8px 12px; font: inherit; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+section[role="tabpanel"] { display: none; }
+section[role="tabpanel"].on { display: block; }
+.hint { color: var(--muted); font-size: .93em; margin: 0 0 8px; }
+textarea, input, select { width: 100%; background: var(--card); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 10px; font: 14px/1.5 var(--mono); }
+textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+label { display: block; font-size: .9em; color: var(--muted); margin: 8px 0 4px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--grey-bg); color: var(--fg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; font: 13px var(--mono); cursor: pointer; }
+.out { border-top: 1px solid var(--line); padding-top: 12px; }
+.summary { font-size: 1.02em; margin: 0 0 10px; }
+.meta { color: var(--muted); font-size: .85em; margin: 8px 0 0; }
+.err { color: var(--bad); background: var(--bad-bg); border-radius: 8px; padding: 10px 12px; }
+.hl { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  white-space: pre-wrap; word-break: break-word; margin: 0 0 12px; }
+.tag { border-radius: 4px; padding: 0 3px; font-family: var(--mono); font-size: .95em; }
+.s-valid { background: var(--ok-bg); color: var(--ok); }
+.s-legacy { background: var(--legacy-bg); color: var(--legacy); }
+.s-bad { background: var(--bad-bg); color: var(--bad); font-weight: 600; }
+.s-deleted { background: var(--warn-bg); color: var(--warn); }
+.s-group { background: var(--info-bg); color: var(--info); }
+.s-grey { background: var(--grey-bg); color: var(--grey); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .85em; margin: 0 0 10px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .9em; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--card); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.mono { white-space: nowrap; }
+ul.facts { margin: 6px 0; padding-left: 20px; }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto;
+  font: 13px/1.5 var(--mono); }
+details.raw { margin-top: 10px; font-size: .9em; }
+details.raw summary { cursor: pointer; color: var(--muted); }
+footer { color: var(--muted); font-size: .85em; border-top: 1px solid var(--line); margin-top: 28px; padding-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🧬 HLA-Verify</h1>
+  <p class="lede">Catch fabricated, deleted and legacy HLA allele names in LLM output, typing reports and GL strings.
+    Every name is looked up in a pinned <b>IPD-IMGT/HLA</b> release, never guessed: deterministic, no LLM anywhere.</p>
+
+  <div class="cta">
+    <p><b>Free API key for academic research.</b> HLA-Verify is free during early access: 100 calls a day
+      without a key, more with one. University and hospital researchers can apply for a free key.</p>
+    <a class="btn" href="https://hlaverify.com/research" target="_blank" rel="noopener">Get a free research key</a>
+  </div>
+
+  <p class="links">
+    <a href="https://api.hlaverify.com/docs" target="_blank" rel="noopener">API docs</a> ·
+    MCP server <code>https://api.hlaverify.com/mcp</code> ·
+    <a href="https://huggingface.co/datasets/jason-brelsford/hla-bench" target="_blank" rel="noopener">HLA-Bench dataset</a> ·
+    <a href="https://github.com/jasonbrelsford/verifiable-science-envs" target="_blank" rel="noopener">Source</a> ·
+    <a href="https://hlaverify.com/support" target="_blank" rel="noopener">Report a wrong answer</a>
+  </p>
+
+  <p class="phi">⚠️ Paste allele names, typing strings, GL strings or report text <b>with identifiers removed</b>:
+    no names, dates of birth or record numbers. Research tool, not a medical device.</p>
+
+  <details class="key">
+    <summary>Have an API key? (optional)</summary>
+    <label for="apikey">X-API-Key: sent from your browser straight to api.hlaverify.com, never to this Space, and not saved</label>
+    <input id="apikey" type="password" autocomplete="off" placeholder="hlv_...">
+  </details>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="verify">Check text</button>
+    <button role="tab" aria-selected="false" data-tab="normalize">Normalize names</button>
+    <button role="tab" aria-selected="false" data-tab="allele">Allele lookup</button>
+    <button role="tab" aria-selected="false" data-tab="match">Donor–recipient match</button>
+    <button role="tab" aria-selected="false" data-tab="gl">GL string</button>
+    <button role="tab" aria-selected="false" data-tab="code">API &amp; MCP</button>
+  </nav>
+
+  <!-- Example inputs: every verdict was checked against the live API (IPD-IMGT/HLA 3.66.0).
+       A*02:9999, DRB1*15:999 and B*57:01:99 are fabricated; C*03:03:01:39 is deleted (successor
+       C*03:03:01:39Q); A*0101 is the legacy form of A*01:01; B*15:AB is a MAC code. -->
+  <section role="tabpanel" id="p-verify" class="on">
+    <p class="hint">Paste an LLM answer, a typing report or any text. Every allele-shaped token is checked
+      (<code>POST /v1/verify</code>).</p>
+    <textarea id="v-in" rows="6" maxlength="200000">Model answer: the recipient types as HLA-A*02:01, A*24:02 and B*57:01. For abacavir screening, B*57:01:99 should also be excluded. The closest donor carries A*02:9999 and DRB1*15:999; an older report lists C*03:03:01:39 and A*0101.</textarea>
+    <div class="actions"><button class="btn" id="v-go">Check names</button></div>
+    <div class="out" id="v-out" aria-live="polite"></div>
+  </section>
+
+  <section role="tabpanel" id="p-normalize">
+    <p class="hint">Rewrite legacy, renamed and shorthand names to current form, and flag what cannot resolve
+      (<code>POST /v1/normalize</code>). One name per line, or comma-separated; up to 250 without a key.</p>
+    <textarea id="n-in" rows="6">A*0101
+A*24:02:03Q
+C*03:03:01:39
+DRB1*04:01:01G
+B*15:AB
+A*02:9999</textarea>
+    <div class="actions"><button class="btn" id="n-go">Normalize</button></div>
+    <div class="out" id="n-out" aria-live="polite"></div>
+  </section>
+
+  <section role="tabpanel" id="p-allele">
+    <p class="hint">Status, G/P group, serology, first release, KIR ligands and, for a two-field name, how many
+      full-resolution alleles it stands for (<code>GET /v1/allele/{name}</code>).</p>
+    <input id="a-in" value="B*57:01" aria-label="Allele name">
+    <div class="actions">
+      <button class="btn" id="a-go">Look up</button>
+      <span class="chips" id="a-chips"></span>
+    </div>
+    <div class="out" id="a-out" aria-live="polite"></div>
+  </section>
+
+  <section role="tabpanel" id="p-match">
+    <p class="hint">Match count with host-versus-graft and graft-versus-host direction (<code>POST /v1/match</code>),
+      plus optional HLA-B leader and KIR-ligand checks (<code>POST /v1/compat</code>). One locus per line, e.g.
+      <code>A*02:01, A*24:02</code> or <code>A: A*02:01, A*24:02</code>; list one allele for a homozygous locus.</p>
+    <div class="row">
+      <div><label for="m-r">Recipient</label><textarea id="m-r" rows="5">A*02:01, A*24:02
+B*07:02, B*44:02
+C*07:02, C*05:01
+DRB1*15:01, DRB1*04:01</textarea></div>
+      <div><label for="m-d">Donor</label><textarea id="m-d" rows="5">A*02:01, A*24:02
+B*07:02, B*44:03
+C*07:02, C*04:01
+DRB1*15:01, DRB1*04:01</textarea></div>
+    </div>
+    <div class="row">
+      <div><label for="m-fw">Framework</label>
+        <select id="m-fw"><option>8/8</option><option>6/6</option><option>10/10</option><option>12/12</option><option>antigen</option></select></div>
+      <div><label><input type="checkbox" id="m-c" style="width:auto"> Also run B-leader / KIR-ligand checks (one extra call)</label></div>
+    </div>
+    <div class="actions"><button class="btn" id="m-go">Match</button></div>
+    <div class="out" id="m-out" aria-live="polite"></div>
+  </section>
+
+  <section role="tabpanel" id="p-gl">
+    <p class="hint">Validate a GL String and rewrite its names to current form (<code>POST /v1/glstring</code>).</p>
+    <textarea id="g-in" rows="3">HLA-A*02:01+HLA-A*24:02^HLA-B*07:02+HLA-B*44:02</textarea>
+    <div class="actions"><button class="btn" id="g-go">Validate</button></div>
+    <div class="out" id="g-out" aria-live="polite"></div>
+  </section>
+
+  <section role="tabpanel" id="p-code">
+    <h2>MCP: Claude, Cursor or any MCP client</h2>
+    <p class="hint">Streamable HTTP. A key is optional and goes in an <code>X-API-Key</code> header.</p>
+    <pre>{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}</pre>
+    <h2>REST</h2>
+    <pre>curl -s https://api.hlaverify.com/v1/verify -H 'content-type: application/json' \
+  -d '{"text": "A*02:01 and B*57:01:99"}'
+# with a key: add  -H 'x-api-key: hlv_...'</pre>
+    <p>Full reference: <a href="https://api.hlaverify.com/docs" target="_blank" rel="noopener">api.hlaverify.com/docs</a>.
+      Running a model evaluation? Score its answers with <code>/v1/verify</code> and compare with
+      <a href="https://huggingface.co/datasets/jason-brelsford/hla-bench" target="_blank" rel="noopener">HLA-Bench</a>.
+      Research keys are free: <a href="https://hlaverify.com/research" target="_blank" rel="noopener">hlaverify.com/research</a>.</p>
+  </section>
+
+  <footer>
+    This page calls the public API at <code>api.hlaverify.com</code> straight from your browser; the API processes
+    requests in memory and keeps no content. Prefer nothing to leave your machine?
+    <a href="offline.html">Offline checker</a> (Pyodide, runs in the tab; no release history).
+    Verdicts are computed from IPD-IMGT/HLA (Barker DJ et al., <i>Nucleic Acids Res</i> 2025), CC-BY-ND, and each
+    response names the release it used. Research tool, not a medical device.
+    <a href="https://api.hlaverify.com/pricing" target="_blank" rel="noopener">Pricing</a> ·
+    <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const API = "https://api.hlaverify.com";
+  const RESEARCH = "https://hlaverify.com/research";
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ------------------------------------------------------------------ tabs
+  const tabs = document.querySelectorAll('[role="tab"]');
+  function show(name) {
+    tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+    document.querySelectorAll('[role="tabpanel"]').forEach((p) => p.classList.toggle("on", p.id === "p-" + name));
+    try { history.replaceState(null, "", "#" + name); } catch (_) {}
+  }
+  tabs.forEach((t) => t.addEventListener("click", () => show(t.dataset.tab)));
+  const start = (location.hash || "").slice(1);
+  if ([...tabs].some((t) => t.dataset.tab === start)) show(start);
+
+  // ------------------------------------------------------------------- API
+  class ApiError extends Error {}
+  async function call(method, path, body) {
+    const headers = { accept: "application/json" };
+    if (body) headers["content-type"] = "application/json";
+    const key = $("apikey").value.trim();
+    if (key) headers["x-api-key"] = key;
+    let r;
+    try {
+      r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    } catch (_) {
+      throw new ApiError("Could not reach api.hlaverify.com. Check your connection and try again.");
+    }
+    if (r.status === 429) {
+      throw new ApiError("Daily limit reached: 100 calls a day without a key. " +
+        `<a href="${RESEARCH}" target="_blank" rel="noopener">Get a free research key</a> ` +
+        "and paste it under “Have an API key?” above.", true);
+    }
+    if (r.status === 401) throw new ApiError("That API key was not accepted. Check it, or clear the box to use the free tier.");
+    let data;
+    try { data = await r.json(); } catch (_) { throw new ApiError(`Unexpected response from the API (HTTP ${r.status}).`); }
+    if (r.status >= 400 && r.status !== 404) throw new ApiError(`HTTP ${r.status}: ${esc(data.detail ?? JSON.stringify(data))}`);
+    const h = (k) => r.headers.get(k);
+    const meta = [h("x-hla-verify-release") && `IPD-IMGT/HLA ${h("x-hla-verify-release")}`,
+      h("x-hla-verify-tier") && `tier: ${h("x-hla-verify-tier")}`,
+      h("x-hla-verify-daily-remaining") && h("x-hla-verify-daily-limit") &&
+        `${h("x-hla-verify-daily-remaining")}/${h("x-hla-verify-daily-limit")} calls left today`].filter(Boolean).join(" · ");
+    return { data, status: r.status, meta };
+  }
+
+  // Runs fn with the button disabled; renders an error into the output.
+  function wire(btnId, outId, fn) {
+    const btn = $(btnId), out = $(outId);
+    const run = async () => {
+      btn.disabled = true; out.innerHTML = '<p class="meta">Checking…</p>';
+      try { out.innerHTML = await fn(); }
+      catch (e) { out.innerHTML = `<p class="err">⚠️ ${e instanceof ApiError ? e.message : esc(e.message)}</p>`; }
+      finally { btn.disabled = false; }
+    };
+    btn.addEventListener("click", run);
+    return run;
+  }
+  const meta = (m) => (m ? `<p class="meta">${esc(m)}</p>` : "");
+  const raw = (d) => `<details class="raw"><summary>Raw JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+  const table = (heads, rows) => `<div class="tablewrap"><table><thead><tr>${heads.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map((r) => `<tr>${r.map((c, i) => i === 0 ? `<td class="mono">${c}</td>` : `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  const names = (s) => (s || "").split(/[\s,;]+/).filter(Boolean);
+
+  // ---------------------------------------------------------------- verify
+  const LABEL = { valid: ["valid", "s-valid"], legacy: ["valid, legacy form", "s-legacy"],
+    hallucinated: ["fabricated", "s-bad"], fabricated_group: ["fabricated group", "s-bad"],
+    deleted: ["deleted / renamed", "s-deleted"], group: ["G/P group", "s-group"],
+    mac_code: ["MAC code (not checked)", "s-grey"], out_of_scope: ["out of scope (KIR)", "s-grey"] };
+  const kind = (t) => (t.status === "valid" && (t.flags || []).includes("deprecated_name") ? "legacy" : t.status);
+  const badge = (k) => { const [l, c] = LABEL[k] || [k, "s-grey"]; return `<span class="tag ${c}">${esc(l)}</span>`; };
+  const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  function highlight(text, tokens) {
+    const by = new Map(tokens.filter((t) => t.token).map((t) => [t.token, kind(t)]));
+    if (!by.size) return esc(text);
+    const alts = [...by.keys()].sort((a, b) => b.length - a.length).map(reEsc).join("|");
+    const rx = new RegExp(`(?<![A-Za-z0-9*:])(${alts})(?![A-Za-z0-9:])`, "g");
+    let out = "", pos = 0, m;
+    while ((m = rx.exec(text))) {
+      const [l, c] = LABEL[by.get(m[1])] || [by.get(m[1]), "s-grey"];
+      out += esc(text.slice(pos, m.index)) + `<span class="tag ${c}" title="${esc(l)}">${esc(m[1])}</span>`;
+      pos = m.index + m[1].length;
+    }
+    return out + esc(text.slice(pos));
+  }
+
+  wire("v-go", "v-out", async () => {
+    const text = $("v-in").value;
+    if (!text.trim()) return '<p class="err">Paste some text first.</p>';
+    const { data: d, meta: m } = await call("POST", "/v1/verify", { text });
+    const toks = d.tokens || [], c = d.counts || {};
+    const bad = (c.hallucinated || 0) + (c.fabricated_group || 0);
+    let head;
+    if (!toks.length) head = "No allele-shaped names found in that text.";
+    else if (d.clean) head = `✅ <b>Clean</b>: ${toks.length} distinct name(s), none fabricated or deleted.`;
+    else head = "❌ " + [bad && `<b>${bad} fabricated</b>`, c.deleted && `<b>${c.deleted} deleted/renamed</b>`]
+      .filter(Boolean).join(" and ") + ` out of ${toks.length} distinct name(s).`;
+    const present = [...new Set(toks.map(kind))];
+    const rows = toks.map((t) => [esc(t.token), badge(kind(t)), esc(t.successor || ""), esc(t.current_2field || ""),
+      esc(t.g_group || ""), esc((t.flags || []).join(", ")), esc(t.note || "")]);
+    return `<p class="summary">${head}</p><div class="legend">${present.map(badge).join("")}</div>` +
+      `<div class="hl">${highlight(text, toks)}</div>` +
+      (rows.length ? table(["token", "status", "successor", "current 2-field", "G group", "flags", "note"], rows) : "") +
+      meta(m) + raw(d);
+  });
+
+  // ------------------------------------------------------------- normalize
+  wire("n-go", "n-out", async () => {
+    const typings = names($("n-in").value);
+    if (!typings.length) return '<p class="err">Enter one or more allele names.</p>';
+    const { data: d, meta: m } = await call("POST", "/v1/normalize", { typings });
+    const rs = d.rows || [];
+    const unres = rs.filter((r) => r.current_name === "UNRESOLVABLE").length;
+    const changed = rs.filter((r) => r.current_name !== r.reported && r.current_name !== "UNRESOLVABLE").length;
+    const rows = rs.map((r) => [esc(r.reported),
+      r.current_name === "UNRESOLVABLE" ? '<span class="tag s-bad">UNRESOLVABLE</span>' : esc(r.current_name),
+      esc(r.allele_2field), esc(r.g_group), esc((r.flags || []).join(", "))]);
+    return `<p class="summary">${rs.length} name(s): <b>${changed} rewritten</b> to a current name, <b>${unres} unresolvable</b>.</p>` +
+      table(["reported", "current name", "2-field", "G group", "flags"], rows) + meta(m) + raw(d);
+  });
+
+  // ---------------------------------------------------------------- allele
+  const runAllele = wire("a-go", "a-out", async () => {
+    const name = $("a-in").value.trim();
+    if (!name) return '<p class="err">Enter an allele name, e.g. B*57:01.</p>';
+    const { data: d, status, meta: m } = await call("GET", "/v1/allele/" + encodeURIComponent(name));
+    if (status === 404) return `<p class="summary">❌ ${esc(d.detail || "not found")}: fabricated or mistyped.</p>` + meta(m) + raw(d);
+    const st = d.status || "";
+    const out = [`<h2><code>${esc(d.name)}</code>: ${esc(st.replace(/_/g, " "))}</h2>`];
+    if (d.resolves_to) out.push(`<p>Reported form (${esc((d.flags || []).join(", "))}) of <b>${esc(d.resolves_to)}</b>.</p>`);
+    if (st === "deleted") out.push(`<p>No longer current. Successor: <b>${esc(d.successor || "none")}</b>.</p>`);
+    if (st === "valid_prefix") out.push(`<p>A lower-resolution name: it stands for <b>${esc(d.members_count)} full-resolution alleles</b> ` +
+      `in this release. Expanding names like this is the two-field ambiguity task on which every model family in ` +
+      `<a href="https://huggingface.co/datasets/jason-brelsford/hla-bench" target="_blank" rel="noopener">HLA-Bench</a> scored 0%.</p>`);
+    if (st === "group") out.push(`<p>${esc(d.group_type)} group with ${esc(d.members_count)} member(s).</p>`);
+    if (st === "mac_code") out.push(`<p>${esc(d.note)}</p>`);
+    const facts = [];
+    for (const k of ["g_group", "p_group", "first_release", "confirmed", "null_allele"])
+      if (d[k] !== undefined && d[k] !== null) facts.push(`<b>${k.replace(/_/g, " ")}:</b> ${esc(d[k])}`);
+    if (d.serology) facts.push(`<b>serology:</b> <code>${esc(JSON.stringify(d.serology))}</code>`);
+    if (d.resolution) facts.push(`<b>resolution:</b> ${esc(d.resolution.fields)} fields (${esc(d.resolution.level)})`);
+    if (d.ligands) facts.push("<b>ligands:</b> " + Object.entries(d.ligands).filter(([, v]) => v !== null)
+      .map(([k, v]) => `${esc(k)}=${esc(v)}`).join(", "));
+    if (facts.length) out.push(`<ul class="facts">${facts.map((f) => `<li>${f}</li>`).join("")}</ul>`);
+    const mem = d.members_sample || [];
+    if (mem.length) out.push(`<p class="hint">First ${mem.length} of ${esc(d.members_count)} member alleles:</p>` +
+      `<p class="mono">${mem.map(esc).join(", ")}${d.members_count > mem.length ? ", …" : ""}</p>`);
+    return out.join("") + meta(m) + raw(d);
+  });
+  $("a-in").addEventListener("keydown", (e) => { if (e.key === "Enter") runAllele(); });
+  for (const ex of ["B*57:01", "A*02:01", "A*24:09N", "C*03:03:01:39", "A*0101", "A*02:9999"]) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = ex;
+    b.addEventListener("click", () => { $("a-in").value = ex; runAllele(); });
+    $("a-chips").appendChild(b);
+  }
+
+  // ----------------------------------------------------------------- match
+  // "A*02:01, A*24:02\nB*07:02" -> {A: [...], B: [...]}; a line may start with "LOCUS:".
+  function parseTyping(s) {
+    const out = {};
+    for (let line of (s || "").split(/\r?\n/)) {
+      line = line.trim();
+      let label = null;
+      const m = line.match(/^(?:HLA-)?([A-Za-z0-9]+)\s*:\s*(.*)$/);
+      if (m && !m[1].includes("*") && !/^\d+$/.test(m[1])) { label = m[1].toUpperCase(); line = m[2]; }
+      for (const n of names(line)) {
+        const locus = label || n.replace(/^HLA-/i, "").split("*")[0].toUpperCase();
+        (out[locus] = out[locus] || []).push(n);
+      }
+    }
+    return out;
+  }
+
+  wire("m-go", "m-out", async () => {
+    const recipient = parseTyping($("m-r").value), donor = parseTyping($("m-d").value);
+    if (!Object.keys(recipient).length || !Object.keys(donor).length) return '<p class="err">Enter both typings.</p>';
+    const framework = $("m-fw").value;
+    const { data: mt, meta: m1 } = await call("POST", "/v1/match", { framework, recipient, donor });
+    const out = [`<h2>${esc(mt.count)} <span class="hint">(${esc(mt.framework)})</span></h2>`,
+      `<p>Host-versus-graft mismatches: <b>${esc(mt.hvg_mismatches)}</b> · graft-versus-host mismatches: <b>${esc(mt.gvh_mismatches)}</b></p>`];
+    if ((mt.flags || []).length) out.push(`<p>Flags: ${mt.flags.map(esc).join(", ")}</p>`);
+    out.push(table(["locus", "verdict"], Object.entries(mt.verdicts || {}).map(([l, v]) =>
+      [esc(l), `<span class="tag ${v === "match" ? "s-valid" : "s-deleted"}">${esc(v)}</span>`])));
+    const rawData = { match: mt };
+    let m = m1;
+    if ($("m-c").checked) {
+      try {
+        const { data: c, meta: m2 } = await call("POST", "/v1/compat", { recipient, donor });
+        m = m2; rawData.compat = c;
+        const bl = c.b_leader || {}, k = c.kir_ligands || {};
+        out.push(`<ul class="facts"><li><b>HLA-B leader (-21 M/T):</b> recipient ${esc(bl.recipient)}, donor ${esc(bl.donor)}, leader-matched: ${esc(bl.leader_match)}</li>` +
+          `<li><b>KIR ligands:</b> recipient ${esc((k.recipient || []).join(", "))}; donor ${esc((k.donor || []).join(", "))}; ` +
+          `missing in recipient: ${esc((k.missing_in_recipient || []).join(", ") || "none")}; missing in donor: ${esc((k.missing_in_donor || []).join(", ") || "none")} (${esc(k.status)})</li>` +
+          ["recipient", "donor"].flatMap((side) => ((c.issues || {})[side] || []).map((i) =>
+            `<li>${esc(side)} ${esc(i.severity)}: ${esc(i.detail)}</li>`)).join("") + "</ul>" +
+          '<p class="meta">B-leader and KIR-ligand checks are decision support only; not a medical device.</p>');
+      } catch (e) {
+        out.push(`<p class="err">⚠️ compat: ${e instanceof ApiError ? e.message : esc(e.message)}</p>`);
+      }
+    }
+    return out.join("") + meta(m) + raw(rawData);
+  });
+
+  // -------------------------------------------------------------- glstring
+  wire("g-go", "g-out", async () => {
+    const gl = $("g-in").value;
+    if (!gl.trim()) return '<p class="err">Enter a GL string.</p>';
+    const { data: d, meta: m } = await call("POST", "/v1/glstring", { gl });
+    const out = [`<p class="summary">${d.valid ? "✅ <b>Valid GL string</b>" : "❌ <b>Problems found</b>"}` +
+      `${d.changed ? ", with names rewritten to current form." : "."}</p>`];
+    if (d.changed || !d.valid) out.push(`<p>Normalized: <code>${esc(d.normalized_gl)}</code></p>`);
+    if ((d.issues || []).length) out.push(`<ul class="facts">${d.issues.map((i) =>
+      `<li>${typeof i === "object" ? `${esc(i.severity)}: ${esc(i.detail)}` : esc(i)}</li>`).join("")}</ul>`);
+    out.push(table(["token", "status", "current name", "locus"], (d.alleles || []).map((a) =>
+      [esc(a.token), esc(a.status), esc(a.current_name), esc(a.locus)])));
+    return out.join("") + meta(m) + raw(d);
+  });
+})();
+</script>
+</body>
+</html>
