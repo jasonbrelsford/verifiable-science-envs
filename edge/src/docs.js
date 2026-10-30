@@ -7,13 +7,16 @@
 
 import { TIER_LIMITS } from "./keys.js";
 import { MAX_TYPINGS } from "./handlers.js";
-import { priceLabel, SELLABLE_TIERS } from "./pricing.js";
+import { SELLABLE_TIERS } from "./pricing.js";
 import { SCOPE as PGX_SCOPE } from "./pgx.js";
+import { pinNote } from "./pin.js";
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const n = (v) => (v === null ? "uncapped" : v.toLocaleString("en-US"));
 const CALLS = (t) => n(TIER_LIMITS[t].calls);
 const TYPINGS = (t) => n(TIER_LIMITS[t].typings);
+// Where a free key is requested during early access (the form posts to /v1/research-access).
+const REQUEST_URL = "https://hlaverify.com/research";
 
 // One row per tier, shared by /docs and /pricing. `extra` renders the trailing
 // cell (auth on /docs, the call to action on /pricing).
@@ -29,25 +32,15 @@ function tierRows(extra) {
 // that would answer with the email fallback.
 export function DOCS_HTML(m, pricing = { source: "table", prices: {}, live: false }) {
   const curl = (s) => `<pre><code>${esc(s)}</code></pre>`;
-  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
-  const betaKeys = selfServe
-    ? `Paid keys with higher quotas — Starter, Lab and Scale — are self-serve: pick a tier on the <a href="/pricing">pricing page</a> and the key is issued automatically when Stripe confirms the subscription. Academic and nonprofit labs get a free, durable key at Lab's limits just by emailing <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20academic%20key">hello@hlaverify.com</a> from an institutional address — no Stripe involved — or can instead apply with <code>POST /v1/research-access</code> (below), approved by hand, for a checkout-issued key. Enterprise: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.`
-    : `Paid keys with higher quotas — Starter, Lab and Scale — are issued on request today: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a> and say roughly what you are calling and how often. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> (or <code>POST /v1/beta-signup</code>) to hear when it is. Academic and nonprofit labs are unaffected by that: email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20academic%20key">hello@hlaverify.com</a> from an institutional address for a free, durable academic-tier key at Lab's limits, issued by hand.`;
-  const betaSection = selfServe
-    ? `<h3>Buying a key</h3>
-<p>Prices come from Stripe at request time, so the <a href="/pricing">pricing page</a> is always what you will actually be charged. <code>POST /v1/checkout</code> with <code>{"tier": "lab"}</code> returns a Stripe Checkout Session url; the buttons on the pricing page do exactly that. The endpoint is free and does not consume daily quota. <b>The price you sign at is the price you keep:</b> a subscription stays on the price it was created with until it is deliberately migrated, so a later price change applies to new subscribers, not to you. Beta keys at a paid tier's limits are still issued by hand on request — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a>.</p>`
-    : `<h3>Keys during the beta</h3>
-<p>Self-serve checkout is not open yet. Beta keys are issued by hand at a paid tier's limit, free for the duration of the beta — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> with roughly what you're calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to be told when checkout opens. The rest of this section describes how self-serve will work when it does.</p>`;
-  // Same gate as betaKeys/betaSection above: the webhook genuinely issues and
-  // revokes keys end to end (stripe.js onCheckoutCompleted / onSubscription*),
-  // but that machinery is only live for a buyer once Stripe is holding a real,
-  // tier-tagged price this deployment can charge. Until then, say so plainly
-  // instead of describing the checkout flow as already open to buyers.
-  const selfServeKeysSection = selfServe
-    ? `<h3 id="self-serve-keys">Self-serve keys</h3>
-<p>Starter, Lab and Scale keys are issued automatically through Stripe: subscribe on the <a href="/pricing">pricing page</a>, and Stripe's webhook creates an active key in the same store the API reads at request time — usually ready within a few seconds of payment, no manual provisioning. The key is shown once on the checkout success page and is also written to your Stripe customer record (visible in your receipts and the Stripe customer portal). Cancelling or letting a subscription lapse in the <a href="/pricing">Stripe customer portal</a> revokes the key the same way. Need an <code>enterprise</code> key? Email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>`
-    : `<h3 id="self-serve-keys">Self-serve keys</h3>
-<p>Not open yet: this deployment's Stripe configuration is still sandboxed, so a real purchase cannot complete. The automatic path is built — <code>POST /v1/checkout</code> creates a Stripe Checkout Session, and on a completed checkout Stripe's webhook creates an active key in the same store the API reads, shown once on the checkout success page and also written to the Stripe customer record — it just is not switched on for real money yet. Starter, Lab and Scale keys are issued by hand in the meantime: email <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a> and say roughly what you are calling and how often, or <a href="https://hlaverify.com/beta">join the list</a> to hear when checkout opens.</p>`;
+  // FREE DURING EARLY ACCESS: keys are requested, verified and emailed, not
+  // bought, whatever Stripe's state. The checkout machinery (pricing.js,
+  // stripe.js, POST /v1/checkout) is intact and documented below, but nothing
+  // here points a reader at it.
+  const betaKeys = `HLA-Verify is free during early access. Any lab or organisation can request a free Lab-tier key (${CALLS("lab")} calls a day, ${TYPINGS("lab")} typings per call) at <a href="${REQUEST_URL}">hlaverify.com/research</a> or with <code>POST /v1/research-access</code> (below): we verify the institution and, if it is approved, email the key, usually within a few hours. Requests from personal email addresses are reviewed by hand and take longer. Enterprise and self-hosting: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">hello@hlaverify.com</a>.`;
+  const betaSection = `<h3>Keys during early access</h3>
+<p>Nothing is for sale during early access. Keys are free and carry the Lab tier's limits: request one at <a href="${REQUEST_URL}">hlaverify.com/research</a>, and it is emailed once the institution is verified, usually within a few hours. Questions: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>`;
+  const selfServeKeysSection = `<h3 id="self-serve-keys">Self-serve keys</h3>
+<p>Not offered during early access, when keys are free and issued on request. The checkout path is built — <code>POST /v1/checkout</code> creates a Stripe Checkout Session, and on a completed checkout Stripe's webhook creates an active key in the same store the API reads — but it is not in use while keys are free.</p>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify API — reference</title>
 <meta name="description" content="Deterministic HLA nomenclature and donor-recipient matching verification API, pinned to IPD-IMGT/HLA ${esc(m.release)}. Allele names, not patient identifiers. No LLM, nothing stored.">
@@ -66,12 +59,12 @@ a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 </style></head><body><div class="wrap">
 <nav><a href="https://hlaverify.com">hlaverify.com</a><a href="https://hlaverify.com/demo">in-browser demo</a><a href="/openapi.json">openapi.json</a><a href="https://github.com/jasonbrelsford/verifiable-science-envs">source &amp; benchmark</a></nav>
 <h1>HLA-Verify API</h1>
-<p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles. Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
+<p class="mut">Base URL <code>https://api.hlaverify.com</code> (also <code>https://hlaverify.com/v1/…</code>). Pinned to IPD-IMGT/HLA <b>${esc(m.release)}</b> — ${m.alleles.toLocaleString()} named alleles.${pinNote(m) ? ` ${esc(pinNote(m))}` : ""} Every response carries the release and the attribution line. No LLM anywhere; nothing you send is stored.</p>
 <p class="send"><b>What to send.</b> HLA-Verify checks allele nomenclature, typing-report consistency and match arithmetic against a pinned IPD-IMGT/HLA release. Send <b>allele names, typing strings, GL strings and report text about HLA typing</b>. Do not send patient identifiers: no names, medical record numbers, dates of birth, accession or case identifiers, or other patient details. The service neither needs nor wants them, request bodies are processed in memory and never stored, and de-identifying before you send is the caller's responsibility. This is a nomenclature and reference-release checker: not a diagnostic aid, not clinical decision support, and it does not recommend a donor.</p>
-<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)} — the beta is about pricing and limits, not about correctness. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
+<p class="beta"><b>Free during early access.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Anonymous access stays open with no key, at ${CALLS("free")} calls a day per IP and 60 requests/minute. ${betaKeys}</p>
 
 <h2>Authentication and limits</h2>
-<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota and larger batches. Per-key usage reporting is built: see <a href="#usage">Usage</a> below. Keyed customers are told by email before the deployment-wide release pin moves, with a diff of changed verdicts — a manual step in the release runbook, not an automated or per-key feature: see <a href="#release-pinning">Release pinning</a> below. Keys: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
+<p>Without a key the API is open for evaluation at <b>${CALLS("free")} calls a day per IP</b>, 60 requests per minute. Labs, LIMS vendors and agent platforms get a key (header <code>X-API-Key: …</code> or <code>Authorization: Bearer …</code>) with a higher or uncapped daily quota and larger batches. Per-key usage reporting is built: see <a href="#usage">Usage</a> below. Keyed customers are told by email before the deployment-wide release pin moves, with a diff of changed verdicts — a manual step in the release runbook, not an automated or per-key feature: see <a href="#release-pinning">Release pinning</a> below. Keys are free during early access: <a href="${REQUEST_URL}">request one</a>.</p>
 <table>
 <tr><th>Tier</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th>Auth</th></tr>
 ${tierRows((t) => (t === "free" ? "none (anonymous)" : "API key"))}
@@ -104,7 +97,7 @@ ${curl(`{"release":"${m.release}","clean":false,
  "attribution":"Computed from IPD-IMGT/HLA (Barker DJ et al., Nucleic Acids Res 2025), …"}`)}
 
 <h3><span class="pill">POST</span><code>/v1/normalize</code> — bring reported typings to the current release</h3>
-<p>Any era and any reporting shorthand: colon-less 1990s strings (<code>A*0101</code>, <code>Cw*0702</code>), the old <code>Cw</code> locus label on a colon-style name (<code>Cw*07:02</code>), deleted names, lower-resolution prefixes, G and P group names (<code>A*02:01:01G</code>, <code>DPB1*04:01P</code>), the XX code (<code>A*02:XX</code>), two-field <code>A*02:01g</code>, and an optional <code>HLA-</code> prefix. Returns the current name, the comparable 2-field name (keeping an expression suffix only when every full-resolution allele shares it), the G group (<code>NONE</code> / <code>AMBIGUOUS</code>), and flags such as <code>deprecated_name</code>, <code>null_allele</code>, <code>nonexistent_allele</code>, <code>g_group_name</code>, <code>p_group_name</code>, <code>xx_code</code>, <code>lg_notation</code>. NMDP multiple allele codes (<code>A*02:AB</code>) are not expanded: they return <code>UNRESOLVABLE</code> with the flag <code>mac_code</code>.</p>
+<p>Any era and any reporting shorthand: colon-less 1990s strings (<code>A*0101</code>, <code>Cw*0702</code>; a rollover name such as <code>A*9201</code> or <code>B*9501</code> takes its official 2010 colon name, <code>A*02:101</code> or <code>B*15:101</code>, from the release history and is flagged <code>legacy_rollover</code>), the old <code>Cw</code> locus label on a colon-style name (<code>Cw*07:02</code>), deleted names, lower-resolution prefixes, G and P group names (<code>A*02:01:01G</code>, <code>DPB1*04:01P</code>), the XX code (<code>A*02:XX</code>), two-field <code>A*02:01g</code>, and an optional <code>HLA-</code> prefix. Returns the current name, the comparable 2-field name (keeping an expression suffix only when every full-resolution allele shares it), the G group (<code>NONE</code> / <code>AMBIGUOUS</code>), and flags such as <code>deprecated_name</code>, <code>null_allele</code>, <code>nonexistent_allele</code>, <code>g_group_name</code>, <code>p_group_name</code>, <code>xx_code</code>, <code>lg_notation</code>. NMDP multiple allele codes (<code>A*02:AB</code>) are not expanded: they return <code>UNRESOLVABLE</code> with the flag <code>mac_code</code>.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/normalize -H 'content-type: application/json' \\
   -d '{"typings": ["A*0101", "A*01:34N", "DRB1*1406", "A*24:09N", "B*9999"]}'`)}
 
@@ -126,7 +119,7 @@ ${curl(`curl -s https://api.hlaverify.com/v1/translate -H 'content-type: applica
 ${curl(`curl -s 'https://api.hlaverify.com/v1/releases/diff?from=3.58.0&to=3.66.0&locus=A&limit=50'`)}
 
 <h3><span class="pill">GET</span><code>/v1/releases</code> — the releases the history covers</h3>
-<p>Every IPD-IMGT/HLA release from 1.05.0 to the current one, oldest first, and the loci in the history. Free and never counted.</p>
+<p>Every IPD-IMGT/HLA release from 1.05.0 to the current one, oldest first, and the loci in the history, plus <code>pin</code>: the release, the git tag it is pinned to, and a one-sentence note when that tag is a pre-release (alpha) tag ahead of the latest official release. Free and never counted.</p>
 
 <h3><span class="pill">POST</span><code>/v1/match</code> — donor–recipient match verdict</h3>
 <p>Two reported alleles per locus, any nomenclature era, G/P group names included (a typing reported at G-group resolution matches by the 2-field name it is written under). Frameworks <code>6/6</code>, <code>8/8</code>, <code>10/10</code>, <code>12/12</code>, <code>antigen</code>. Counts per <em>chromosome</em>, not per locus; GvH and HvG mismatches reported separately; a locus whose typing is too coarse to call is <code>potential</code> and excluded from the denominator with <code>resolution_insufficient</code> — a confident count over unresolvable typing is itself the error. Null alleles hiding inside serologic matches (the A*24:09N trap) raise <code>null_allele_mismatch</code>. Rules R1–R6 are published in <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/sci_envs/families/matching/rules.py">rules.py</a> for lab audit.</p>
@@ -172,17 +165,17 @@ ${curl(`curl -s https://api.hlaverify.com/v1/pgx/pair -H 'content-type: applicat
   "recipient": {"alleles": ["B*57:01", "A*02:01"]}, "donor": {"alleles": ["B*44:02", "A*02:01"]}}'`)}
 
 <h3><span class="pill">POST</span><code>/v1/checkout</code> — start a Stripe Checkout Session for a paid tier</h3>
-<p><code>{"tier": "starter"|"lab"|"scale"}</code> (or a specific active <code>price</code> id, as a cross-check on <code>tier</code>). Returns a hosted Stripe Checkout url to send the buyer to; the buttons on <a href="/pricing">/pricing</a> call this endpoint. On a completed checkout, Stripe's webhook creates the key — see <a href="#self-serve-keys">Self-serve keys</a> above for whether that is switched on for real purchases right now. Free and not billable against the daily quota, but rate limited like every other <code>/v1/</code> route. 503 when self-serve checkout is not configured on this deployment or the tier has no live price.</p>
+<p>Not in use during early access, when keys are free: nothing on <a href="/pricing">/pricing</a> calls it. <code>{"tier": "starter"|"lab"|"scale"}</code> (or a specific active <code>price</code> id, as a cross-check on <code>tier</code>). Returns a hosted Stripe Checkout url. On a completed checkout, Stripe's webhook creates the key — see <a href="#self-serve-keys">Self-serve keys</a> above for whether that is switched on for real purchases right now. Free and not billable against the daily quota, but rate limited like every other <code>/v1/</code> route. 503 when self-serve checkout is not configured on this deployment or the tier has no live price.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/checkout -H 'content-type: application/json' -d '{"tier": "starter"}'`)}
 
-<h3><span class="pill">POST</span><code>/v1/beta-signup</code> — join the beta list for paid keys</h3>
-<p><code>{"email": "you@lab.example", "org": "…", "use_case": "…", "source": "…"}</code> — only <code>email</code> is required; <code>org</code> (≤120 chars), <code>use_case</code> (≤500) and <code>source</code> (≤120, a free-text hint such as <code>site</code>, <code>mcp</code> or <code>docs</code>) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; signing the same address twice is not an error and does not create a second record. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one or a field over its cap. We store the address, the optional fields, a timestamp and the <code>CF-IPCountry</code> of the request — no IP address, nothing else, and the record is not an API key. Need a higher limit today? Email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> for a beta key.</p>
+<h3><span class="pill">POST</span><code>/v1/beta-signup</code> — join the beta list</h3>
+<p><code>{"email": "you@lab.example", "org": "…", "use_case": "…", "source": "…"}</code> — only <code>email</code> is required; <code>org</code> (≤120 chars), <code>use_case</code> (≤500) and <code>source</code> (≤120, a free-text hint such as <code>site</code>, <code>mcp</code> or <code>docs</code>) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; signing the same address twice is not an error and does not create a second record. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one or a field over its cap. We store the address, the optional fields, a timestamp and the <code>CF-IPCountry</code> of the request — no IP address, nothing else, and the record is not an API key. Need a higher limit today? <a href="${REQUEST_URL}">Request a free key</a> instead (below).</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/beta-signup -H 'content-type: application/json' \\
   -d '{"email": "you@lab.example", "org": "Example HLA Lab", "use_case": "LIMS ingest QC", "source": "docs"}'`)}
 
-<h3><span class="pill">POST</span><code>/v1/research-access</code> — apply for free academic and nonprofit access</h3>
+<h3><span class="pill">POST</span><code>/v1/research-access</code> — request a free key</h3>
 <p><code>{"email": "…", "institution": "…", "use_case": "…", "expected_volume": "…", "source": "…"}</code>. <code>email</code>, <code>institution</code> (≤200 chars) and <code>use_case</code> (≤1,000) are required; <code>expected_volume</code> (≤120) and <code>source</code> (≤120) are optional. Returns <code>{"ok":true,"status":"recorded"|"already_recorded","message":"…","release":"${esc(m.release)}"}</code>; applying twice from the same address is not an error and does not create a second record or overwrite a decision already made. Rejections are the usual <code>{"detail": "…"}</code>: 422 for an address that doesn't look like one, a missing or empty required field, or a field over its cap. We store what you send plus a timestamp, the <code>CF-IPCountry</code> of the request and a status. No IP address is stored, and the record is not an API key.</p>
-<p><b>How approval works, plainly:</b> a person reads every application. There is no automatic decision, no SLA, and no guarantee. If it is approved you are emailed a single-use promotion code; you then pick a tier at <a href="/pricing">/pricing</a> and enter the code at checkout, which takes 100% off for 12 months. Because the total is then $0, Stripe asks for no card, and your API key is issued by the same webhook that issues a paid one. The code is good for one redemption and expires; commercial labs should buy a tier instead.</p>
+<p><b>How approval works, plainly:</b> HLA-Verify is free during early access, and this is how any lab or organisation — clinical HLA labs, transplant centres, registries, researchers, companies — gets a key. Use a work email address. We verify the institution and, if it is approved, email you a free Lab-tier key (${CALLS("lab")} calls a day, ${TYPINGS("lab")} typings per call), usually within a few hours. Applications from personal email addresses are reviewed by hand and take longer. Approval is not guaranteed and "a few hours" is typical, not a service level. Questions: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>.</p>
 ${curl(`curl -s https://api.hlaverify.com/v1/research-access -H 'content-type: application/json' \\
   -d '{"email": "you@lab.example", "institution": "Example University", "use_case": "Retyping QC for a 4,000-donor registry cohort study", "expected_volume": "about 20,000 typings a month", "source": "docs"}'`)}
 
@@ -237,7 +230,7 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 <p>The same verification service as a container, no API key or network dependency on <code>hlaverify.com</code>: <code>docker run -p 8000:8000 ghcr.io/jasonbrelsford/hla-verify:latest</code> (once a tagged release publishes one), or build it yourself from the repository (<code>docker build -t hla-verify -f sci_envs/service/Dockerfile .</code>), or run the Python service directly (<code>pip install -e ".[service]" \&\& uvicorn sci_envs.service.app:app</code>). Details and the current image tags: <a href="https://github.com/jasonbrelsford/verifiable-science-envs#self-host">README</a>.</p>
 
 <h2 id="release-pinning">Release pinning</h2>
-<p>This deployment is pinned to <b>${esc(m.release)}</b> for every caller — one release for the whole deployment, not a value that varies by key. The tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; when this deployment's pin moves to a new release, that move is a deliberate, recorded step (see <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/RELEASE_BUMP.md">the release runbook</a>), not a silent change. Keyed customers are told by email before the deployment-wide pin moves, with a diff of changed verdicts — a manual step in that runbook, not an automated feature. <b>Per-key pinning — holding an individual key on an older release — is on the roadmap and not built today.</b></p>
+<p>This deployment is pinned to <b>${esc(m.release)}</b> for every caller — one release for the whole deployment, not a value that varies by key. ${pinNote(m) ? `${esc(pinNote(m))} ` : ""}The tables were exported ${esc(m.exported_at)} from the release's own files (Allelelist, Deleted_alleles, Allelelist_history, hla_nom_g/p, rel_dna_ser). IPD-IMGT/HLA publishes quarterly; when this deployment's pin moves to a new release, that move is a deliberate, recorded step (see <a href="https://github.com/jasonbrelsford/verifiable-science-envs/blob/main/docs/RELEASE_BUMP.md">the release runbook</a>), not a silent change. Keyed customers are told by email before the deployment-wide pin moves, with a diff of changed verdicts — a manual step in that runbook, not an automated feature. <b>Per-key pinning — holding an individual key on an older release — is on the roadmap and not built today.</b></p>
 
 <h2>Errors</h2>
 <p>Errors are JSON <code>{"detail": "…"}</code>: 400 malformed JSON, 401 missing/invalid/revoked key, 404 unknown name or route, 415 wrong content type, 422 invalid input, 429 rate limited or daily quota exhausted (tier-specific, with <code>Retry-After</code>), 500 (nothing stored). MCP <code>tools/call</code> validation failures are not HTTP or JSON-RPC errors — they come back as a normal tool result with <code>isError:true</code> and an explanatory text block, per the MCP spec.</p>
@@ -249,87 +242,19 @@ ${curl(`{"mcpServers": {"hla-verify": {"url": "https://api.hlaverify.com/mcp"}}}
 
 // /pricing — plain HTML, same styling as DOCS_HTML.
 //
-// FREE PUBLIC BETA (2026-09): the paid cells show a "Join the beta list" call to
-// action instead of buy buttons because this deployment's Stripe configuration
-// is still sandboxed and cannot take real money yet. The tiers and their limits
-// stay visible — the prices are real, only the checkout is not.
-//
-// TO GO LIVE, point this deployment at Stripe's live mode (a live
-// STRIPE_SECRET_KEY plus at least one live, tier-tagged Price — see
-// STRIPE_TIER_MAP in edge/wrangler.jsonc). No code change is needed here or in
-// stripe.js: `canBuy`/`anyBuyable` below already switch on `pricing.live`, and
-// the checkout flow is POST /v1/checkout (pricing.js createCheckoutSession),
-// not a static Payment Link.
-// GET /pricing. `pricing` is pricing.js getPricing()'s return value:
-// {source:"stripe"|"cache"|"table", prices:{tier:shape}, live}.
-//
-// What each source renders:
-//   stripe / cache — the amount, interval and currency Stripe holds. A sellable
-//     tier missing from that answer is shown as "contact us": its price was
-//     archived or untagged in Stripe, and inventing one here would publish a
-//     number nobody can actually be charged.
-//   table — no contact with Stripe at all (no secret key, or a cold cache
-//     during an outage). The published prices in TIER_LIMITS are shown, buy
-//     buttons are hidden, and the page reverts to the email path in full.
-// Buy buttons appear only when `live` is true, which means a secret key is
-// present and a real Stripe price id is in hand — so the beta wording that says
-// checkout is not open only disappears where checkout actually works.
+// FREE DURING EARLY ACCESS (2026-10): nothing is for sale. The page shows what
+// a caller gets with no key and with a free Lab-tier key, and sends them to the
+// request form at hlaverify.com/research. It renders the same whatever Stripe's
+// state: there are no buy buttons and no checkout script even when a live
+// STRIPE_SECRET_KEY and tier-tagged prices exist. The Stripe machinery
+// (pricing.js getPricing/createCheckoutSession, stripe.js, POST /v1/checkout)
+// is left intact; `pricing` is still accepted so the call sites do not change.
+// The limit numbers come from TIER_LIMITS, the table that enforces them.
+// eslint-disable-next-line no-unused-vars
 export function PRICING_HTML(m, pricing = { source: "table", prices: {}, live: false }) {
-  const prices = pricing.prices || {};
-  const fromStripe = pricing.source === "stripe" || pricing.source === "cache";
-  const canBuy = (t) => Boolean(pricing.live && prices[t]);
-  const anyBuyable = SELLABLE_TIERS.some(canBuy);
-
-  const cell = (t) => {
-    if (canBuy(t)) return `<button class="btn buy" type="button" data-tier="${esc(t)}">Subscribe</button>`;
-    return `<a class="btn mut" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20${esc(t)}%20key">Email us</a>`;
-  };
-  // A sellable tier Stripe does not list has no real price to quote.
-  const money = (t) => (fromStripe && !prices[t] ? "contact us" : esc(priceLabel(t, pricing)));
-  const sourceNote = fromStripe
-    ? "Prices are read from Stripe when this page is built, so what you see is what you will be charged; tax is calculated at checkout. Cancel anytime from the Stripe customer portal link in your receipt."
-    : "Prices are the published list; tax is calculated at checkout. Cancel anytime from the Stripe customer portal link in your receipt.";
-
-  const betaNote = anyBuyable
-    ? `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Anonymous access stays open at ${CALLS("free")} calls a day per IP. Starter, Lab and Scale are self-serve below: checkout runs on Stripe and your key is issued automatically. Academic and nonprofit labs can apply for free access at <a href="https://hlaverify.com/research">hlaverify.com/research</a>: approved by hand, then free for 12 months. Enterprise: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>.</p>`
-    : `<p class="beta"><b>Free public beta.</b> Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}. Paid keys with higher daily quotas are issued on request today — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Self-serve checkout is not open yet; <a href="https://hlaverify.com/beta">join the list</a> to hear when it is.</p>`;
-
-  const tail = anyBuyable
-    ? `<p class="mut" style="margin-top:2em">Subscribing lands you on a success page showing your API key once — copy it then; it is also written to your Stripe customer record. Cancel anytime from the customer portal link in your receipt, which revokes the key. Research access is applied for at <a href="https://hlaverify.com/research">hlaverify.com/research</a> and approved by hand; Enterprise keys are arranged by email: <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20key">hello@hlaverify.com</a>. Full endpoint reference: <a href="/docs">/docs</a>.</p>`
-    : `<p class="mut" style="margin-top:2em">Self-serve checkout is not open yet. When it opens you will land on a success page showing your API key once — copy it then, it is also written to your Stripe customer record. Today keys are issued by hand — email <a href="mailto:hello@hlaverify.com?subject=HLA-Verify%20beta%20key">hello@hlaverify.com</a> and say roughly what you're calling and how often. Full endpoint reference: <a href="/docs">/docs</a>.</p>`;
-
-  // The grandfathering rule, stated where a customer decides. This is Stripe's
-  // own behaviour, not something this Worker implements: a subscription stays
-  // on the price it was created with until someone deliberately migrates it.
-  const lockIn = `<p class="lock"><b>The price you sign at is the price you keep.</b> These prices track our cost and demand and are reviewed monthly. A subscription stays on the price it started on until it is deliberately migrated, so a change here applies to new subscribers — an existing subscription is not re-rated, and keeps its price until you change plan or renew a contract at a new one.</p>`;
-
-  const buyScript = anyBuyable
-    ? `<script>
-document.querySelectorAll('button.buy').forEach(function(b){
-  b.addEventListener('click', function(){
-    var note = document.getElementById('checkout-note');
-    var label = b.textContent;
-    b.disabled = true; b.textContent = 'Starting\\u2026'; note.textContent = '';
-    fetch('/v1/checkout', {method:'POST', headers:{'content-type':'application/json'},
-      body: JSON.stringify({tier: b.dataset.tier})})
-      .then(function(r){ return r.json().then(function(d){ return {ok: r.ok, d: d}; }); })
-      .then(function(r){
-        if (r.ok && r.d && r.d.url) { window.location.href = r.d.url; return; }
-        note.textContent = (r.d && r.d.detail) || 'Checkout is unavailable right now. Email hello@hlaverify.com.';
-        b.disabled = false; b.textContent = label;
-      })
-      .catch(function(){
-        note.textContent = 'Checkout is unavailable right now. Email hello@hlaverify.com.';
-        b.disabled = false; b.textContent = label;
-      });
-  });
-});
-</script>`
-    : "";
-
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HLA-Verify — pricing</title>
-<meta name="description" content="HLA-Verify API pricing during the free public beta: open at ${CALLS("free")} calls a day per IP, paid Starter, Lab and Scale keys, Enterprise by arrangement.">
+<meta name="description" content="HLA-Verify is free during early access: ${CALLS("free")} calls a day per IP with no key, or request a free Lab-tier key with ${CALLS("lab")} calls a day, usually approved within a few hours.">
 <style>
 :root{--green:#2F5D3A;--ink:#1E3A28;--paper:#FAFAF4;--mut:#5A6B5D;--line:#E4E0D4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
@@ -339,31 +264,22 @@ table{border-collapse:collapse;width:100%;font-size:.93rem;margin-top:1.2em}td,t
 a{color:var(--green)}.mut{color:var(--mut)}nav a{margin-right:14px}
 .btn{display:inline-block;background:var(--green);color:#fff;border:0;border-radius:8px;padding:8px 16px;text-decoration:none;font:inherit;font-weight:600;cursor:pointer}
 .btn.mut{background:#EEECE4;color:var(--mut)}
-.btn[disabled]{opacity:.6;cursor:default}
 .beta{background:#DCEFDC;border-radius:10px;padding:12px 16px;margin-top:1.2em}
-.lock{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-top:1.2em}
-#checkout-note{color:#8A3324;min-height:1.4em}
 </style></head><body><div class="wrap">
 <nav><a href="/docs">API reference</a><a href="https://hlaverify.com">hlaverify.com</a></nav>
 <h1>Pricing</h1>
-${betaNote}
-<p class="mut">Every tier hits the same deterministic API, pinned to IPD-IMGT/HLA ${esc(m.release)}. ${sourceNote}</p>
+<p class="beta"><b>Free during early access.</b> There is nothing to buy. Any lab or organisation — clinical HLA labs, transplant centres, registries, researchers, companies — can request a free key with the Lab tier's limits. We verify the institution and, if it is approved, email the key, usually within a few hours; requests from personal email addresses are reviewed by hand and take longer. Verdicts are production-quality and pinned to IPD-IMGT/HLA ${esc(m.release)}.</p>
+<p><a class="btn" href="${REQUEST_URL}">Request a free key</a></p>
 <table>
-<tr><th>Tier</th><th>Price</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th></th></tr>
-<tr><td><b>Free</b></td><td>free, no key</td><td>${CALLS("free")} per IP</td><td>${TYPINGS("free")}</td><td>60/min</td><td><a class="btn mut" href="https://hlaverify.com/beta">Join the beta list</a></td></tr>
-<tr><td><b>Starter</b></td><td>${money("starter")}</td><td>${CALLS("starter")}</td><td>${TYPINGS("starter")}</td><td>60/min</td><td>${cell("starter")}</td></tr>
-<tr><td><b>Lab</b></td><td>${money("lab")}</td><td>${CALLS("lab")}</td><td>${TYPINGS("lab")}</td><td>600/min</td><td>${cell("lab")}</td></tr>
-<tr><td><b>Scale</b></td><td>${money("scale")}</td><td>${CALLS("scale")}</td><td>${TYPINGS("scale")}</td><td>6,000/min</td><td>${cell("scale")}</td></tr>
-<tr><td><b>Enterprise</b></td><td>custom</td><td>uncapped</td><td>${TYPINGS("enterprise")}</td><td>uncapped</td><td><a class="btn" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
-<tr><td><b>Academic</b></td><td>free, issued on request</td><td>${CALLS("academic")}</td><td>${TYPINGS("academic")}</td><td>600/min</td><td><a class="btn mut" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20academic%20key">Email us</a></td></tr>
-<tr><td><b>Research</b></td><td>free for 12 months, with approval</td><td colspan="3">Academic and nonprofit labs. Apply with the form at hlaverify.com/research or <code>POST /v1/research-access</code>. A person reads every application, so a decision is not instant and not guaranteed. Approved applicants are emailed a single-use code, pick a tier above and enter it at checkout: it takes 100% off for 12 months, Stripe asks for no card because the total is $0, and the key is issued the same way a paid one is.</td><td><a class="btn mut" href="https://hlaverify.com/research">Apply</a></td></tr>
+<tr><th>Access</th><th>Cost</th><th>Calls/day</th><th>Typings per <code>/v1/normalize</code> call</th><th>Burst</th><th></th></tr>
+<tr><td><b>No key</b></td><td>free</td><td>${CALLS("free")} per IP</td><td>${TYPINGS("free")}</td><td>60/min</td><td>just call the API</td></tr>
+<tr><td><b>Free Lab-tier key</b></td><td>free during early access</td><td>${CALLS("lab")}</td><td>${TYPINGS("lab")}</td><td>600/min</td><td><a class="btn" href="${REQUEST_URL}">Request</a></td></tr>
+<tr><td><b>Enterprise</b></td><td>by agreement</td><td>uncapped</td><td>${TYPINGS("enterprise")}</td><td>uncapped</td><td><a class="btn mut" href="mailto:hello@hlaverify.com?subject=HLA-Verify%20Enterprise">Contact us</a></td></tr>
 </table>
-<p class="mut">The Academic row above and the Research row below are two different paths to the same population: Academic is a durable, no-expiry key at Lab's limits, issued by hand straight from an email — no Stripe, no card, nothing to renew. Research runs through the self-serve checkout with a 100%-off code, useful if you would rather pick your own tier or already have a checkout flow in mind, but it renews annually and depends on Stripe checkout being open on this deployment. Free software for research, evaluation and personal use is also the underlying licence on this API's own code (PolyForm Noncommercial 1.0.0, see the repository's NOTICE) — the Academic tier is that same principle applied to the hosted service, not just the source.</p>
-<p id="checkout-note" role="status" aria-live="polite"></p>
-${lockIn}
-<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your tier's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code>, <code>/v1/checkout</code>, <code>/v1/beta-signup</code> and <code>/v1/research-access</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text on every tier including Free. <code>Lab</code> was called <code>pro</code> before 2026-09: existing <code>pro</code> keys keep working at Lab's limits.</p>
-${tail}
-</div>${buyScript}</body></html>`;
+<p class="mut">Request a key with the form at <a href="${REQUEST_URL}">hlaverify.com/research</a> or <code>POST /v1/research-access</code> (an agent can use the <code>research_access</code> MCP tool on its user's behalf). No card and no contract. Keys issued before early access keep the limits they were issued with: <code>starter</code> ${CALLS("starter")} calls/day and ${TYPINGS("starter")} typings per call, <code>scale</code> ${CALLS("scale")} and ${TYPINGS("scale")}, <code>academic</code> the same as Lab; <code>Lab</code> was called <code>pro</code> before 2026-09 and existing <code>pro</code> keys keep Lab's limits.</p>
+<p class="mut">Calls are counted per <b>UTC day</b> and reset at 00:00 UTC; every billable response tells you where you stand in <code>x-hla-verify-daily-limit</code>, <code>-daily-remaining</code> and <code>-daily-reset</code>. The endpoints are batched, so the second number matters as much as the first: one <code>/v1/normalize</code> call carries up to your key's cap of typings. <code>/healthz</code>, <code>/docs</code>, <code>/pricing</code>, <code>/v1/beta-signup</code> and <code>/v1/research-access</code> are free and never counted, and <code>/v1/verify</code> accepts 200,000 characters of text with or without a key.</p>
+<p class="mut" style="margin-top:2em">Questions: <a href="mailto:hello@hlaverify.com">hello@hlaverify.com</a>. Full endpoint reference: <a href="/docs">/docs</a>.</p>
+</div></body></html>`;
 }
 
 // GET /checkout/success?session_id=... — shown right after Stripe redirects
@@ -413,13 +329,10 @@ ${body}
 // self-serve sentence is written only when self-serve actually works.
 export function openapi(m, pricing = { source: "table", prices: {}, live: false }) {
   const attribution = { type: "string" };
-  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
-  const buying = selfServe
-    ? "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys are self-serve through Stripe " +
-      "(POST /v1/checkout with {\"tier\": \"starter\"|\"lab\"|\"scale\"} returns a Checkout Session url, or use the buttons on /pricing), " +
-      "and a subscription keeps the price it was created with when prices later change. Academic and nonprofit labs get a free, durable academic-tier key at Lab's limits by emailing hello@hlaverify.com from an institutional address, no Stripe involved, or can instead apply for a checkout-issued key with POST /v1/research-access, which is approved by hand. Enterprise: hello@hlaverify.com."
-    : "Free public beta: verdicts are production-quality and anonymous access stays open; paid keys with higher quotas are issued on request " +
-      "(join the list at https://hlaverify.com/beta or POST /v1/beta-signup, or email hello@hlaverify.com for a beta key now). Academic and nonprofit labs can get a free, durable academic-tier key at Lab's limits the same way, by emailing hello@hlaverify.com from an institutional address.";
+  // Free during early access, whatever Stripe's state: nothing points a reader at buying.
+  const buying = "Free during early access: anonymous access stays open, and any lab or organisation can request a free Lab-tier key " +
+    `(${CALLS("lab")} calls/day, ${TYPINGS("lab")} typings per call) at ${REQUEST_URL} or with POST /v1/research-access; the institution is verified ` +
+    "and an approved key is emailed, usually within a few hours. Nothing is for sale during early access. Enterprise and self-hosting: hello@hlaverify.com.";
   return {
     openapi: "3.1.0",
     info: { title: "HLA-Verify", version: "1.0.0",
@@ -507,8 +420,8 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         responses: { 200: { description: "counts and the added, removed and renamed names" },
           422: { description: "a missing or unknown release, an unknown locus, or a bad limit", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
       "/v1/releases": { get: { summary: "The IPD-IMGT/HLA releases the history covers, oldest first",
-        description: "Every release from 1.05.0 to the current one, and the loci in the history. Free; not counted against the daily quota.",
-        responses: { 200: { description: "releases, latest, count and loci" } } } },
+        description: "Every release from 1.05.0 to the current one, and the loci in the history, plus a pin object (release, tag, and a note when the pinned tag is a pre-release ahead of the latest official release). Free; not counted against the daily quota.",
+        responses: { 200: { description: "releases, latest, count, loci and pin" } } } },
       "/v1/allele/{name}": { get: { summary: "Facts for one allele, prefix, group, deleted name, or reported shorthand",
         description: "Accepts what /v1/normalize accepts: current names at 1-4 fields, legacy spellings (A*0101, Cw*0702, Cw*07:02), " +
           "deleted names, G/P group names, the XX code (A*02:XX), two-field A*02:01g and an optional HLA- prefix. A shorthand " +
@@ -567,13 +480,13 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
         responses: { 200: { description: "release, pgx_snapshot, scope, recipient, donor, actionable[], summary, license, attribution" },
           422: { description: "invalid input", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "table not available on this deployment" } } } },
-      "/pricing": { get: { summary: "Published prices and limits (HTML)",
-        description: "Amount, currency and billing interval are read from Stripe at request time and cached for ten minutes, so a price change in Stripe " +
-          "publishes without a deploy. An existing subscription is not re-rated: it keeps the price it was created with until it is deliberately migrated. " +
+      "/pricing": { get: { summary: "Access and limits during early access (HTML)",
+        description: "HLA-Verify is free during early access: the page lists the no-key limit and the free Lab-tier key, and links to the request form. " +
           "Not billable.",
         responses: { 200: { description: "text/html" } } } },
       "/v1/checkout": { post: { summary: "Start a Stripe Checkout Session for a paid tier",
-        description: "Creates a subscription-mode Stripe Checkout Session for the named tier at its current Stripe price and returns the hosted url to send " +
+        description: "Not in use during early access, when keys are free and requested at " + REQUEST_URL + ". " +
+          "Creates a subscription-mode Stripe Checkout Session for the named tier at its current Stripe price and returns the hosted url to send " +
           "the buyer to. metadata.tier is set on the session from the price's own tier metadata, which is what the webhook reads to issue the key. " +
           "Promotion codes are accepted on Stripe's page; pass promotion_code to pre-apply one. Not billable against the daily quota, but rate limited " +
           "like every other /v1/ route (60 requests/minute per IP without a key). 503 when self-serve checkout is not configured on the deployment or the " +
@@ -593,7 +506,7 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
           429: { description: "rate limited (60 req/min per IP; /v1/checkout does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           502: { description: "Stripe rejected the session or was unreachable", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           503: { description: "self-serve checkout is not configured, or that tier is not on sale", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/v1/beta-signup": { post: { summary: "Join the free public beta's list for paid API keys",
+      "/v1/beta-signup": { post: { summary: "Join the beta notification list",
         description: "Records one address per beta list entry; re-submitting the same address returns already_recorded rather than failing. Stores the address, the optional fields, a timestamp and CF-IPCountry — no IP address. The record is not an API key and cannot be used as one.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["email"],
           properties: { email: { type: "string", maxLength: 254, example: "you@lab.example" },
@@ -605,20 +518,20 @@ export function openapi(m, pricing = { source: "table", prices: {}, live: false 
             message: { type: "string" }, release: { type: "string" } } } } } },
           422: { description: "invalid email or an oversized field", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           429: { description: "rate limited (60 req/min per IP; /v1/beta-signup does not consume daily quota)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
-      "/v1/research-access": { post: { summary: "Apply for free academic and nonprofit research access",
-        description: "Files one application per address for the research and education programme. Approval is manual: a person reads every " +
-          "application, there is no automatic decision, no service level and no guarantee. An approved applicant is emailed a single-use " +
-          "Stripe promotion code, redeemed at self-serve checkout against any tier: it takes 100% off for 12 months, so the total is $0, " +
-          "Stripe collects no card, and the API key is issued by the same webhook that issues a paid one. Re-submitting the same address " +
-          "returns already_recorded and never overwrites an application that has already been decided. Stores what you send plus a timestamp, " +
+      "/v1/research-access": { post: { summary: "Request a free Lab-tier key (free during early access)",
+        description: "Files one request per address for a free API key. HLA-Verify is free during early access, and any lab or organisation " +
+          "(clinical HLA labs, transplant centres, registries, researchers, companies) can request one. The institution is verified and, if it is " +
+          `approved, a free Lab-tier key (${CALLS("lab")} calls/day, ${TYPINGS("lab")} typings per call) is emailed to the address, usually within a few hours. ` +
+          "Requests from personal email addresses are reviewed by hand and take longer. Approval is not guaranteed. Re-submitting the same address " +
+          "returns already_recorded and never overwrites a request that has already been decided. Stores what you send plus a timestamp, " +
           "CF-IPCountry and a status, and no IP address. The record is not an API key and cannot be used as one. Not billable against the daily " +
-          "quota, but rate limited like every other /v1/ route (60 requests/minute per IP without a key).",
+          "quota, but rate limited like every other /v1/ route (60 requests/minute per IP without a key). Questions: hello@hlaverify.com.",
         requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["email", "institution", "use_case"],
-          properties: { email: { type: "string", maxLength: 254, example: "you@lab.example", description: "Where the approval code is sent." },
+          properties: { email: { type: "string", maxLength: 254, example: "you@lab.example", description: "A work address; the key is emailed here. Personal webmail addresses are reviewed by hand and take longer." },
             institution: { type: "string", maxLength: 200, example: "Example University",
-              description: "University, hospital, institute or nonprofit the work is done at." },
+              description: "The lab, hospital, registry, university or company the key is for." },
             use_case: { type: "string", maxLength: 1000, example: "Retyping QC for a 4,000-donor registry cohort study",
-              description: "What the research or teaching is and what the API would do in it. This is what the decision is made on. No patient details." },
+              description: "What the API would be used for. No patient details." },
             expected_volume: { type: "string", maxLength: 120, example: "about 20,000 typings a month" },
             source: { type: "string", maxLength: 120, description: "Free-text hint: site, mcp, docs." } } } } } },
         responses: { 200: { description: "recorded or already_recorded", content: { "application/json": { schema: { type: "object",

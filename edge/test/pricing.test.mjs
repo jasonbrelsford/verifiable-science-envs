@@ -372,66 +372,53 @@ test("createCheckoutSession: a Stripe rejection becomes a 502 naming the email p
 
 // --------------------------------------------------------------- the page
 
-test("/pricing renders the Stripe amounts with buy buttons", async () => {
+// Free during early access: the page is the same whatever Stripe holds. No
+// prices, no buy buttons, no checkout script; the request link is the action.
+function assertFreePage(html) {
+  assert.match(html, /Free during early access/);
+  assert.match(html, /href="https:\/\/hlaverify\.com\/research"/);
+  assert.match(html, /Request a free key/);
+  assert.match(html, /within a few hours/);
+  assert.match(html, /personal email addresses/);
+  assert.doesNotMatch(html, /\$\d/, "no price on the page");
+  assert.doesNotMatch(html, /data-tier=/, "no buy button");
+  assert.doesNotMatch(html, /\/v1\/checkout/, "no checkout script");
+  assert.doesNotMatch(html, /Subscribe/);
+  // The enforced numbers still come from TIER_LIMITS.
+  assert.match(html, /10,000/);
+  assert.match(html, /5,000/);
+}
+
+test("/pricing says free during early access even when Stripe is live", async () => {
   _resetPriceCache();
   const p = await getPricing(priceEnv(), { fetchImpl: stripeFetch({ prices: [STARTER, { ...LAB, unit_amount: 34900 }, SCALE] }) });
-  const html = PRICING_HTML(manifest, p);
-  assert.match(html, /\$49\/mo/);
-  assert.match(html, /\$349\/mo/, "the page shows what Stripe holds, not the hardcoded table");
-  assert.match(html, /\$1,999\/mo/);
-  assert.doesNotMatch(html, /\$299\/mo/);
-  for (const t of SELLABLE_TIERS) assert.match(html, new RegExp(`data-tier="${t}"`), `no buy button for ${t}`);
-  assert.match(html, /\/v1\/checkout/);
-  assert.match(html, /mailto:hello@hlaverify\.com/, "the email path stays visible");
-  assert.match(html, /Join the beta list/, "the free tier keeps its beta framing");
-  assert.doesNotMatch(html, /Self-serve checkout is not open yet/);
-  assert.doesNotMatch(html, /Paid keys with higher daily quotas are issued on request/, "the pre-self-serve fallback wording for paid tiers must be gone once Stripe is live");
-  // The Academic tier is issued on request permanently, self-serve or not — a different, deliberate claim.
-  assert.match(html, /Academic.*issued on request/s);
-  assert.match(html, /price you sign at is the price you keep/i, "the grandfathering rule must be on the page");
-  assert.match(html, /deliberately migrated/);
+  assert.equal(p.live, true);
+  assertFreePage(PRICING_HTML(manifest, p));
 });
 
-test("/pricing with no live price for a tier shows contact us, never an invented price", async () => {
-  _resetPriceCache();
-  const p = await getPricing(priceEnv(), { fetchImpl: stripeFetch({ prices: [STARTER, LAB] }) });
-  const html = PRICING_HTML(manifest, p);
-  assert.match(html, /<td>contact us<\/td>/);
-  assert.doesNotMatch(html, /\$1,999/, "scale is archived in Stripe; do not quote its old price");
-  assert.doesNotMatch(html, /data-tier="scale"/);
-  assert.match(html, /data-tier="lab"/);
-});
-
-test("/pricing with no Stripe at all falls back to the table, hides the buttons, keeps the beta wording", async () => {
+test("/pricing with no Stripe at all renders the same free page", async () => {
   _resetPriceCache();
   const p = await getPricing({ __CACHES: fakeCaches() }, { fetchImpl: stripeFetch() });
-  const html = PRICING_HTML(manifest, p);
   assert.equal(p.source, "table");
-  assert.doesNotMatch(html, /data-tier=/, "no buy button without a key to spend");
-  assert.doesNotMatch(html, /fetch\('\/v1\/checkout'/, "no checkout script without a key to spend");
-  assert.match(html, /Self-serve checkout is not open yet/);
-  assert.match(html, /mailto:hello@hlaverify\.com/);
-  assert.match(html, new RegExp(TIER_LIMITS.lab.price.replace(/[$]/g, "\\$")));
-  assert.match(html, /price you sign at is the price you keep/i);
+  assertFreePage(PRICING_HTML(manifest, p));
 });
 
-test("/docs and openapi.json only claim self-serve checkout when it works", async () => {
+test("/docs and openapi.json never advertise buying during early access", async () => {
   _resetPriceCache();
   const live = await getPricing(priceEnv(), { fetchImpl: stripeFetch() });
   const off = await getPricing({ __CACHES: fakeCaches() }, { fetchImpl: stripeFetch() });
-
-  const docsLive = DOCS_HTML(manifest, live);
-  assert.match(docsLive, /self-serve/i);
-  assert.doesNotMatch(docsLive, /Self-serve checkout is not open yet/);
-  assert.doesNotMatch(docsLive, /are issued on request today/);
-  assert.match(docsLive, /deliberately migrated/, "the grandfathering rule is stated on /docs too");
-
-  const docsOff = DOCS_HTML(manifest, off);
-  assert.match(docsOff, /Self-serve checkout is not open yet/);
-  assert.match(docsOff, /are issued on request today/);
-
-  assert.match(openapi(manifest, live).info.description, /POST \/v1\/checkout/);
-  assert.match(openapi(manifest, off).info.description, /issued on request/);
+  for (const pricing of [live, off]) {
+    const docs = DOCS_HTML(manifest, pricing);
+    assert.match(docs, /free during early access/i);
+    assert.match(docs, /hlaverify\.com\/research/);
+    assert.doesNotMatch(docs, /\$\d+\/mo/);
+    assert.doesNotMatch(docs, /the buttons on the pricing page/);
+    const desc = openapi(manifest, pricing).info.description;
+    assert.match(desc, /Free during early access/);
+    assert.match(desc, /hlaverify\.com\/research/);
+    assert.doesNotMatch(desc, /Checkout Session url/);
+  }
+  // The endpoint stays documented: the Stripe code is intact, just not advertised.
   assert.equal(typeof openapi(manifest, live).paths["/v1/checkout"].post, "object");
 });
 
@@ -552,25 +539,23 @@ test("GET /v1/checkout is a 405 naming the body it wants", async () => {
   assert.match(json.detail, /POST/);
 });
 
-test("GET /pricing through the worker renders live amounts and buy buttons", async () => {
+test("GET /pricing through the worker with Stripe live is the free early-access page", async () => {
   _resetPriceCache();
   const env = workerEnv({ STRIPE_SECRET_KEY: "rk_live_test" });
   await withFetch(stripeFetch(), async () => {
     const { resp, text } = await call(env, "GET", "/pricing");
     assert.equal(resp.status, 200);
     assert.match(resp.headers.get("content-type"), /text\/html/);
-    assert.match(text, /\$299\/mo/);
-    assert.match(text, /data-tier="lab"/);
+    assertFreePage(text);
   });
 });
 
-test("GET /pricing with no STRIPE_SECRET_KEY still renders, with the email path", async () => {
+test("GET /pricing with no STRIPE_SECRET_KEY renders the same free page", async () => {
   _resetPriceCache();
   const { resp, text } = await call(workerEnv(), "GET", "/pricing");
   assert.equal(resp.status, 200);
   assert.match(text, /mailto:hello@hlaverify\.com/);
-  assert.doesNotMatch(text, /data-tier=/);
-  assert.match(text, new RegExp(TIER_LIMITS.starter.price.replace(/[$]/g, "\\$")));
+  assertFreePage(text);
 });
 
 // -------------------------------------------------------- key issuance path

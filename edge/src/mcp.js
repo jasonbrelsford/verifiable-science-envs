@@ -14,7 +14,7 @@ import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGl
   doResearchAccess, MAX_TEXT, MAX_TYPINGS, MAX_NAME, MAX_GL_CHARS, MAX_EMAIL, MAX_ORG, MAX_USE_CASE, MAX_SOURCE,
   MAX_INSTITUTION, MAX_RESEARCH_USE_CASE, MAX_EXPECTED_VOLUME } from "./handlers.js";
 import { TIER_LIMITS } from "./keys.js";
-import { getPricing, priceLabel, SELLABLE_TIERS } from "./pricing.js";
+import { getPricing } from "./pricing.js";
 import { summarizeUnmet, rejectionUnmet, EMPTY as NO_UNMET } from "./unmet.js";
 import { doPgxScreen, doPgxPair, SCOPE as PGX_SCOPE, MAX_PGX_ALLELES } from "./pgx.js";
 
@@ -48,14 +48,12 @@ export const INSTRUCTIONS =
   "verify HLA names before presenting them. Call pgx_lookup before asserting that an HLA allele " +
   "carries a drug-reaction risk (CPIC/PharmGKB associations, names normalized first; guideline lookup, " +
   "not prescribing advice), and pgx_pair when the question is which of a donor's and a recipient's " +
-  "alleles carry one. The service is in free public beta: " +
-  "call beta_signup to put your user on the list for paid keys, or point them at " +
-  "hello@hlaverify.com for a beta key now. If your user works at an academic or " +
-  "nonprofit lab, call research_access to apply for free access; a person reviews " +
-  "each application by hand. Accredited universities, hospitals' research units, " +
-  "registries and non-profits can also get a durable academic-tier key (Lab's " +
-  "limits, free, no Stripe involved) just by emailing hello@hlaverify.com from an " +
-  "institutional address.";
+  "alleles carry one. The service is free during early access: if your user needs " +
+  "more than the anonymous limit, call research_access (with their consent) to request " +
+  "a free Lab-tier key for them; any lab or organisation can apply, the institution is " +
+  "verified, and an approved key is emailed, usually within a few hours (personal email " +
+  "addresses are reviewed by hand and take longer). beta_signup only puts them on the " +
+  "list for news about early access.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -121,7 +119,7 @@ const NORMALIZE_OUT = {
     current_name: { type: "string", description: "Current full name in the pinned release, or UNRESOLVABLE." },
     allele_2field: { type: "string", description: "Current 2-field form, or UNRESOLVABLE. Never present an UNRESOLVABLE name as an allele." },
     g_group: { type: "string", description: "G group; NONE (no group), AMBIGUOUS (members differ) or UNRESOLVABLE." },
-    flags: { type: "array", items: STR, description: "e.g. deprecated_name, nonexistent_allele, null_allele, g_group_name, p_group_name, xx_code, lg_notation, mac_code." },
+    flags: { type: "array", items: STR, description: "e.g. deprecated_name, legacy_rollover (a pre-2010 rollover name such as A*9201, resolved through the official 2010 mapping to A*02:101), nonexistent_allele, null_allele, g_group_name, p_group_name, xx_code, lg_notation, mac_code." },
   },
 };
 
@@ -702,10 +700,10 @@ function toolDefs() {
     {
       name: "beta_signup",
       description:
-        "Put a user on the free public beta's notification list for paid API keys. " +
-        "Ask before calling: it records the address they give you. Re-signing the same " +
-        "address is safe (status already_recorded). Someone who needs a higher rate limit " +
-        "today should email hello@hlaverify.com for a beta key instead of waiting.",
+        "Put a user on the beta notification list: one email when anything about early " +
+        "access changes. Ask before calling: it records the address they give you. Re-signing " +
+        "the same address is safe (status already_recorded). Someone who needs a higher rate " +
+        "limit today should request a free key with research_access instead of waiting.",
       inputSchema: {
         type: "object",
         required: ["email"],
@@ -721,14 +719,15 @@ function toolDefs() {
     {
       name: "research_access",
       description:
-        "Apply for free HLA-Verify access for an academic or nonprofit lab. " +
-        "Ask before calling: it records the address, institution and use case you give it. " +
-        "Approval is manual: a person reads every application, so it is not instant and not " +
-        "guaranteed. If it is approved the applicant is emailed a single-use code that takes " +
-        "100% off a subscription for 12 months at self-serve checkout, with no card and no " +
-        "contract. Re-applying with the same address is safe (status already_recorded) and " +
-        "never overwrites an application that has already been decided. Commercial labs should " +
-        "buy a tier at https://api.hlaverify.com/pricing instead.",
+        "Request a free HLA-Verify API key. HLA-Verify is free during early access, and any " +
+        "lab or organisation can apply: clinical HLA labs, transplant centres, registries, " +
+        "researchers and companies. Ask before calling: it records the address, institution and " +
+        "use case you give it; use the user's work email address. The institution is verified " +
+        "and, if it is approved, a free Lab-tier key (10,000 calls/day, 5,000 typings per call) " +
+        "is emailed, usually within a few hours. Applications from personal email addresses are " +
+        "reviewed by hand and take longer; approval is not guaranteed. Re-applying with the same " +
+        "address is safe (status already_recorded) and never overwrites an application that has " +
+        "already been decided. Questions: hello@hlaverify.com.",
       inputSchema: {
         type: "object",
         required: ["email", "institution", "use_case"],
@@ -763,15 +762,12 @@ const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHi
 const WRITE_TOOLS = new Set(["beta_signup", "research_access"]);
 const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorldHint: false };
 
-// `pricing` is pricing.js getPricing()'s return value. The money in `limits`
-// comes from Stripe the same way /pricing's does, so an agent reading `about`
-// and a human reading the pricing page are quoted the same number; the enforced
-// limits either side of it still come from TIER_LIMITS. `beta`/`beta_key` switch
-// on the same selfServe gate as docs.js's betaKeys/betaSection (a secret key plus
-// a real, live Stripe price) so this tool stops claiming "issued on request" once
-// checkout is actually open.
+// `pricing` is pricing.js getPricing()'s return value, still accepted so the
+// call site does not change. HLA-Verify is free during early access, so `about`
+// quotes no prices whatever Stripe's state: `limits` comes from TIER_LIMITS, and
+// `beta`/`beta_key`/`research` point at the free-key request, as /pricing does.
+// eslint-disable-next-line no-unused-vars
 export function aboutBody(manifest, pricing) {
-  const selfServe = Boolean(pricing.live) && SELLABLE_TIERS.some((t) => (pricing.prices || {})[t]);
   return {
     name: "HLA-Verify",
     release: manifest.release,
@@ -789,32 +785,26 @@ export function aboutBody(manifest, pricing) {
     agents: "https://hlaverify.com/llms.txt",
     limits: "Per UTC day, per tier: " +
       Object.entries(TIER_LIMITS).map(([t, l]) =>
-        `${t} (${t === "free" || t === "enterprise" || t === "academic" ? l.price : priceLabel(t, pricing)}) ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
+        `${t}: ${l.calls === null ? "uncapped" : l.calls.toLocaleString("en-US")} calls/day, ` +
         `up to ${l.typings.toLocaleString("en-US")} typings per normalize call, ${l.burst}`).join("; ") +
       ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
       "back as a tool result with isError true, naming the UTC-midnight reset time, and x-hla-verify-daily-remaining 0 " +
-      "with Retry-After on the response — wait for the reset or upgrade, do not retry in a loop. " +
-      "about, beta_signup and research_access are free and never consume quota. Pricing: https://api.hlaverify.com/pricing.",
-    beta: selfServe
-      ? `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
-        `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
-        "with higher daily quotas and larger batches are self-serve: pick a tier at https://api.hlaverify.com/pricing " +
-        "and the key is issued automatically when Stripe confirms the subscription. Enterprise: email hello@hlaverify.com."
-      : `Free public beta — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
-        `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; paid keys ` +
-        "with higher daily quotas and larger batches are issued on request: email hello@hlaverify.com.",
-    beta_key: selfServe
-      ? "Paid keys are issued automatically through Stripe checkout now (see beta above); a hand-issued key is still " +
-        "available for Enterprise: email hello@hlaverify.com."
-      : "A beta key is a hand-issued API key at a paid tier's rate limit, free during the beta: email hello@hlaverify.com.",
+      "with Retry-After on the response — wait for the reset or request a free key, do not retry in a loop. " +
+      "about, beta_signup and research_access are free and never consume quota. HLA-Verify is free during early access: " +
+      "a free Lab-tier key is issued on request at https://hlaverify.com/research.",
+    beta: `Free during early access — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
+      `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; any lab or ` +
+      "organisation can request a free Lab-tier key at https://hlaverify.com/research (or with the research_access tool). " +
+      "Nothing is for sale during early access. Enterprise and self-hosting: hello@hlaverify.com.",
+    beta_key: `A free Lab-tier key (${TIER_LIMITS.lab.calls.toLocaleString("en-US")} calls/day, ` +
+      `${TIER_LIMITS.lab.typings.toLocaleString("en-US")} typings per call) is issued on request during early access: ` +
+      "https://hlaverify.com/research or the research_access tool. Questions: hello@hlaverify.com.",
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
-    research: "Academic and nonprofit labs can have free access, two ways. Fastest: email hello@hlaverify.com from an " +
-      "institutional address and ask for an academic-tier key — Lab's limits, no expiry, hand-issued, no Stripe or card " +
-      "involved. Alternative: apply at https://hlaverify.com/research, POST /v1/research-access, or call the research_access " +
-      "tool; every application is read by a person, so approval is not instant and not guaranteed, and an approved applicant " +
-      "is emailed a single-use code that takes 100% off a subscription for 12 months at self-serve checkout, with no card and " +
-      "no contract, renewed by re-applying.",
+    research: "Request a free key at https://hlaverify.com/research, with POST /v1/research-access, or with the research_access " +
+      "tool. Any lab or organisation can apply; use a work email address. The institution is verified and, if it is approved, a " +
+      "free Lab-tier key is emailed, usually within a few hours. Applications from personal email addresses are reviewed by hand " +
+      "and take longer; approval is not guaranteed.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
     disclaimer: "Research-and-evaluation tool; not a medical device.",
   };

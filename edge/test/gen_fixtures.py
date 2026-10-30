@@ -386,6 +386,13 @@ def main():
         batch = p[i:i + 100]
         resp = client.post("/v1/normalize", json={"typings": batch})
         fx["normalize"].append({"input": batch, "status": resp.status_code, "expected": resp.json()})
+    # pre-2010 rollover names (A*9201 -> A*02:101, not A*92:01): the 2010 mapping from the release
+    # history, next to ordinary legacy names, modern names and a fabricated one. A fixed batch,
+    # drawn without the rng so every other fixture stays as it was.
+    rollovers = ["A*9201", "B*9501", "DPB1*0102", "HLA-A*9201", "B*9511N", "A*9202", "DPB1*0203",
+                 "A*0101", "Cw*0702", "A*02:101", "B*15:101", "DPB1*100:01", "A*02:01:01:01", "A*9999", "A*92:01"]
+    resp = client.post("/v1/normalize", json={"typings": rollovers})
+    fx["normalize"].append({"input": rollovers, "status": resp.status_code, "expected": resp.json()})
     # reported shorthands on /v1/allele (#72): legacy, lg, XX, MAC, HLA- forms, and misses
     shorthands = ["A*0101", "Cw*0702", "A*02:01g", "A*02:XX", "A*02:AB", "HLA-A*02:XX", "HLA-A*0101", "HLA-A*02:01g",
                   "A*0134N", "A*24:09g", "DRB1*1406", "DRB1*04:BNDC", "B*15:ABCDE", "A*99:XX", "A*99:01g", "B*9999",

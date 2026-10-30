@@ -1,9 +1,11 @@
-# Deploy the HLA-Verify in-browser demo to a Hugging Face *static* Space (free tier —
-# Docker/Gradio Spaces need PRO; a static Space costs nothing and the demo is already a
-# self-contained Pyodide page, identical to hlaverify.com/demo).
+# Deploy the HLA-Verify Hugging Face Space as a *static* Space (free tier: Hugging Face only
+# hosts Gradio/Docker Spaces on free cpu-basic for PRO accounts). spaces/build_static.py assembles:
+#   index.html    the interactive app; calls api.hlaverify.com from the visitor's browser
+#   offline.html  the in-browser Pyodide checker, identical to hlaverify.com/demo
+#   README.md     Space card + metadata (spaces/hla-verify/README.md)
 # Runs on a hosted runner because huggingface.co is unreachable from the agent workspace.
 # Trigger: push a change to .hf-space (the agent's token cannot dispatch workflows), or
-# dispatch manually.
+# dispatch manually. Local equivalent: spaces/deploy.sh.
 name: hf-space
 on:
   push:
@@ -24,17 +26,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Build the static demo (same template + engine source as hlaverify.com/demo)
-        run: |
-          python3 - <<'EOF'
-          import json, pathlib
-          demo = open("assets/demo.template.html", encoding="utf-8").read()
-          demo = demo.replace("__IMGT_PY__", json.dumps(open("sci_envs/reference/imgt.py", encoding="utf-8").read()))
-          demo = demo.replace("__NORMALIZE_PY__", json.dumps(open("sci_envs/families/nomenclature/normalize.py", encoding="utf-8").read()))
-          out = pathlib.Path("build/space"); out.mkdir(parents=True, exist_ok=True)
-          (out / "index.html").write_text(demo, encoding="utf-8")
-          print("index.html bytes:", len(demo))
-          EOF
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
+      - name: Assemble the static Space
+        run: python spaces/build_static.py
       - name: Push Space
         env:
           HF: ${{ secrets.HF_TOKEN }}
@@ -51,12 +46,12 @@ jobs:
               -d "{\"type\":\"space\",\"name\":\"$NAME\",\"sdk\":\"static\",\"private\":$PRIVATE}" | head -c 300)"
             D=$(mktemp -d)
             git clone -q "https://user:$HF@huggingface.co/spaces/$SPACE" "$D"
-            cp spaces/hla-verify/README.md "$D/README.md"
-            cp build/space/index.html "$D/index.html"
-            cp assets/favicon-64.png "$D/favicon.png" 2>/dev/null || true
+            # Replace every file but .gitattributes with the new build.
+            ( cd "$D" && git ls-files | grep -v '^\.gitattributes$' | while IFS= read -r f; do git rm -q -- "$f"; done )
+            cp build/space/* "$D/"
             cd "$D"
-            git add -A
-            git -c user.name=deploy -c user.email=deploy@hlaverify.com commit -qm "deploy HLA-Verify static demo" || echo "no changes"
+            git add -- index.html offline.html README.md favicon.png
+            git -c user.name=deploy -c user.email=deploy@hlaverify.com commit -qm "deploy HLA-Verify static app" || echo "no changes"
             git push -q
             echo "pushed to https://huggingface.co/spaces/$SPACE"
             sleep 30

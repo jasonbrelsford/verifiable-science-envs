@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import worker from "../src/index.js";
+import { pinNote } from "../src/pin.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, "..", "public");
@@ -72,6 +73,35 @@ test("GET /v1/releases: oldest to newest, ends at the pinned release, and is fre
   assert.equal(r.json.count, r.json.releases.length);
   assert.ok(r.json.loci.includes("A") && r.json.loci.includes("DRB1"));
   assert.equal(e.QUOTA.spends.length, 0, "the release list costs no call");
+});
+
+test("GET /v1/releases: pin says when the pinned tag is a pre-release ahead of the official one", async () => {
+  const r = await call(env(), "GET", "/v1/releases");
+  assert.equal(r.json.latest, manifest.release, "the bare release field is unchanged");
+  assert.equal(r.json.pin.release, manifest.release);
+  assert.equal(r.json.pin.tag, manifest.tag);
+  if (/-alpha$/.test(manifest.tag)) {
+    assert.equal(r.json.pin.official, false);
+    assert.match(r.json.pin.note, new RegExp(manifest.tag));
+    assert.match(r.json.pin.note, /ahead of the latest official release/);
+    assert.match(r.json.pin.note, /moves to the official/);
+  } else {
+    assert.equal(r.json.pin.official, true);
+    assert.equal(r.json.pin.note, null);
+  }
+});
+
+test("pinNote: alpha tags get a note (annotated or generic), official tags none", () => {
+  const m = { release: "3.66.0", tag: "v3.66.0-alpha", alleles: 47424 };
+  assert.match(pinNote(m), /2026-10-14.*47,424 alleles.*\(3\.65\.0\)/);
+  assert.match(pinNote({ ...m, tag: "v3.67.0-alpha", release: "3.67.0" }), /v3\.67\.0-alpha tag.*ahead of the latest official release\./);
+  assert.equal(pinNote({ ...m, tag: "v3.66.0" }), null);
+  assert.equal(pinNote({ release: "3.66.0" }), null);
+});
+
+test("/docs states the pin provenance next to the release", async () => {
+  const html = await (await worker.fetch(new Request("https://api.hlaverify.com/docs"), env())).text();
+  if (pinNote(manifest)) assert.ok(html.includes(pinNote(manifest).replace(/&/g, "&amp;")), "pin note on /docs");
 });
 
 // ------------------------------------------------------------------ translate

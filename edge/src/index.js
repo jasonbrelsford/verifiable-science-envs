@@ -10,6 +10,7 @@
 import { createEngine, FRAMEWORKS } from "./engine.js";
 import { summarizeUnmet, rejectionUnmet, callerBucket, EMPTY as NO_UNMET } from "./unmet.js";
 import manifest from "../public/manifest.json" with { type: "json" };
+import { pinInfo } from "./pin.js";
 import { DOCS_HTML, openapi, PRICING_HTML, CHECKOUT_SUCCESS_HTML } from "./docs.js";
 import { parseKeys, TIER_LIMITS, limitsFor } from "./keys.js";
 import { doVerify, doNormalize, doAllele, doMatch, doTypingCheck, doCompat, doGlString,
@@ -154,8 +155,8 @@ async function authorizeKey(presented, env) {
       // `expires`, or with one that does not parse, never expires.
       if (rec.expires && Date.parse(rec.expires) <= Date.now()) {
         return err(401, `API key expired on ${String(rec.expires).slice(0, 10)}: this was a trial key. ` +
-          `Keep your access at https://api.hlaverify.com/pricing (founding labs: use the code you were sent), ` +
-          `or email hello@hlaverify.com`);
+          `HLA-Verify is free during early access: request a free key at https://hlaverify.com/research ` +
+          `(details: https://api.hlaverify.com/pricing), or email hello@hlaverify.com`);
       }
       const tier = rec.tier || "starter";
       const rl = limiterFor(env, tier);
@@ -421,7 +422,9 @@ export default {
       };
       if (path === "/v1/releases") {
         if (req.method !== "GET") return err(405, "GET /v1/releases", hdrs);
-        return answer("releases", await getHistory(env).releases());
+        const r = await getHistory(env).releases();
+        if (r.ok) r.body.pin = pinInfo(manifest);
+        return answer("releases", r);
       }
       if (path === "/v1/releases/diff") {
         if (req.method !== "GET") return err(405, "GET /v1/releases/diff?from=3.58.0&to=3.66.0[&locus=A][&limit=500]", hdrs);

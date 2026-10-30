@@ -7,6 +7,7 @@
 
 import { FRAMEWORKS, countGlTokens, MAX_GL_CHARS, MAX_GL_ALLELES } from "./engine.js";
 import { batchDetail } from "./quota.js";
+import { TIER_LIMITS } from "./keys.js";
 
 // MAX_TYPINGS is the ceiling — the most any tier may send in one
 // /v1/normalize call, and what the OpenAPI document advertises. The cap that
@@ -129,8 +130,8 @@ function optional(v, name, max) {
 
 const betaMessage = (release, already) =>
   `${already ? "You are already on the beta list" : "You are on the beta list"} — free public beta. ` +
-  `Verdicts are production-quality and pinned to IPD-IMGT/HLA ${release}. Paid keys with higher rate ` +
-  `limits are issued on request today: email hello@hlaverify.com. We will email you when self-serve checkout opens.`;
+  `Verdicts are production-quality and pinned to IPD-IMGT/HLA ${release}. HLA-Verify is free during early access: ` +
+  `request a free Lab-tier key at ${"https://hlaverify.com/research"}. We will email you when anything about early access changes.`;
 
 // body: {email, org?, use_case?, source?}; country: cf-ipcountry or null.
 export async function doBetaSignup(env, manifest, body, country) {
@@ -209,13 +210,17 @@ function requiredText(v, name, max) {
   return [s, null];
 }
 
-// Says plainly that a person reads this. Nothing here promises approval, and
-// nothing promises a date: the queue is one owner's inbox.
+// HLA-Verify is free during early access: an approved request is answered with
+// a free Lab-tier key by email. An automated job (outside this Worker) verifies
+// the institution and the owner reviews its decisions; personal webmail
+// addresses go to the owner by hand. Nothing here promises approval, and "usually
+// within a few hours" is a typical time, not a service level.
 const researchMessage = (already) =>
-  `${already ? "Your research access application is already on file" : "Your research access application is recorded"}. ` +
-  "Status: pending. A person reviews each one by hand, so this is not instant. If it is approved you will be emailed a " +
-  "single-use code that takes 100% off a subscription for 12 months at self-serve checkout: no card, no contract. " +
-  "Questions, or an application you need decided sooner: hello@hlaverify.com.";
+  `${already ? "Your application is already on file" : "Your application is recorded"}. ` +
+  "Status: pending. We verify the institution and, if it is approved, email you a free Lab-tier key " +
+  `(${TIER_LIMITS.lab.calls.toLocaleString("en-US")} calls a day, ${TIER_LIMITS.lab.typings.toLocaleString("en-US")} typings per call), ` +
+  "usually within a few hours; HLA-Verify is free during early access. Applications from personal email addresses " +
+  "take longer, because they are reviewed by hand. Questions: hello@hlaverify.com.";
 
 // body: {email, institution, use_case, expected_volume?, source?}; country: cf-ipcountry or null.
 export async function doResearchAccess(env, manifest, body, country) {
@@ -243,8 +248,9 @@ export async function doResearchAccess(env, manifest, body, country) {
     already = (await env.KEYS.get(kvKey)) !== null;
   } catch (_) { /* read failure: fall through and write, put() is the real test */ }
   // Idempotent per address, and the FIRST application wins: a record that has
-  // already been approved carries a promotion code, and re-applying must never
-  // overwrite it with a fresh pending record.
+  // already been decided carries that decision (and, for records approved before
+  // early access, a promotion code), and re-applying must never overwrite it
+  // with a fresh pending record.
   if (!already) {
     await env.KEYS.put(kvKey, JSON.stringify({
       email, institution, use_case: useCase, expected_volume: volume, source,

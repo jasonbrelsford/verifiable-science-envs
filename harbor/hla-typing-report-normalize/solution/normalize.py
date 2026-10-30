@@ -2,7 +2,10 @@
 
 Rules (also stated in harbor/hla-typing-report-normalize/instruction.md):
 1. A string listed in Deleted_alleles.txt is deprecated; follow its successor (may be a prefix today).
-2. Else a pre-2010 colon-less string is deprecated; convert 2-digit fields to colon form (Cw -> C).
+2. Else a pre-2010 colon-less string is deprecated; convert 2-digit fields to colon form (Cw -> C),
+   except a rollover name (A*9201, B*9501, DPB1*0102), whose 2010 colon name is not its digits
+   split into pairs: it takes the name Allelelist_history.txt gives the same HLA ID (A*02:101),
+   flagged ``legacy_rollover``.
 3. Else the string must be an assigned name or a valid lower-resolution prefix in this release.
 4. Otherwise it is unresolvable.
 Then: members = the full alleles the name identifies; allele_2field = 2-field name + the expression
@@ -88,7 +91,11 @@ def resolve_name(ref: ImgtReference, reported: str):
         return (succ, flags) if succ else (None, flags | {"nonexistent_allele"})
     if is_legacy_name(s):                    # A*0201: the colon form, resolved like any reported name
         flags.add("deprecated_name")         # (so a colon form that was itself deleted follows its successor)
-        cand = legacy_to_colon(s)
+        cand = ref.rollover_of(s)            # A*9201 -> A*02:101: the 2010 mapping, not its digits
+        if cand is not None:
+            flags.add("legacy_rollover")
+        else:
+            cand = legacy_to_colon(s)
         if cand is None:
             return None, flags | {"nonexistent_allele"}
         name, fl = resolve_name(ref, cand)
