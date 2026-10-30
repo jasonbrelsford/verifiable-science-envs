@@ -184,7 +184,11 @@ export function createEngine({ loadShard, manifest }) {
   // resolve_name() on that exact key, so any hit is final. The shorthand conversions
   // return the row of the name they stand for plus the flag resolve_name() adds; a
   // colon-less legacy name (A*0201) is the colon form resolved the same way, so one whose
-  // colon form was itself deleted follows that successor.
+  // colon form was itself deleted follows that successor. A pre-2010 rollover name (A*9201,
+  // whose 2010 name is A*02:101, not A*92:01) always has a row — every name in the release
+  // history is exported — carrying the resolution resolve_name() made through
+  // imgt.rollover_of(); the mechanical legacyToColon() fallback below is only reached by a
+  // legacy spelling no release ever used, which cannot be a rollover.
   function shorthand(s) {
     const c = cwToC(s);
     if (c !== null) return { kind: "deprecated_name", cand: c };

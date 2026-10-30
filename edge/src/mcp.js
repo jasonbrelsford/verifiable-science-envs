@@ -119,7 +119,7 @@ const NORMALIZE_OUT = {
     current_name: { type: "string", description: "Current full name in the pinned release, or UNRESOLVABLE." },
     allele_2field: { type: "string", description: "Current 2-field form, or UNRESOLVABLE. Never present an UNRESOLVABLE name as an allele." },
     g_group: { type: "string", description: "G group; NONE (no group), AMBIGUOUS (members differ) or UNRESOLVABLE." },
-    flags: { type: "array", items: STR, description: "e.g. deprecated_name, nonexistent_allele, null_allele, g_group_name, p_group_name, xx_code, lg_notation, mac_code." },
+    flags: { type: "array", items: STR, description: "e.g. deprecated_name, legacy_rollover (a pre-2010 rollover name such as A*9201, resolved through the official 2010 mapping to A*02:101), nonexistent_allele, null_allele, g_group_name, p_group_name, xx_code, lg_notation, mac_code." },
   },
 };
 

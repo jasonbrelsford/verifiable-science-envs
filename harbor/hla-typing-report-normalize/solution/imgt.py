@@ -491,6 +491,50 @@ class ImgtReference:
         rels = self._history[0]
         return rels[max(i for _, i in hits)]  # columns are newest-first
 
+    @cached_property
+    def _rollovers(self) -> dict[str, str]:
+        """Pre-2010 names whose colon form is NOT their digits split into pairs.
+
+        The 2010 renaming was not mechanical everywhere: allele groups that had run out of
+        two-digit numbers had rolled over into other first fields (A*92xx were A*02 alleles,
+        B*95xx were B*15, DPB1 alleles past 99 were numbered xx02), so A*9201 became A*02:101,
+        not A*92:01. The official old-to-new mapping is Allelelist_history.txt itself — the
+        same HLA ID under its old name and under its first colon-era name — which is the
+        file /v1/translate and the allele history answer from. -> {legacy name: the colon
+        name it became, at the legacy name's own resolution}, for the names whose mechanical
+        conversion would point somewhere else. A legacy name the history ties to more than
+        one colon form, or to any colon form its mechanical conversion agrees with, is not
+        listed (the mechanical form is kept). Empty when the history file is not loaded."""
+        _, table = self._history
+        seen: dict[str, set[Optional[str]]] = {}   # legacy name -> rollover targets (None: consistent)
+        for row in table.values():
+            oldest_first = row[::-1]
+            colon = next((n for n in oldest_first if n and ":" in n), None)
+            if colon is None:
+                continue
+            try:
+                _, cf, csuf = split_allele(colon)
+            except ImgtError:
+                continue
+            for old in {n for n in oldest_first if n and is_legacy_name(n)}:
+                mech = legacy_to_colon(old)
+                if mech is None:
+                    continue
+                _, mf, msuf = split_allele(mech)
+                if cf[:len(mf)] == mf:
+                    seen.setdefault(old, set()).add(None)
+                    continue
+                locus = colon.split("*", 1)[0]
+                suf = csuf if len(cf) <= len(mf) else msuf
+                seen.setdefault(old, set()).add(f"{locus}*{':'.join(cf[:len(mf)])}{suf}")
+        return {old: next(iter(t)) for old, t in seen.items() if len(t) == 1 and None not in t}
+
+    def rollover_of(self, legacy: str) -> Optional[str]:
+        """'A*9201' -> 'A*02:101': the colon name a pre-2010 rollover name was given in the
+        2010 renaming (see _rollovers); None for every other name, including ordinary legacy
+        names such as A*0101 whose colon form is the mechanical one."""
+        return self._rollovers.get(legacy.strip())
+
     def ids_for_name_ever(self, name: str) -> set[str]:
         return {h for h, _ in self._name_index.get(name, ())}
 
