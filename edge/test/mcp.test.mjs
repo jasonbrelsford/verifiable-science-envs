@@ -254,25 +254,26 @@ test("about tool carries the beta state", async () => {
   const sc = json.result.structuredContent;
   assert.equal(sc.name, "HLA-Verify");
   assert.equal(sc.release, manifest.release);
-  assert.match(sc.beta, /free public beta/i);
+  assert.match(sc.beta, /free during early access/i);
   assert.match(sc.beta, new RegExp(manifest.release.replace(/\./g, "\\.")));
+  assert.match(sc.beta_key, /hlaverify\.com\/research/);
   assert.match(sc.beta_key, /hello@hlaverify\.com/);
+  assert.doesNotMatch(sc.limits, /\$\d/, "about quotes no prices during early access");
   assert.equal(sc.beta_signup.startsWith("https://hlaverify.com/beta"), true);
 });
 
-// Same selfServe gate as docs.js's betaKeys/betaSection (a secret key plus a
-// real, live Stripe price): once checkout is actually open, `about` must stop
-// telling an agent that paid keys are "issued on request."
-test("about tool switches beta/beta_key to self-serve wording once Stripe is live", async () => {
-  const live = aboutBody(manifest, { source: "stripe", prices: { starter: {} }, live: true });
-  assert.doesNotMatch(live.beta, /issued on request/i);
-  assert.match(live.beta, /self-serve/i);
-  assert.match(live.beta, /api\.hlaverify\.com\/pricing/);
-  assert.doesNotMatch(live.beta_key, /hand-issued API key at a paid tier/i);
-
-  const notLive = aboutBody(manifest, { source: "table", prices: {}, live: false });
-  assert.match(notLive.beta, /issued on request/i);
-  assert.match(notLive.beta_key, /hand-issued API key at a paid tier/i);
+// Free during early access: `about` points an agent at the free-key request and
+// never at buying, whatever Stripe's state.
+test("about tool never advertises buying during early access, even with Stripe live", async () => {
+  for (const pricing of [{ source: "stripe", prices: { starter: { amount: 4900 } }, live: true },
+    { source: "table", prices: {}, live: false }]) {
+    const sc = aboutBody(manifest, pricing);
+    assert.match(sc.beta, /free during early access/i);
+    assert.match(sc.beta, /hlaverify\.com\/research/);
+    assert.match(sc.beta_key, /free Lab-tier key/i);
+    for (const v of [sc.beta, sc.beta_key, sc.limits, sc.research])
+      assert.doesNotMatch(v, /self-serve|checkout|\$\d|paid tier/i);
+  }
 });
 
 // The `why` line is the benchmark claim an agent reads before it decides to call
@@ -294,9 +295,11 @@ test("about tool quotes the benchmark figures the artifacts support", async () =
   assert.doesNotMatch(why, /lower bound/, "the clean re-run is no longer a lower bound and must not be re-qualified");
 });
 
-test("INSTRUCTIONS mention the beta in one sentence", () => {
-  assert.match(INSTRUCTIONS, /free public beta/i);
+test("INSTRUCTIONS mention early access and how to get a free key", () => {
+  assert.match(INSTRUCTIONS, /free during early access/i);
+  assert.match(INSTRUCTIONS, /research_access/);
   assert.match(INSTRUCTIONS, /beta_signup/);
+  assert.doesNotMatch(INSTRUCTIONS, /paid keys/i);
 });
 
 // -------------------------------------------------------- golden equivalence

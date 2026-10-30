@@ -31,6 +31,8 @@
 import { limitsFor, canonicalTier, NEXT_TIER, TIER_LIMITS } from "./keys.js";
 
 export const PRICING_URL = "https://api.hlaverify.com/pricing";
+// Where a free key is requested during early access.
+export const REQUEST_URL = "https://hlaverify.com/research";
 const DAY_MS = 86_400_000;
 // How long after a day ends an untouched counter deletes itself, so the
 // per-IP-per-day objects do not accumulate storage forever.
@@ -143,10 +145,12 @@ const plural = (n) => n.toLocaleString("en-US");
 // Written to be acted on, not just read: what ran out, when it comes back, and
 // the two things that fix it now.
 export function quotaDetail(q) {
-  const next = NEXT_TIER[canonicalTier(q.tier)];
-  const upgrade = next && TIER_LIMITS[next]
-    ? `The ${next} tier (${TIER_LIMITS[next].price}) allows ${TIER_LIMITS[next].calls === null ? "uncapped" : plural(TIER_LIMITS[next].calls)} calls/day: ${PRICING_URL}. `
-    : `Upgrade at ${PRICING_URL}. `;
+  // Free during early access: below Lab, point at the free Lab-tier key rather
+  // than at a paid tier. At Lab and above, a person decides: email.
+  const lab = TIER_LIMITS.lab;
+  const upgrade = lab.calls !== null && q.limit !== null && q.limit < lab.calls
+    ? `A free Lab-tier key allows ${plural(lab.calls)} calls/day during early access: ${REQUEST_URL}. `
+    : "Need a higher limit? Email hello@hlaverify.com. ";
   return `daily quota exhausted: the ${q.tier} tier allows ${plural(q.limit)} API calls per UTC day. ` +
     `Retry after ${q.reset} (the quota resets at UTC midnight). ${upgrade}` +
     "Batching more work into each call also helps — /v1/normalize takes many typings per call.";
@@ -156,10 +160,10 @@ export function quotaDetail(q) {
 // that lifts it.
 export function batchDetail(tier, cap, n) {
   const canonical = canonicalTier(tier);
-  const lift = Object.keys(TIER_LIMITS).find((t) => TIER_LIMITS[t].typings > cap);
+  const lift = TIER_LIMITS.lab.typings > cap;
   return `typings must have at most ${plural(cap)} items on the ${tier} tier (you sent ${plural(n)})` +
-    (lift ? `; the ${lift} tier (${TIER_LIMITS[lift].price}) allows ${plural(TIER_LIMITS[lift].typings)} per call: ${PRICING_URL}` : "") +
-    (!lift ? ". Split it across calls." : canonical === "free" ? ". Split the batch, or get a key." : ". Split the batch across calls, or upgrade.");
+    (lift ? `; a free Lab-tier key allows ${plural(TIER_LIMITS.lab.typings)} per call during early access: ${REQUEST_URL}` : "") +
+    (!lift ? ". Split it across calls." : canonical === "free" ? ". Split the batch, or request a free key." : ". Split the batch across calls, or request a free Lab-tier key.");
 }
 
 // ------------------------------------------------------------ the counter

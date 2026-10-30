@@ -51,9 +51,9 @@ service code is PolyForm Noncommercial.
 | Tier | Calls/day | Typings per batch call | Burst |
 |---|---|---|---|
 | free (anonymous, no key) | 100 per IP | 250 | 60/min |
-| starter ($49/mo) | 500 | 250 | 60/min |
-| lab ($299/mo) | 10,000 | 5,000 | 600/min |
-| scale ($1,999/mo) | 1,000,000 | 5,000 | 6,000/min |
+| starter | 500 | 250 | 60/min |
+| lab (the free key issued on request during early access) | 10,000 | 5,000 | 600/min |
+| scale | 1,000,000 | 5,000 | 6,000/min |
 | enterprise | uncapped | 5,000 | uncapped |
 | academic (hand-issued, never sold) | 10,000 | 5,000 | 600/min |
 
@@ -179,11 +179,15 @@ human picking this up should expect their footprints and leave them intact:
 
 ## What is not finished
 
-1. **The site lags the API on checkout.** `hlaverify.com/pricing` and `/beta` still
-   describe self-serve checkout as not open and point at the email path, while
-   `api.hlaverify.com/pricing` sells. Fix the site, not the API.
-2. **Research access approvals are manual** by design: `scripts/research_access.py list |
-   show | approve`. Approval mints a single-use Stripe promotion code.
+1. **Free during early access (2026-10).** Nothing is sold: `api.hlaverify.com/pricing`,
+   `/docs`, `openapi.json`, the MCP `about` tool and the over-quota messages point at the
+   free-key request (`hlaverify.com/research`, `POST /v1/research-access`), whatever
+   Stripe's state. The Stripe checkout code (`pricing.js`, `stripe.js`, `POST /v1/checkout`)
+   is intact but not advertised. The price strings in `TIER_LIMITS` are no longer published.
+2. **Free-key requests** (`POST /v1/research-access`) are approved by an automated job in
+   `jasonbrelsford/tower-ops`, which verifies the institution and emails a free Lab-tier key;
+   Jason reviews its decisions. `scripts/research_access.py` is the older manual path, which
+   minted a Stripe promotion code.
 3. **Per-key release pinning does not exist.** One release is compiled into the Worker.
    It is on the roadmap and marked as such; do not let it creep back into copy as shipped.
 4. **Usage is visible but not billed from.** `GET /v1/usage` and `/admin/usage` read
