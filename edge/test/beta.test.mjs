@@ -104,7 +104,9 @@ test("happy path: records the signup and answers the documented shape", async ()
   assert.equal(json.status, "recorded");
   assert.equal(json.release, manifest.release);
   assert.match(json.message, /free public beta/i);
-  assert.match(json.message, /hello@hlaverify\.com/);
+  assert.match(json.message, /free during early access/i);
+  assert.match(json.message, /hlaverify\.com\/research/);
+  assert.doesNotMatch(json.message, /paid keys|self-serve checkout/i);
 
   // Keyed on the lowercased address, under the beta/ prefix, nowhere else.
   assert.deepEqual(betaRecords(env), [`${BETA_PREFIX}jo@lab.example`]);

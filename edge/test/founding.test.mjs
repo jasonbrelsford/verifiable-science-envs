@@ -76,7 +76,8 @@ test("an expired trial key is refused with a 401 that says how to keep going, an
   const r = await allele(e);
   assert.equal(r.status, 401);
   assert.match(r.json.detail, /expired on \d{4}-\d{2}-\d{2}: this was a trial key/);
-  assert.match(r.json.detail, /api\.hlaverify\.com\/pricing/);
+  assert.match(r.json.detail, /hlaverify\.com\/research/);
+  assert.match(r.json.detail, /free during early access/);
   assert.equal(e.QUOTA.spends.length, 0);
 });
 

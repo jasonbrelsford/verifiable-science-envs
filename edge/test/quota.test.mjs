@@ -241,8 +241,9 @@ test("the quota decrements, serves the call AT the limit, and 429s the one after
   assert.match(over.json.detail, /free tier allows 100 API calls per UTC day/);
   assert.match(over.json.detail, /UTC midnight/);
   assert.match(over.json.detail, new RegExp(q(over.headers).reset.replace(/[.\-:]/g, "\\$&")));
-  assert.match(over.json.detail, /starter tier \(\$49\/mo\) allows 500 calls\/day/);
-  assert.match(over.json.detail, /https:\/\/api\.hlaverify\.com\/pricing/);
+  assert.match(over.json.detail, /free Lab-tier key allows 10,000 calls\/day during early access/);
+  assert.match(over.json.detail, /https:\/\/hlaverify\.com\/research/);
+  assert.doesNotMatch(over.json.detail, /\$\d/);
 
   // Being over does not keep counting up: a refused call is not a spent one.
   const rec = await env.QUOTA._objects.get(name).state.storage.get("q");
@@ -388,8 +389,9 @@ test("the typings cap per call comes from the tier: accepted at it, 422 above it
   const over = await post(env, "/v1/normalize", { typings: Array(251).fill("A*01:01") });
   assert.equal(over.status, 422);
   assert.match(over.json.detail, /at most 250 items on the free tier \(you sent 251\)/);
-  assert.match(over.json.detail, /lab tier \(\$299\/mo\) allows 5,000 per call/);
-  assert.match(over.json.detail, /https:\/\/api\.hlaverify\.com\/pricing/);
+  assert.match(over.json.detail, /free Lab-tier key allows 5,000 per call during early access/);
+  assert.match(over.json.detail, /https:\/\/hlaverify\.com\/research/);
+  assert.doesNotMatch(over.json.detail, /\$\d/);
 
   const starterOver = await post(env, "/v1/normalize", { typings: Array(251).fill("A*01:01") }, keyed(STARTER_KEY));
   assert.equal(starterOver.status, 422);
@@ -478,13 +480,13 @@ test("over quota on /mcp is a readable JSON-RPC frame, not a broken one", async 
   assert.equal(over.json.result.structuredContent, undefined);
   assert.equal(over.json.result.content[0].type, "text");
   assert.match(over.json.result.content[0].text, /free tier allows 100 API calls per UTC day/);
-  assert.match(over.json.result.content[0].text, /pricing/);
+  assert.match(over.json.result.content[0].text, /hlaverify\.com\/research/);
 
   // The free tools still work when the billable ones are spent.
   const about = await mcpCall(env, "about");
   assert.equal(about.status, 200);
   assert.equal(about.json.result.isError, false);
-  assert.match(about.json.result.structuredContent.limits, /free \(free, no key\) 100 calls\/day/);
+  assert.match(about.json.result.structuredContent.limits, /free: 100 calls\/day/);
   assert.match(about.json.result.structuredContent.limits, /'pro' is the legacy name for 'lab'/);
 });
 

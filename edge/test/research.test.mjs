@@ -144,10 +144,16 @@ test("happy path: records the application and answers the documented shape", asy
   assert.equal(json.ok, true);
   assert.equal(json.status, "recorded");
   assert.equal(json.release, manifest.release);
-  // The wording has to be honest that a person decides, and when they have not yet.
+  // The wording says what happens next: verified, then a free Lab-tier key by
+  // email, usually within hours; personal addresses take longer; and no promo code.
+  assert.match(json.message, /recorded/i);
   assert.match(json.message, /pending/i);
-  assert.match(json.message, /by hand/i);
-  assert.match(json.message, /not instant/i);
+  assert.match(json.message, /verify the institution/i);
+  assert.match(json.message, /free Lab-tier key/i);
+  assert.match(json.message, /within a few hours/i);
+  assert.match(json.message, /personal email addresses take longer/i);
+  assert.match(json.message, /hello@hlaverify\.com/);
+  assert.doesNotMatch(json.message, /code|checkout|100% off|Stripe/i);
 
   // Keyed on the lowercased address, under the research/ prefix, nowhere else.
   assert.deepEqual(records(env), [`${RESEARCH_PREFIX}pi@lab.example`]);
@@ -453,10 +459,13 @@ test("MCP research_access is advertised with write annotations and an outputSche
   assert.equal(t.outputSchema.type, "object");
   assert.deepEqual(t.outputSchema.required, ["ok", "status", "message", "release"]);
   assert.deepEqual(t.outputSchema.properties.status.enum, ["recorded", "already_recorded"]);
-  // The description is the only pitch an agent reads: it has to say approval is
-  // by hand, or an agent will promise its user an instant key.
-  assert.match(t.description, /manual/i);
-  assert.match(t.description, /academic or nonprofit/i);
+  // The description is the only pitch an agent reads: it has to say what is
+  // verified and how long it usually takes, or an agent will promise an instant key.
+  assert.match(t.description, /free during early access/i);
+  assert.match(t.description, /verified/i);
+  assert.match(t.description, /within a few hours/i);
+  assert.match(t.description, /personal email addresses/i);
+  assert.doesNotMatch(t.description, /checkout|100% off|buy a tier/i);
   // research_access sits next to beta_signup, before about, and beta_signup
   // keeps its place: an agent's tool order is part of the catalog contract.
   const names = tools.map((x) => x.name);
@@ -468,8 +477,8 @@ test("the about tool describes the research programme honestly", async () => {
   const { json } = await mcpCall(env, "about", {});
   const sc = json.result.structuredContent;
   assert.match(sc.research, /hlaverify\.com\/research/);
-  assert.match(sc.research, /read by a person/i);
-  assert.match(sc.research, /not instant and not guaranteed/i);
+  assert.match(sc.research, /within a few hours/i);
+  assert.match(sc.research, /not guaranteed/i);
   assert.match(sc.limits, /research_access/);
 });
 
@@ -621,17 +630,20 @@ test("/docs, /openapi.json and /pricing all describe the programme", async () =>
   const env = baseEnv();
   const docs = await (await call(env, "GET", "/docs")).text();
   assert.ok(docs.includes("/v1/research-access"));
-  assert.match(docs, /a person reads every application/i);
+  assert.match(docs, /free Lab-tier key/i);
+  assert.match(docs, /within a few hours/i);
+  assert.doesNotMatch(docs, /promotion code/i);
 
   const pricing = await (await call(env, "GET", "/pricing")).text();
   assert.ok(pricing.includes("/v1/research-access"));
-  assert.match(pricing, /A person reads every application/i);
+  assert.match(pricing, /free during early access/i);
   assert.match(pricing, /no card/i);
 
   const spec = await (await call(env, "GET", "/openapi.json")).json();
   const op = spec.paths["/v1/research-access"].post;
   assert.deepEqual(op.requestBody.content["application/json"].schema.required, ["email", "institution", "use_case"]);
-  assert.match(op.description, /Approval is manual/);
+  assert.match(op.description, /free Lab-tier key/);
+  assert.doesNotMatch(op.description, /promotion code/);
   assert.ok(op.responses[422] && op.responses[429] && op.responses[503]);
   assert.match(spec.paths["/mcp"].post.description, /research_access/);
 });

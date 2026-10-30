@@ -155,8 +155,8 @@ async function authorizeKey(presented, env) {
       // `expires`, or with one that does not parse, never expires.
       if (rec.expires && Date.parse(rec.expires) <= Date.now()) {
         return err(401, `API key expired on ${String(rec.expires).slice(0, 10)}: this was a trial key. ` +
-          `Keep your access at https://api.hlaverify.com/pricing (founding labs: use the code you were sent), ` +
-          `or email hello@hlaverify.com`);
+          `HLA-Verify is free during early access: request a free key at https://hlaverify.com/research ` +
+          `(details: https://api.hlaverify.com/pricing), or email hello@hlaverify.com`);
       }
       const tier = rec.tier || "starter";
       const rl = limiterFor(env, tier);
