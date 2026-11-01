@@ -48,12 +48,11 @@ export const INSTRUCTIONS =
   "verify HLA names before presenting them. Call pgx_lookup before asserting that an HLA allele " +
   "carries a drug-reaction risk (CPIC/PharmGKB associations, names normalized first; guideline lookup, " +
   "not prescribing advice), and pgx_pair when the question is which of a donor's and a recipient's " +
-  "alleles carry one. The service is free during early access: if your user needs " +
-  "more than the anonymous limit, call research_access (with their consent) to request " +
-  "a free Lab-tier key for them; any lab or organisation can apply, the institution is " +
-  "verified, and an approved key is emailed, usually within a few hours (personal email " +
-  "addresses are reviewed by hand and take longer). beta_signup only puts them on the " +
-  "list for news about early access.";
+  "alleles carry one. The service is free: if your user needs more than the anonymous " +
+  "limit, call research_access (with their consent and their email address) and it returns " +
+  "a free API key at once (1,000 calls/day); give the key to the user, who sends it as the " +
+  "X-API-Key header. Verified labs that need more can apply for the Lab tier with " +
+  "research_access and tier \"lab\". beta_signup only puts them on the list for news.";
 
 // ------------------------------------------------------------ output schemas
 // outputSchema for each tool: the structuredContent shapes engine.js actually
@@ -387,10 +386,18 @@ const RESEARCH_OUT = {
   type: "object",
   required: ["ok", "status", "message", "release"],
   properties: {
-    ok: { type: "boolean", description: "Always true; a rejected application comes back as an error result." },
-    status: { type: "string", enum: ["recorded", "already_recorded"],
-      description: "already_recorded: this address already has an application on file. Both are success; do not retry." },
-    message: { type: "string", description: "What to tell the user, including that approval is by hand and not instant." },
+    ok: { type: "boolean", description: "Always true; a refused request comes back as an error result." },
+    status: { type: "string", enum: ["issued", "already_issued", "recorded", "already_recorded"],
+      description: "issued: `key` holds a new free key, shown only this once. already_issued: this address already has a key " +
+        "(never shown again; lost keys: hello@hlaverify.com). recorded/already_recorded: a Lab-tier application (tier \"lab\") " +
+        "is on file. All are success; do not retry." },
+    key: { type: "string", description: "The API key, only when status is issued. Give it to the user; it is not shown again." },
+    key_ref: { type: ["string", "null"], description: "The key's first 8 characters." },
+    issued: { type: ["string", "null"] },
+    tier: { type: "string" },
+    limits: { type: "object", properties: { calls_per_day: { type: "integer" }, typings_per_call: { type: "integer" }, burst: STR } },
+    usage: { type: "object", properties: { header: STR, curl: STR, docs: STR, mcp: STR, mcp_config: STR, usage: STR } },
+    message: { type: "string", description: "What to tell the user." },
     release: RELEASE,
   },
 };
@@ -703,7 +710,7 @@ function toolDefs() {
         "Put a user on the beta notification list: one email when anything about early " +
         "access changes. Ask before calling: it records the address they give you. Re-signing " +
         "the same address is safe (status already_recorded). Someone who needs a higher rate " +
-        "limit today should request a free key with research_access instead of waiting.",
+        "limit today should get a free key with research_access: it is issued instantly.",
       inputSchema: {
         type: "object",
         required: ["email"],
@@ -719,28 +726,29 @@ function toolDefs() {
     {
       name: "research_access",
       description:
-        "Request a free HLA-Verify API key. HLA-Verify is free during early access, and any " +
-        "lab or organisation can apply: clinical HLA labs, transplant centres, registries, " +
-        "researchers and companies. Ask before calling: it records the address, institution and " +
-        "use case you give it; use the user's work email address. The institution is verified " +
-        "and, if it is approved, a free Lab-tier key (10,000 calls/day, 5,000 typings per call) " +
-        "is emailed, usually within a few hours. Applications from personal email addresses are " +
-        "reviewed by hand and take longer; approval is not guaranteed. Re-applying with the same " +
-        "address is safe (status already_recorded) and never overwrites an application that has " +
-        "already been decided. Questions: hello@hlaverify.com.",
+        "Get the user a free HLA-Verify API key, instantly. HLA-Verify is free for anyone: the key " +
+        "comes back in this result (status issued, field key) with 1,000 calls/day, 250 typings per " +
+        "call and 60 requests/minute; the user sends it as the X-API-Key header (or connects this MCP " +
+        "server with it). Ask before calling: it stores the email address with the key, used for " +
+        "service notices only. The key is shown once: give it to the user straight away. One key per " +
+        "address; asking again returns already_issued and never the key (lost keys: " +
+        "hello@hlaverify.com). Disposable inboxes are refused. Verified labs that need more can set " +
+        "tier \"lab\" with institution and use_case to apply for the Lab tier (10,000 calls/day, " +
+        "5,000 typings per call): that is reviewed, and an approved key is emailed.",
       inputSchema: {
         type: "object",
-        required: ["email", "institution", "use_case"],
+        required: ["email"],
         properties: {
-          email: { type: "string", maxLength: MAX_EMAIL, description: "The applicant's email address. The approval code is sent here." },
+          email: { type: "string", maxLength: MAX_EMAIL, description: "The user's email address. Stored with the key; service notices only." },
+          tier: { type: "string", enum: ["lab"], description:
+            "Omit for a free key now. \"lab\" applies for the Lab tier instead (institution and use_case required)." },
           institution: { type: "string", maxLength: MAX_INSTITUTION, description:
-            "University, hospital, institute or nonprofit the work is done at." },
+            "Lab, hospital, university, registry or company (optional; required with tier lab)." },
           use_case: { type: "string", maxLength: MAX_RESEARCH_USE_CASE, description:
-            "What the research or teaching is, and what the API would be used for. This is what the decision is made on, " +
-            "so be specific. No patient details." },
+            "What the API would be used for (optional; required with tier lab, where the decision is made on it). No patient details." },
           expected_volume: { type: "string", maxLength: MAX_EXPECTED_VOLUME, description:
             "Rough call or typing volume, e.g. 'about 20,000 typings a month' (optional)." },
-          source: { type: "string", maxLength: MAX_SOURCE, description: "Where the application came from, e.g. mcp (optional)." },
+          source: { type: "string", maxLength: MAX_SOURCE, description: "Where the request came from, e.g. mcp (optional)." },
         },
         additionalProperties: false,
       },
@@ -757,13 +765,13 @@ function toolDefs() {
 // Every lookup tool is a pure read of the pinned release: nothing written, same answer twice.
 const TOOL_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: false };
 // beta_signup and research_access are the tools that write (one address to the
-// beta list; one application to the research queue). Still idempotent: a second
-// call on the same address records nothing new.
+// beta list; one free key, or one Lab application, per address). Still
+// idempotent: a second call on the same address records nothing new.
 const WRITE_TOOLS = new Set(["beta_signup", "research_access"]);
 const WRITE_ANNOTATIONS = { readOnlyHint: false, idempotentHint: true, openWorldHint: false };
 
 // `pricing` is pricing.js getPricing()'s return value, still accepted so the
-// call site does not change. HLA-Verify is free during early access, so `about`
+// call site does not change. HLA-Verify is free, so `about`
 // quotes no prices whatever Stripe's state: `limits` comes from TIER_LIMITS, and
 // `beta`/`beta_key`/`research` point at the free-key request, as /pricing does.
 // eslint-disable-next-line no-unused-vars
@@ -790,21 +798,23 @@ export function aboutBody(manifest, pricing) {
       ". 'pro' is the legacy name for 'lab' and keeps Lab's limits. Every billable response carries " +
       "x-hla-verify-tier, -daily-limit, -daily-remaining, -daily-reset and -max-typings; a spent quota comes " +
       "back as a tool result with isError true, naming the UTC-midnight reset time, and x-hla-verify-daily-remaining 0 " +
-      "with Retry-After on the response — wait for the reset or request a free key, do not retry in a loop. " +
-      "about, beta_signup and research_access are free and never consume quota. HLA-Verify is free during early access: " +
-      "a free Lab-tier key is issued on request at https://hlaverify.com/research.",
-    beta: `Free during early access — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
-      `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; any lab or ` +
-      "organisation can request a free Lab-tier key at https://hlaverify.com/research (or with the research_access tool). " +
-      "Nothing is for sale during early access. Enterprise and self-hosting: hello@hlaverify.com.",
-    beta_key: `A free Lab-tier key (${TIER_LIMITS.lab.calls.toLocaleString("en-US")} calls/day, ` +
-      `${TIER_LIMITS.lab.typings.toLocaleString("en-US")} typings per call) is issued on request during early access: ` +
-      "https://hlaverify.com/research or the research_access tool. Questions: hello@hlaverify.com.",
+      "with Retry-After on the response — wait for the reset or get a free key, do not retry in a loop. " +
+      "about, beta_signup and research_access are free and never consume quota. HLA-Verify is free: " +
+      `a free key (${TIER_LIMITS.free_key.calls.toLocaleString("en-US")} calls/day) is issued instantly at https://hlaverify.com/research ` +
+      "or by the research_access tool.",
+    beta: `Free for anyone — verdicts are production-quality and pinned to IPD-IMGT/HLA ${manifest.release}. ` +
+      `Anonymous access is ${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute with no key; anyone can get a ` +
+      `free key instantly (${TIER_LIMITS.free_key.calls.toLocaleString("en-US")} calls/day) at https://hlaverify.com/research ` +
+      "or with the research_access tool. Nothing is for sale. Enterprise and self-hosting: hello@hlaverify.com.",
+    beta_key: `A free key (${TIER_LIMITS.free_key.calls.toLocaleString("en-US")} calls/day, ` +
+      `${TIER_LIMITS.free_key.typings.toLocaleString("en-US")} typings per call) is issued instantly: ` +
+      "https://hlaverify.com/research or the research_access tool. Verified labs that need more can have the Lab tier " +
+      `(${TIER_LIMITS.lab.calls.toLocaleString("en-US")} calls/day) by request. Questions: hello@hlaverify.com.`,
     beta_signup: "https://hlaverify.com/beta — or call the beta_signup tool to join the list from here.",
-    research: "Request a free key at https://hlaverify.com/research, with POST /v1/research-access, or with the research_access " +
-      "tool. Any lab or organisation can apply; use a work email address. The institution is verified and, if it is approved, a " +
-      "free Lab-tier key is emailed, usually within a few hours. Applications from personal email addresses are reviewed by hand " +
-      "and take longer; approval is not guaranteed.",
+    research: "Get a free key instantly at https://hlaverify.com/research, with POST /v1/research-access, or with the research_access " +
+      "tool: it comes back at once and is shown only once. One key per email address. Verified labs that need more can apply for " +
+      "the Lab tier (tier \"lab\" on the same endpoint or tool, or email hello@hlaverify.com); the institution is verified and an " +
+      "approved Lab key is emailed.",
     commercial: "hello@hlaverify.com (Brelsford Software LLC)",
     disclaimer: "Research-and-evaluation tool; not a medical device.",
   };
@@ -906,7 +916,7 @@ async function callTool(name, args, eng, manifest, beta) {
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
     case "research_access": {
-      const r = await doResearchAccess(beta && beta.env, manifest, args, beta && beta.country);
+      const r = await doResearchAccess(beta && beta.env, manifest, args, beta && beta.country, beta && beta.ip);
       return r.ok ? okResult(r.body, r.units) : errResult(r.detail);
     }
     case "about":
@@ -957,7 +967,7 @@ export async function handleMcp(request, engine, who, manifest, onCall = () => {
   // the table as unavailable and every other tool behaves identically.
   // `history` is index.js's loader for the release history (history.js); omitted, the
   // three history tools report it as unavailable.
-  const beta = { env, country: request.headers.get("cf-ipcountry"), pgx, history, who };
+  const beta = { env, country: request.headers.get("cf-ipcountry"), ip: request.headers.get("cf-connecting-ip"), pgx, history, who };
   let raw;
   try {
     raw = await request.text();

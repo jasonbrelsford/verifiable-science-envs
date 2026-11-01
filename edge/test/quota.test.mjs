@@ -100,6 +100,7 @@ const ACADEMIC_KEY = "hlv_academic_key_0123456789abcdefghijklmno";
 const STARTER_KEY = "hlv_starter_key_0123456789abcdefghijklmnop";
 const OTHER_STARTER_KEY = "hlv_starter_two_0123456789abcdefghijklmnop";
 const ENTERPRISE_KEY = "sk_enterprise_lab";
+const FREE_KEY = "hlv_free_key_0123456789abcdefghijklmnopqrst";
 
 function baseEnv(extra = {}) {
   return {
@@ -111,6 +112,8 @@ function baseEnv(extra = {}) {
       [ACADEMIC_KEY]: JSON.stringify({ label: "univ@example.edu", tier: "academic", status: "active" }),
       [STARTER_KEY]: JSON.stringify({ label: "starter@example.com", tier: "starter", status: "active" }),
       [OTHER_STARTER_KEY]: JSON.stringify({ label: "other@example.com", tier: "starter", status: "active" }),
+      [FREE_KEY]: JSON.stringify({ label: "self-serve:hlv_free", tier: "free_key", status: "active",
+        email: "someone@example.org", created: "2026-11-01T00:00:00.000Z", provider: "self-serve" }),
     }),
     RL: fakeRL(), RL_STARTER: fakeRL(), RL_LAB: fakeRL(), RL_SCALE: fakeRL(),
     QUOTA: fakeQuotaNamespace(),
@@ -150,6 +153,7 @@ const q = (h) => ({
 test("the tier table is exactly what /pricing publishes, and pro is an alias for lab", () => {
   assert.deepEqual(Object.entries(TIER_LIMITS).map(([t, l]) => [t, l.calls, l.typings]), [
     ["free", 100, 250],
+    ["free_key", 1_000, 250],
     ["starter", 500, 250],
     ["lab", 10_000, 5_000],
     ["scale", 1_000_000, 5_000],
@@ -241,7 +245,7 @@ test("the quota decrements, serves the call AT the limit, and 429s the one after
   assert.match(over.json.detail, /free tier allows 100 API calls per UTC day/);
   assert.match(over.json.detail, /UTC midnight/);
   assert.match(over.json.detail, new RegExp(q(over.headers).reset.replace(/[.\-:]/g, "\\$&")));
-  assert.match(over.json.detail, /free Lab-tier key allows 10,000 calls\/day during early access/);
+  assert.match(over.json.detail, /A free API key allows 1,000 calls\/day and is issued instantly/);
   assert.match(over.json.detail, /https:\/\/hlaverify\.com\/research/);
   assert.doesNotMatch(over.json.detail, /\$\d/);
 
@@ -389,7 +393,7 @@ test("the typings cap per call comes from the tier: accepted at it, 422 above it
   const over = await post(env, "/v1/normalize", { typings: Array(251).fill("A*01:01") });
   assert.equal(over.status, 422);
   assert.match(over.json.detail, /at most 250 items on the free tier \(you sent 251\)/);
-  assert.match(over.json.detail, /free Lab-tier key allows 5,000 per call during early access/);
+  assert.match(over.json.detail, /the Lab tier allows 5,000 per call for verified labs, by request/);
   assert.match(over.json.detail, /https:\/\/hlaverify\.com\/research/);
   assert.doesNotMatch(over.json.detail, /\$\d/);
 
@@ -660,4 +664,56 @@ test("a keyed caller with no key reference fails open rather than sharing a coun
   // subjectName() must not fall back to the label: two unlabelled self-serve
   // keys would then be billed as one subject.
   await assert.rejects(() => subjectName({ keyed: true, tier: "starter" }, null, utcDay(), baseEnv()));
+});
+
+// ------------------------------------------------------- the free_key tier
+// The instant self-serve key (handlers.js doResearchAccess): 1,000 calls/day,
+// counted per key, the anonymous batch cap, the 60/min burst on RL_STARTER, and
+// an over-quota message that points at the Lab tier by request.
+test("free_key: 1,000 calls/day per key, served at the limit, 429 after, pointing at the Lab tier", async () => {
+  const env = baseEnv();
+  const first = await allele(env, keyed(FREE_KEY));
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get("x-hla-verify-tier"), "free_key");
+  assert.equal(q(first.headers).limit, "1000");
+  assert.equal(q(first.headers).remaining, "999");
+  assert.equal(first.headers.get("x-hla-verify-max-typings"), "250");
+  // Burst is metered per key on the starter limiter (60/min).
+  assert.deepEqual(env.RL_STARTER.calls, [FREE_KEY]);
+  assert.deepEqual(env.RL.calls, [], "a keyed caller is not on the anonymous per-IP limiter");
+
+  // Counted per key, never per IP: a second IP spends from the same counter.
+  const other = await allele(env, { ...keyed(FREE_KEY), ip: "198.51.100.9" });
+  assert.equal(q(other.headers).remaining, "998");
+
+  const name = env.QUOTA._names[0];
+  assert.ok(name.startsWith("k:"));
+  env.QUOTA.seed(name, utcDay(), 999);
+  const last = await allele(env, keyed(FREE_KEY));
+  assert.equal(last.status, 200, "the 1,000th call is served");
+  assert.equal(q(last.headers).remaining, "0");
+  const over = await allele(env, keyed(FREE_KEY));
+  assert.equal(over.status, 429);
+  assert.match(over.json.detail, /free_key tier allows 1,000 API calls per UTC day/);
+  assert.match(over.json.detail, /Lab tier \(10,000 calls\/day\)/);
+  assert.match(over.json.detail, /hello@hlaverify\.com/);
+});
+
+test("free_key: the batch cap is 250, and a revoked free key is refused", async () => {
+  const env = baseEnv();
+  const over = await post(env, "/v1/normalize", { typings: Array(251).fill("A*01:01") }, keyed(FREE_KEY));
+  assert.equal(over.status, 422);
+  assert.match(over.json.detail, /at most 250 items on the free_key tier/);
+  env.KEYS._store.set(FREE_KEY, JSON.stringify({ label: "self-serve:hlv_free", tier: "free_key", status: "revoked" }));
+  const r = await allele(env, keyed(FREE_KEY));
+  assert.equal(r.status, 401);
+  assert.match(r.json.detail, /revoked/);
+});
+
+test("free_key is a key tier, not sold: parseKeys accepts it and limitsFor resolves it", async () => {
+  const { parseKeys } = await import("../src/keys.js");
+  assert.deepEqual(parseKeys("k1=someone:free_key").get("k1"), { label: "someone", tier: "free_key" });
+  assert.deepEqual(limitsFor("free_key"), TIER_LIMITS.free_key);
+  const { SELLABLE_TIERS } = await import("../src/pricing.js");
+  assert.equal(SELLABLE_TIERS.includes("free_key"), false);
 });

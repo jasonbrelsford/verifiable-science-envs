@@ -29,7 +29,7 @@ import { createHistory } from "./history.js";
 let STARTED = 0; // Workers freeze the clock at module load; start it on the first request
 const PRICING_NOTE = "see https://api.hlaverify.com/pricing";
 const ANON_LIMIT_NOTE = `${TIER_LIMITS.free.calls} calls/day per IP and 60 requests/minute without an API key — ` +
-  `keys for labs, LIMS vendors and agent platforms: ${PRICING_NOTE}`;
+  `a free key (${TIER_LIMITS.free_key.calls.toLocaleString("en-US")} calls/day) is issued instantly at https://hlaverify.com/research; ${PRICING_NOTE}`;
 
 let engine = null;
 function getEngine(env) {
@@ -96,9 +96,10 @@ const tierHeader = (who) => ({ "x-hla-verify-tier": who.tier });
 // quota.js). "free" (anonymous) is metered by IP on RL; "enterprise" is
 // uncapped; the rest are metered by the presented key. "pro" is the legacy name
 // for "lab" and shares its limiter; "academic" has Lab's published limits
-// (keys.js TIER_LIMITS) and shares its limiter too.
+// (keys.js TIER_LIMITS) and shares its limiter too. "free_key" (the instant
+// self-serve key) has the same 60/min burst as starter, counted per key.
 function limiterFor(env, tier) {
-  if (tier === "starter") return env.RL_STARTER;
+  if (tier === "starter" || tier === "free_key") return env.RL_STARTER;
   if (tier === "lab" || tier === "pro" || tier === "academic") return env.RL_LAB;
   if (tier === "scale") return env.RL_SCALE;
   return null;
@@ -155,7 +156,7 @@ async function authorizeKey(presented, env) {
       // `expires`, or with one that does not parse, never expires.
       if (rec.expires && Date.parse(rec.expires) <= Date.now()) {
         return err(401, `API key expired on ${String(rec.expires).slice(0, 10)}: this was a trial key. ` +
-          `HLA-Verify is free during early access: request a free key at https://hlaverify.com/research ` +
+          `HLA-Verify is free: get a free key instantly at https://hlaverify.com/research ` +
           `(details: https://api.hlaverify.com/pricing), or email hello@hlaverify.com`);
       }
       const tier = rec.tier || "starter";
@@ -523,14 +524,16 @@ export default {
         meter(env, ctx, who, "beta-signup", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);
       }
-      // Research and education access applications. Same rules as the beta list
-      // above: the anonymous limiter covers it, it is never billable (applying
-      // for free access must not cost a call out of the free tier), and the
-      // record it writes is not a key (handlers.js RESERVED_PREFIXES).
-      if (path === "/v1/research-access") {
-        if (req.method !== "POST") return err(405, "POST {\"email\": \"...\", \"institution\": \"...\", \"use_case\": \"...\"}");
+      // Instant free keys, and Lab-tier applications with {"tier": "lab"}
+      // (handlers.js doResearchAccess). /v1/keys is an alias. The anonymous
+      // limiter covers it, plus a per-IP daily cap on new keys (quota.js
+      // spendIssuance); it is never billable (getting a key must not cost a
+      // call), and the research/ record it writes is not a key (RESERVED_PREFIXES).
+      // The response carries a freshly minted key, so it must never be cached.
+      if (path === "/v1/research-access" || path === "/v1/keys") {
+        if (req.method !== "POST") return err(405, "POST {\"email\": \"...\"} for a free key now, or add \"tier\": \"lab\", \"institution\" and \"use_case\" to apply for the Lab tier");
         const [body, e] = await readJson(req, hdrs); if (e) return e;
-        const r = await doResearchAccess(env, manifest, body, req.headers.get("cf-ipcountry"));
+        const r = await doResearchAccess(env, manifest, body, req.headers.get("cf-ipcountry"), req.headers.get("cf-connecting-ip"));
         if (!r.ok) return err(r.status, r.detail);
         meter(env, ctx, who, "research-access", 200, r.units, Date.now() - t0);
         return json(r.body, 200, hdrs);

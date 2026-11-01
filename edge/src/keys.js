@@ -5,7 +5,8 @@
 //   key=label         (legacy; tier defaults to "enterprise" so keys minted
 //                      before tiers existed keep their old uncapped behavior)
 //   key               (bare; label defaults to "key", tier "enterprise")
-// Tiers: free (anonymous only, never presented as a key), starter, lab, scale,
+// Tiers: free (anonymous only, never presented as a key), free_key (the
+// instant self-serve key, POST /v1/research-access), starter, lab, scale,
 // enterprise (uncapped), academic (hand-issued, never sold through Stripe —
 // see TIER_LIMITS below), plus "pro" — the legacy name for what is now "lab".
 // An unrecognized trailing ":word" is treated as part of the label rather than a
@@ -13,7 +14,7 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 // "pro" stays in the list: keys were minted with it and must keep working.
-export const TIERS = ["free", "starter", "lab", "scale", "enterprise", "pro", "academic"];
+export const TIERS = ["free", "free_key", "starter", "lab", "scale", "enterprise", "pro", "academic"];
 
 // Legacy tier name -> the tier whose limits it gets. "pro" was the $299 tier's
 // name before it was renamed "lab"; existing pro keys are Lab keys in all but
@@ -30,6 +31,12 @@ export const TIER_ALIASES = { pro: "lab" };
 //            and the `about` MCP tool so one table drives every surface.
 export const TIER_LIMITS = {
   free: { calls: 100, typings: 250, burst: "60 requests/minute per IP", price: "free, no key" },
+  // The instant self-serve key (handlers.js doResearchAccess): anyone who asks
+  // gets one at once, no review. Ten times the anonymous quota, the anonymous
+  // per-call batch cap, and a 60/min burst counted per key on RL_STARTER
+  // (index.js limiterFor). Never sold (pricing.js/stripe.js exclude it), and a
+  // verified lab that needs more moves to Lab (10,000/day) by request.
+  free_key: { calls: 1_000, typings: 250, burst: "60 requests/minute", price: "free, instant key" },
   starter: { calls: 500, typings: 250, burst: "60 requests/minute", price: "$49/mo" },
   lab: { calls: 10_000, typings: 5_000, burst: "600 requests/minute", price: "$299/mo" },
   scale: { calls: 1_000_000, typings: 5_000, burst: "6,000 requests/minute", price: "$1,999/mo" },
@@ -49,7 +56,7 @@ export const TIER_LIMITS = {
 // "academic" is deliberately absent on both sides: it is not sold, so nothing
 // upgrades into it, and it already has Lab's limits, so it has nowhere to
 // upgrade to.
-export const NEXT_TIER = { free: "starter", starter: "lab", lab: "scale", scale: "enterprise" };
+export const NEXT_TIER = { free: "free_key", free_key: "lab", starter: "lab", lab: "scale", scale: "enterprise" };
 
 // Canonical tier name for limit lookups: resolves the legacy alias, and falls
 // back to "starter" for anything unrecognized (a malformed KV record must not

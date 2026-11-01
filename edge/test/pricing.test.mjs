@@ -372,14 +372,18 @@ test("createCheckoutSession: a Stripe rejection becomes a 502 naming the email p
 
 // --------------------------------------------------------------- the page
 
-// Free during early access: the page is the same whatever Stripe holds. No
-// prices, no buy buttons, no checkout script; the request link is the action.
+// Free for anyone: the page is the same whatever Stripe holds. No prices, no
+// buy buttons, no checkout script; the instant free key is the action, and the
+// table is the four rows the site's /pricing publishes too.
 function assertFreePage(html) {
-  assert.match(html, /Free during early access/);
+  assert.match(html, /Free API key, instantly: 1,000 calls a day/);
   assert.match(html, /href="https:\/\/hlaverify\.com\/research"/);
-  assert.match(html, /Request a free key/);
-  assert.match(html, /within a few hours/);
-  assert.match(html, /personal email addresses/);
+  assert.match(html, /Get a free key/);
+  assert.match(html, /<b>No key<\/b><\/td><td>free<\/td><td>100 per IP/);
+  assert.match(html, /<b>Free key<\/b><\/td><td>free, instant<\/td><td>1,000</);
+  assert.match(html, /<b>Verified lab<\/b><\/td><td>free, by request<\/td><td>10,000</);
+  assert.match(html, /<b>Enterprise<\/b><\/td><td>by agreement/);
+  assert.doesNotMatch(html, /within a few hours|early access/i);
   assert.doesNotMatch(html, /\$\d/, "no price on the page");
   assert.doesNotMatch(html, /data-tier=/, "no buy button");
   assert.doesNotMatch(html, /\/v1\/checkout/, "no checkout script");
@@ -389,7 +393,7 @@ function assertFreePage(html) {
   assert.match(html, /5,000/);
 }
 
-test("/pricing says free during early access even when Stripe is live", async () => {
+test("/pricing says free for anyone even when Stripe is live", async () => {
   _resetPriceCache();
   const p = await getPricing(priceEnv(), { fetchImpl: stripeFetch({ prices: [STARTER, { ...LAB, unit_amount: 34900 }, SCALE] }) });
   assert.equal(p.live, true);
@@ -403,18 +407,20 @@ test("/pricing with no Stripe at all renders the same free page", async () => {
   assertFreePage(PRICING_HTML(manifest, p));
 });
 
-test("/docs and openapi.json never advertise buying during early access", async () => {
+test("/docs and openapi.json never advertise buying", async () => {
   _resetPriceCache();
   const live = await getPricing(priceEnv(), { fetchImpl: stripeFetch() });
   const off = await getPricing({ __CACHES: fakeCaches() }, { fetchImpl: stripeFetch() });
   for (const pricing of [live, off]) {
     const docs = DOCS_HTML(manifest, pricing);
-    assert.match(docs, /free during early access/i);
+    assert.match(docs, /HLA-Verify is free\. Anyone can get a free API key instantly/);
+    assert.doesNotMatch(docs, /early access|within a few hours/i);
     assert.match(docs, /hlaverify\.com\/research/);
     assert.doesNotMatch(docs, /\$\d+\/mo/);
     assert.doesNotMatch(docs, /the buttons on the pricing page/);
     const desc = openapi(manifest, pricing).info.description;
-    assert.match(desc, /Free during early access/);
+    assert.match(desc, /Free for anyone/);
+    assert.doesNotMatch(desc, /early access/i);
     assert.match(desc, /hlaverify\.com\/research/);
     assert.doesNotMatch(desc, /Checkout Session url/);
   }
