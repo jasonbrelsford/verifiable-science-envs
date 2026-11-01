@@ -6,7 +6,7 @@
 // Licence: PolyForm Noncommercial 1.0.0 (edge/LICENSE).
 
 import { FRAMEWORKS, countGlTokens, MAX_GL_CHARS, MAX_GL_ALLELES } from "./engine.js";
-import { batchDetail } from "./quota.js";
+import { batchDetail, spendIssuance, KEYS_PER_IP_PER_DAY } from "./quota.js";
 import { TIER_LIMITS } from "./keys.js";
 
 // MAX_TYPINGS is the ceiling — the most any tier may send in one
@@ -131,7 +131,7 @@ function optional(v, name, max) {
 const betaMessage = (release, already) =>
   `${already ? "You are already on the beta list" : "You are on the beta list"} — free public beta. ` +
   `Verdicts are production-quality and pinned to IPD-IMGT/HLA ${release}. HLA-Verify is free during early access: ` +
-  `request a free Lab-tier key at ${"https://hlaverify.com/research"}. We will email you when anything about early access changes.`;
+  `get a free API key instantly (${TIER_LIMITS.free_key.calls.toLocaleString("en-US")} calls a day) at ${"https://hlaverify.com/research"}. We will email you when anything about early access changes.`;
 
 // body: {email, org?, use_case?, source?}; country: cf-ipcountry or null.
 export async function doBetaSignup(env, manifest, body, country) {
@@ -166,23 +166,43 @@ export async function doBetaSignup(env, manifest, body, country) {
     message: betaMessage(manifest.release, already), release: manifest.release }, 1);
 }
 
-// --------------------------------------------------- research access applications
-// The research and education programme: free access for academic and nonprofit
-// labs, approved one application at a time by a person. An application is not an
-// account and not a key. It is one record per address in the KEYS namespace
-// behind RESEARCH_PREFIX, holding what the applicant typed plus cf-ipcountry, a
-// timestamp and a status. Never the IP, never a header dump.
+// ------------------------------------------------- free keys and lab applications
+// HLA-Verify is free for anyone (owner decision, 2026-11-01). POST
+// /v1/research-access (alias /v1/keys) and the research_access MCP tool do two
+// things, chosen by the body:
 //
-// WHAT HAPPENS NEXT is deliberately outside the Worker. scripts/research_access.py
-// (run by the owner on his own machine) lists the pending records, mints a
-// single-use Stripe promotion code on the research coupon, and writes the code
-// and `status: "approved"` back onto the record. Nothing here talks to Stripe:
-// the Worker's Stripe key is restricted to prices and Checkout Sessions, and
-// issuing a discount is an owner decision, not a request handler's.
+//  1. INSTANT FREE KEY (the default). Anyone who gives an email address gets a
+//     key at once, in the response, at the free_key tier (keys.js TIER_LIMITS:
+//     1,000 calls/day). The key is minted exactly as scripts/founding_lab.py and
+//     stripe.js generateApiKey mint keys ("hlv_" + 32 random bytes, base64url),
+//     written to KV AT the key as {label, tier, status, email, created, provider:
+//     "self-serve"}, and shown ONCE: it is never stored anywhere else and never
+//     shown again. The application record research/<email> gets status
+//     "issued" and key_ref (the first 8 characters), which is how support finds
+//     the key later: list KV keys with that prefix and match the email.
 //
-// The containment rule is the same one BETA_PREFIX has, for the same reason:
-// authorize() (index.js) treats ANY KV value that parses as truthy JSON as a
-// starter key, so a prefixed record must never be reachable from a key lookup.
+//  2. LAB APPLICATION ({"tier": "lab", institution, use_case}). The reviewed
+//     path, for verified labs that need the Lab tier (10,000/day): a
+//     research/<email> record with status "pending", which the tower-ops
+//     lab-access job (jobs/lab_access.py) verifies and keys. That job selects
+//     ONLY status "pending" records, so an "issued" record is never mistaken
+//     for an application.
+//
+// ONE FREE KEY PER ADDRESS. A second request for an address that already has a
+// key answers "already_issued" with the key_ref and the date, never the key,
+// and points at hello@hlaverify.com for a lost key. There is deliberately no
+// "re-issue and revoke the old one": nothing here proves the requester owns the
+// mailbox, so self-serve re-issue would let anyone switch off someone else's
+// key by typing their address. A person handles lost keys.
+//
+// ABUSE LIMITS. A basic disposable-address blocklist (below); at most
+// KEYS_PER_IP_PER_DAY new keys per IP per UTC day (quota.js spendIssuance,
+// salted daily digest, the IP is never stored); the anonymous 60/min limiter
+// covers the route; keys are revocable (status "revoked" on the key record is
+// refused by index.js authorizeKey).
+//
+// CONTAINMENT. authorize() (index.js) treats ANY KV value that parses as truthy
+// JSON as a key, so a prefixed record must never be reachable from a key lookup.
 // authorizeKey() refuses a presented key starting with any RESERVED_PREFIXES
 // entry outright, and issued keys ("hlv_" + base64url) contain no "/". Both
 // halves are tested in test/research.test.mjs. Do not drop either one.
@@ -201,6 +221,48 @@ export const RESERVED_PREFIXES = [BETA_PREFIX, RESEARCH_PREFIX, "founding/"];
 // phrase like "about 20,000 typings a month".
 export const MAX_INSTITUTION = 200, MAX_RESEARCH_USE_CASE = 1000, MAX_EXPECTED_VOLUME = 120;
 
+export const FREE_KEY_TIER = "free_key";
+export const KEY_PROVIDER = "self-serve";
+
+// Throwaway-inbox services. Not exhaustive and not meant to be: it turns away
+// the obvious key farming, and the per-IP cap does the rest. Privacy relays
+// (duck.com, Firefox Relay, Hide My Email) forward to a real person and are
+// allowed. Matched on the domain or any parent domain, plus a few tell-tale words.
+export const DISPOSABLE_DOMAINS = new Set([
+  "mailinator.com", "guerrillamail.com", "guerrillamail.net", "guerrillamail.org", "guerrillamailblock.com",
+  "sharklasers.com", "grr.la", "pokemail.net", "spam4.me", "10minutemail.com", "10minutemail.net",
+  "temp-mail.org", "temp-mail.io", "tempmail.com", "tempmail.net", "tempmailo.com", "tempr.email",
+  "yopmail.com", "yopmail.fr", "yopmail.net", "trashmail.com", "trashmail.de", "getnada.com", "nada.email",
+  "dispostable.com", "maildrop.cc", "throwawaymail.com", "fakeinbox.com", "mintemail.com", "mohmal.com",
+  "emailondeck.com", "burnermail.io", "mailnesia.com", "spamgourmet.com", "mailpoof.com", "moakt.com",
+  "tmail.ws", "tmpmail.org", "tmpmail.net", "inboxkitten.com", "getairmail.com", "mytemp.email",
+  "discard.email", "mailcatch.com", "harakirimail.com", "1secmail.com", "1secmail.net", "1secmail.org",
+  "emailfake.com", "fakemail.net", "dropmail.me", "linshiyouxiang.net", "mail.tm", "mail.gw",
+  "mailsac.com", "tempinbox.com", "emailtemporanea.net", "minuteinbox.com", "trash-mail.com",
+  "mvrht.com", "spambox.us", "wegwerfmail.de", "einrot.com", "mailexpire.com", "tempmailaddress.com",
+]);
+const DISPOSABLE_WORDS = ["tempmail", "temp-mail", "throwaway", "disposable", "mailinator", "10minute",
+  "trashmail", "guerrilla", "fakemail", "fakeinbox", "burnermail", "yopmail", "spambox"];
+
+export function isDisposable(email) {
+  const domain = String(email).split("@").pop().toLowerCase();
+  const parts = domain.split(".");
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (DISPOSABLE_DOMAINS.has(parts.slice(i).join("."))) return true;
+  }
+  return DISPOSABLE_WORDS.some((w) => domain.includes(w));
+}
+
+// Same shape as stripe.js generateApiKey and scripts/founding_lab.py new_key:
+// "hlv_" + 32 random bytes, base64url without padding.
+export function newApiKey() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return "hlv_" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 // Required free-text field. Returns [value, null] or [null, detail].
 function requiredText(v, name, max) {
   if (typeof v !== "string") return [null, `${name} must be a string`];
@@ -210,57 +272,139 @@ function requiredText(v, name, max) {
   return [s, null];
 }
 
-// HLA-Verify is free during early access: an approved request is answered with
-// a free Lab-tier key by email. An automated job (outside this Worker) verifies
-// the institution and the owner reviews its decisions; personal webmail
-// addresses go to the owner by hand. Nothing here promises approval, and "usually
-// within a few hours" is a typical time, not a service level.
-const researchMessage = (already) =>
-  `${already ? "Your application is already on file" : "Your application is recorded"}. ` +
-  "Status: pending. We verify the institution and, if it is approved, email you a free Lab-tier key " +
-  `(${TIER_LIMITS.lab.calls.toLocaleString("en-US")} calls a day, ${TIER_LIMITS.lab.typings.toLocaleString("en-US")} typings per call), ` +
-  "usually within a few hours; HLA-Verify is free during early access. Applications from personal email addresses " +
-  "take longer, because they are reviewed by hand. Questions: hello@hlaverify.com.";
+const fmt = (x) => x.toLocaleString("en-US");
+const labMore = () => `Verified labs that need more can have the Lab tier (${fmt(TIER_LIMITS.lab.calls)} calls a day, ` +
+  `${fmt(TIER_LIMITS.lab.typings)} typings per call): email hello@hlaverify.com, or apply with ` +
+  `{"tier": "lab", "institution": ..., "use_case": ...} on this endpoint.`;
 
-// body: {email, institution, use_case, expected_volume?, source?}; country: cf-ipcountry or null.
-export async function doResearchAccess(env, manifest, body, country) {
+export const KEY_USAGE = {
+  header: "X-API-Key",
+  curl: "curl -s https://api.hlaverify.com/v1/verify -H 'X-API-Key: YOUR_KEY' -H 'content-type: application/json' " +
+    "-d '{\"text\": \"HLA-A*02:01, B*07:02\"}'",
+  docs: "https://api.hlaverify.com/docs",
+  mcp: "https://hlaverify.com/mcp",
+  usage: "POST https://api.hlaverify.com/v1/usage with the key shows what it has used",
+};
+
+const issuedMessage = () =>
+  "Your free HLA-Verify API key is below. It is shown once and only here, so copy it now. " +
+  `It allows ${fmt(TIER_LIMITS.free_key.calls)} calls a day (resets at 00:00 UTC), ` +
+  `${fmt(TIER_LIMITS.free_key.typings)} typings per call and ${TIER_LIMITS.free_key.burst}. ` +
+  "Send it in the X-API-Key header on every request. " + labMore() +
+  " Lost keys: hello@hlaverify.com.";
+
+const alreadyIssuedMessage = (rec) =>
+  `A free key was already issued to this address${rec.issued ? ` on ${String(rec.issued).slice(0, 10)}` : ""}` +
+  `${rec.key_ref ? ` (it starts ${rec.key_ref}…)` : ""}. Keys are shown only once, so it cannot be shown again. ` +
+  "Lost your key? Email hello@hlaverify.com from this address and we will replace it.";
+
+const labMessage = (already) =>
+  `${already ? "Your Lab-tier application is already on file" : "Your Lab-tier application is recorded"}. ` +
+  "Status: pending. We verify the institution and, if it is approved, email you a Lab-tier key " +
+  `(${fmt(TIER_LIMITS.lab.calls)} calls a day, ${fmt(TIER_LIMITS.lab.typings)} typings per call). ` +
+  "Applications from personal email addresses take longer, because they are reviewed by hand. " +
+  `You do not need to wait to start: a free key (${fmt(TIER_LIMITS.free_key.calls)} calls a day) is issued instantly ` +
+  "by this same endpoint without \"tier\". Questions: hello@hlaverify.com.";
+
+async function readRecord(env, kvKey) {
+  let raw;
+  try { raw = await env.KEYS.get(kvKey); } catch (_) { return null; /* read failure: put() is the real test */ }
+  if (raw === null || raw === undefined) return null;
+  try { return JSON.parse(raw) || {}; } catch (_) { return {}; }
+}
+
+// body: {email, tier?, institution?, use_case?, expected_volume?, source?};
+// country: cf-ipcountry or null; ip: cf-connecting-ip (counted, never stored).
+export async function doResearchAccess(env, manifest, body, country, ip = null, { now = Date.now() } = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return bad(422, "body must be a JSON object");
   if (typeof body.email !== "string") return bad(422, "email must be a string");
   const email = body.email.trim();
   if (email.length > MAX_EMAIL) return bad(422, `email must be at most ${MAX_EMAIL} characters`);
   if (!EMAIL_RE.test(email)) return bad(422, "email must look like an address, e.g. name@lab.example");
 
-  const [institution, instErr] = requiredText(body.institution, "institution", MAX_INSTITUTION);
+  const tier = body.tier === undefined || body.tier === null || body.tier === "" ? FREE_KEY_TIER : body.tier;
+  if (tier !== FREE_KEY_TIER && tier !== "free" && tier !== "lab")
+    return bad(422, "tier must be omitted (a free key, issued now) or \"lab\" (an application for the Lab tier)");
+  const lab = tier === "lab";
+
+  const field = lab ? requiredText : optional;
+  const [institution, instErr] = field(body.institution, "institution", MAX_INSTITUTION);
   if (instErr) return bad(422, instErr);
-  const [useCase, useCaseErr] = requiredText(body.use_case, "use_case", MAX_RESEARCH_USE_CASE);
+  const [useCase, useCaseErr] = field(body.use_case, "use_case", MAX_RESEARCH_USE_CASE);
   if (useCaseErr) return bad(422, useCaseErr);
   const [volume, volumeErr] = optional(body.expected_volume, "expected_volume", MAX_EXPECTED_VOLUME);
   if (volumeErr) return bad(422, volumeErr);
   const [source, sourceErr] = optional(body.source, "source", MAX_SOURCE);
   if (sourceErr) return bad(422, sourceErr);
 
+  if (isDisposable(email))
+    return bad(422, "email: disposable or temporary inbox addresses are not accepted; use an address you will keep " +
+      "(it is used for service notices only). Questions: hello@hlaverify.com");
+
   if (!env || !env.KEYS)
-    return bad(503, "research applications are not available on this deployment; email hello@hlaverify.com");
+    return bad(503, "keys cannot be issued on this deployment; email hello@hlaverify.com");
 
   const kvKey = RESEARCH_PREFIX + email.toLowerCase();
-  let already = false;
-  try {
-    already = (await env.KEYS.get(kvKey)) !== null;
-  } catch (_) { /* read failure: fall through and write, put() is the real test */ }
-  // Idempotent per address, and the FIRST application wins: a record that has
-  // already been decided carries that decision (and, for records approved before
-  // early access, a promotion code), and re-applying must never overwrite it
-  // with a fresh pending record.
-  if (!already) {
+  const rec = await readRecord(env, kvKey);
+  const ts = new Date(now).toISOString();
+
+  if (lab) {
+    // The FIRST application wins and a decided record is never overwritten. An
+    // address that only holds a free key becomes a pending application; its free
+    // key's reference moves to free_key_ref so the job's approval (which writes
+    // key_ref for the Lab key) cannot overwrite it.
+    if (rec && rec.status !== "issued") {
+      return good({ ok: true, status: "already_recorded", message: labMessage(true), release: manifest.release }, 1);
+    }
+    const carried = rec ? { free_key_ref: rec.key_ref || null, free_key_issued: rec.issued || null } : {};
     await env.KEYS.put(kvKey, JSON.stringify({
       email, institution, use_case: useCase, expected_volume: volume, source,
-      ts: new Date().toISOString(),
-      country: country || null,
-      status: "pending",
+      ts, country: country || null, status: "pending", ...carried,
+    }));
+    return good({ ok: true, status: "recorded", message: labMessage(false), release: manifest.release }, 1);
+  }
+
+  // Free key. One per address; see ONE FREE KEY PER ADDRESS above.
+  if (rec && (rec.status === "issued" || rec.free_key_ref || rec.status === "approved")) {
+    const shown = rec.status === "issued" ? rec : { key_ref: rec.free_key_ref || null, issued: rec.free_key_issued || null };
+    const message = rec.status === "approved" && !rec.free_key_ref
+      ? "A Lab-tier key was already emailed to this address when its application was approved. Keys are shown only " +
+        "once; lost it? Email hello@hlaverify.com from this address."
+      : alreadyIssuedMessage(shown);
+    return good({ ok: true, status: "already_issued", key_ref: shown.key_ref || null,
+      issued: shown.issued || null, message, release: manifest.release }, 1);
+  }
+  if (rec && rec.status === "revoked") {
+    return bad(403, "access for this address was withdrawn; email hello@hlaverify.com if you think that is a mistake");
+  }
+
+  const cap = await spendIssuance(env, ip, { now });
+  if (!cap.ok) {
+    return bad(429, `at most ${KEYS_PER_IP_PER_DAY} new keys a day from one connection; try again after ${cap.reset} ` +
+      "or email hello@hlaverify.com");
+  }
+
+  const key = newApiKey();
+  const keyRef = key.slice(0, 8);
+  await env.KEYS.put(key, JSON.stringify({
+    label: `${KEY_PROVIDER}:${keyRef}`, tier: FREE_KEY_TIER, status: "active", email, created: ts, provider: KEY_PROVIDER,
+  }));
+  if (rec) {
+    // An application already in the lab-access queue (pending, needs_review)
+    // keeps its status and its place there; the free key is noted beside it.
+    await env.KEYS.put(kvKey, JSON.stringify({ ...rec, free_key_ref: keyRef, free_key_issued: ts }));
+  } else {
+    await env.KEYS.put(kvKey, JSON.stringify({
+      email, institution, use_case: useCase, expected_volume: volume, source,
+      ts, country: country || null, status: "issued", key_ref: keyRef, issued: ts, provider: KEY_PROVIDER,
     }));
   }
-  return good({ ok: true, status: already ? "already_recorded" : "recorded",
-    message: researchMessage(already), release: manifest.release }, 1);
+  const lim = TIER_LIMITS.free_key;
+  return good({
+    ok: true, status: "issued", key, key_ref: keyRef, tier: FREE_KEY_TIER,
+    limits: { calls_per_day: lim.calls, typings_per_call: lim.typings, burst: lim.burst },
+    usage: KEY_USAGE, message: issuedMessage(), release: manifest.release,
+  }, 1);
 }
 
 // ------------------------------------------------------------ support reports

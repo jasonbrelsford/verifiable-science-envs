@@ -31,8 +31,10 @@
 import { limitsFor, canonicalTier, NEXT_TIER, TIER_LIMITS } from "./keys.js";
 
 export const PRICING_URL = "https://api.hlaverify.com/pricing";
-// Where a free key is requested during early access.
+// Where a free key is requested: issued instantly, on the page.
 export const REQUEST_URL = "https://hlaverify.com/research";
+// New self-serve keys per IP per UTC day (spendIssuance below).
+export const KEYS_PER_IP_PER_DAY = 3;
 const DAY_MS = 86_400_000;
 // How long after a day ends an untouched counter deletes itself, so the
 // per-IP-per-day objects do not accumulate storage forever.
@@ -40,7 +42,7 @@ const SWEEP_AFTER_MS = 36 * 3600 * 1000;
 
 // Billable REST routes: everything that runs the engine. /healthz, /docs,
 // /openapi.json, /pricing, /checkout/success, the OAuth and .well-known routes,
-// /v1/beta-signup, /v1/research-access, /v1/usage, /admin/usage and the Stripe
+// /v1/beta-signup, /v1/research-access (and its alias /v1/keys), /v1/usage, /admin/usage and the Stripe
 // webhook are not billable and consume nothing. Joining a list, or applying for
 // free access, must never cost a caller one of the calls they have.
 // /v1/pgx/table is open data and not billable; the two pgx lookups are billed
@@ -145,25 +147,65 @@ const plural = (n) => n.toLocaleString("en-US");
 // Written to be acted on, not just read: what ran out, when it comes back, and
 // the two things that fix it now.
 export function quotaDetail(q) {
-  // Free during early access: below Lab, point at the free Lab-tier key rather
-  // than at a paid tier. At Lab and above, a person decides: email.
-  const lab = TIER_LIMITS.lab;
-  const upgrade = lab.calls !== null && q.limit !== null && q.limit < lab.calls
-    ? `A free Lab-tier key allows ${plural(lab.calls)} calls/day during early access: ${REQUEST_URL}. `
-    : "Need a higher limit? Email hello@hlaverify.com. ";
+  // Anonymous: a free key is one form away and issued at once. A free key: a
+  // verified lab moves to Lab by request. At Lab and above, a person decides.
+  const canonical = canonicalTier(q.tier);
+  const fk = TIER_LIMITS.free_key, lab = TIER_LIMITS.lab;
+  const upgrade = canonical === "free" && q.limit !== null && q.limit < fk.calls
+    ? `A free API key allows ${plural(fk.calls)} calls/day and is issued instantly: ${REQUEST_URL}. `
+    : canonical === "free_key"
+      ? `Verified labs that need more can have the Lab tier (${plural(lab.calls)} calls/day): email hello@hlaverify.com or apply at ${REQUEST_URL}. `
+      : "Need a higher limit? Email hello@hlaverify.com. ";
   return `daily quota exhausted: the ${q.tier} tier allows ${plural(q.limit)} API calls per UTC day. ` +
     `Retry after ${q.reset} (the quota resets at UTC midnight). ${upgrade}` +
     "Batching more work into each call also helps — /v1/normalize takes many typings per call.";
 }
 
 // 422 for a batch over the caller's per-call cap, naming the cap and the tier
-// that lifts it.
+// that lifts it. The free key has the anonymous batch cap, so the tier that
+// lifts it is Lab, by request.
 export function batchDetail(tier, cap, n) {
-  const canonical = canonicalTier(tier);
   const lift = TIER_LIMITS.lab.typings > cap;
   return `typings must have at most ${plural(cap)} items on the ${tier} tier (you sent ${plural(n)})` +
-    (lift ? `; a free Lab-tier key allows ${plural(TIER_LIMITS.lab.typings)} per call during early access: ${REQUEST_URL}` : "") +
-    (!lift ? ". Split it across calls." : canonical === "free" ? ". Split the batch, or request a free key." : ". Split the batch across calls, or request a free Lab-tier key.");
+    (lift ? `; the Lab tier allows ${plural(TIER_LIMITS.lab.typings)} per call for verified labs, by request: ${REQUEST_URL} or hello@hlaverify.com` : "") +
+    (lift ? ". Split the batch across calls meanwhile." : ". Split it across calls.");
+}
+
+// ------------------------------------------------------ key issuance cap
+// At most KEYS_PER_IP_PER_DAY new self-serve keys per client IP per UTC day,
+// counted in the same DailyQuota class the call quota uses, under its own name
+// space: a salted digest of the day and the address, exactly as subjectName()
+// names an anonymous caller, so the IP is never stored and the counter is
+// unaddressable after midnight. Spent only when a key is about to be minted (a
+// repeat request for an address that already has one costs nothing).
+//
+// Fails OPEN, like spendQuota: a counter outage must not stop someone getting
+// a key. The per-minute limiter (60/min per IP) is still in front of it.
+export async function issuanceName(ip, day, env) {
+  const salt = env && env.QUOTA_IP_SALT;
+  if (typeof salt !== "string" || salt.length < 16) throw new Error("QUOTA_IP_SALT missing or too short");
+  return `i:${(await sha256Hex(`hlv-keyissue-ip:${day}:${salt}:${ip || "unknown"}`)).slice(0, 32)}`;
+}
+
+export async function spendIssuance(env, ip, { now = Date.now(), limit = KEYS_PER_IP_PER_DAY } = {}) {
+  const day = utcDay(now);
+  const state = { ok: true, limit, remaining: null, reset: nextUtcMidnight(now).toISOString() };
+  if (!env || !env.QUOTA) return state;
+  try {
+    const stub = env.QUOTA.get(env.QUOTA.idFromName(await issuanceName(ip, day, env)));
+    const resp = await stub.fetch("https://quota.hlaverify.internal/spend", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ day, limit }),
+    });
+    const { count, over } = await resp.json();
+    if (typeof count !== "number" || !Number.isFinite(count)) throw new Error("bad counter response");
+    state.ok = !over;
+    state.remaining = Math.max(0, limit - count);
+  } catch (_) {
+    state.remaining = null;
+  }
+  return state;
 }
 
 // ------------------------------------------------------------ the counter

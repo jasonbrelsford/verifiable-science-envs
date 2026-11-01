@@ -1,5 +1,7 @@
 // POST /v1/research-access, the matching research_access MCP tool, and the
-// zero-amount checkout the programme depends on. Driven end to end through
+// zero-amount checkout the programme depends on. Since 2026-11-01 the endpoint
+// issues a free key instantly by default (test/selfserve.test.mjs covers that
+// path); the tests here drive the Lab-tier application path, {"tier": "lab"}. Driven end to end through
 // index.js's real fetch handler with a fake KV, fake rate limiters and the
 // disk-backed ASSETS stub the other worker tests use.
 //
@@ -64,7 +66,7 @@ function fakeRL(allow = true) {
 // billable" is asserted against the counter rather than against a header.
 function fakeQuota() {
   const spends = [];
-  let count = 0;
+  const counts = new Map();
   return {
     idFromName(name) { return name; },
     get(name) {
@@ -72,7 +74,8 @@ function fakeQuota() {
         async fetch(_url, init) {
           const { day, limit } = JSON.parse(init.body);
           spends.push({ name, day });
-          count += 1;
+          const count = (counts.get(name) || 0) + 1;
+          counts.set(name, count);
           return new Response(JSON.stringify({ count, limit, day, over: count > limit }), { headers: { "content-type": "application/json" } });
         },
       };
@@ -122,6 +125,7 @@ async function apply(env, payload, { headers = {}, ...opts } = {}) {
 const records = (env) => [...env.KEYS._store.keys()].filter((k) => k.startsWith(RESEARCH_PREFIX));
 
 const GOOD = {
+  tier: "lab",
   email: "Pi@Lab.Example",
   institution: "Example University",
   use_case: "Retyping QC for a 4,000-donor registry cohort study",
@@ -144,13 +148,13 @@ test("happy path: records the application and answers the documented shape", asy
   assert.equal(json.ok, true);
   assert.equal(json.status, "recorded");
   assert.equal(json.release, manifest.release);
-  // The wording says what happens next: verified, then a free Lab-tier key by
-  // email, usually within hours; personal addresses take longer; and no promo code.
-  assert.match(json.message, /recorded/i);
+  // The wording says what happens next: verified, then a Lab-tier key by email;
+  // personal addresses take longer; a free key meanwhile; and no promo code.
+  assert.match(json.message, /Lab-tier application is recorded/i);
   assert.match(json.message, /pending/i);
   assert.match(json.message, /verify the institution/i);
-  assert.match(json.message, /free Lab-tier key/i);
-  assert.match(json.message, /within a few hours/i);
+  assert.match(json.message, /Lab-tier key/i);
+  assert.match(json.message, /free key \(1,000 calls a day\) is issued instantly/i);
   assert.match(json.message, /personal email addresses take longer/i);
   assert.match(json.message, /hello@hlaverify\.com/);
   assert.doesNotMatch(json.message, /code|checkout|100% off|Stripe/i);
@@ -175,7 +179,7 @@ test("happy path: records the application and answers the documented shape", asy
 test("optional fields absent: stored as null, not invented", async () => {
   const env = baseEnv();
   const { status, json } = await apply(env,
-    { email: " someone@example.org ", institution: " Example Institute ", use_case: " teaching an immunogenetics course " },
+    { tier: "lab", email: " someone@example.org ", institution: " Example Institute ", use_case: " teaching an immunogenetics course " },
     { country: null });
   assert.equal(status, 200);
   assert.equal(json.status, "recorded");
@@ -232,13 +236,15 @@ test("422: each required field missing, empty or the wrong type", async () => {
   const env = baseEnv();
   const cases = [
     [{}, /email must be a string/],
-    [{ email: "ok@example.com" }, /institution must be a string/],
-    [{ email: "ok@example.com", institution: "" }, /institution must not be empty/],
-    [{ email: "ok@example.com", institution: "   " }, /institution must not be empty/],
-    [{ email: "ok@example.com", institution: 7 }, /institution must be a string/],
-    [{ email: "ok@example.com", institution: "Example U" }, /use_case must be a string/],
-    [{ email: "ok@example.com", institution: "Example U", use_case: "" }, /use_case must not be empty/],
-    [{ email: "ok@example.com", institution: "Example U", use_case: {} }, /use_case must be a string/],
+    [{ tier: "lab", email: "ok@example.com" }, /institution must be a string/],
+    [{ tier: "lab", email: "ok@example.com", institution: "" }, /institution must not be empty/],
+    [{ tier: "lab", email: "ok@example.com", institution: "   " }, /institution must not be empty/],
+    [{ tier: "lab", email: "ok@example.com", institution: 7 }, /institution must be a string/],
+    [{ tier: "lab", email: "ok@example.com", institution: "Example U" }, /use_case must be a string/],
+    [{ tier: "lab", email: "ok@example.com", institution: "Example U", use_case: "" }, /use_case must not be empty/],
+    [{ tier: "lab", email: "ok@example.com", institution: "Example U", use_case: {} }, /use_case must be a string/],
+    [{ tier: "gold", email: "ok@example.com" }, /tier must be omitted/],
+    [{ tier: 3, email: "ok@example.com" }, /tier must be omitted/],
   ];
   for (const [body, re] of cases) {
     const { status, json } = await apply(env, body);
@@ -254,7 +260,7 @@ test("422: each required field missing, empty or the wrong type", async () => {
 test("422: each field over its cap, and nothing is stored", async () => {
   const env = baseEnv();
   const long = (n) => "x".repeat(n);
-  const base = { email: "ok@example.com", institution: "Example U", use_case: "why" };
+  const base = { tier: "lab", email: "ok@example.com", institution: "Example U", use_case: "why" };
   const cases = [
     [{ ...base, email: `${long(MAX_EMAIL)}@example.com` }, /email must be at most 254/],
     [{ ...base, institution: long(MAX_INSTITUTION + 1) }, /institution must be at most 200/],
@@ -271,7 +277,7 @@ test("422: each field over its cap, and nothing is stored", async () => {
   }
   assert.equal(records(env).length, 0);
   // A field exactly at its cap is accepted.
-  const ok = await apply(env, { email: "cap@example.com", institution: long(MAX_INSTITUTION),
+  const ok = await apply(env, { tier: "lab", email: "cap@example.com", institution: long(MAX_INSTITUTION),
     use_case: long(MAX_RESEARCH_USE_CASE), expected_volume: long(MAX_EXPECTED_VOLUME), source: long(MAX_SOURCE) });
   assert.equal(ok.status, 200);
 });
@@ -319,6 +325,10 @@ test("applying consumes no daily quota, on REST or on MCP", async () => {
   const mcp = await mcpCall(env, "research_access", { ...GOOD, email: "third@example.org" });
   assert.equal(mcp.json.result.isError, false);
   assert.deepEqual(env.QUOTA.spends, [], "research access must not charge the daily counter");
+  // A free key spends only the per-IP issuance counter ("i:"), never a call.
+  assert.equal((await apply(env, { email: "fourth@example.org" })).json.status, "issued");
+  assert.deepEqual(env.QUOTA.spends.map((x) => x.name.slice(0, 2)), ["i:"]);
+  env.QUOTA.spends.length = 0;
 
   // A billable route in the same env does charge, so the counter is really wired up.
   assert.equal((await call(env, "GET", "/v1/allele/A*01:01")).status, 200);
@@ -399,7 +409,7 @@ async function mcpCall(env, name, args, id = 1) {
 test("MCP research_access: writes through the same path as the REST endpoint", async () => {
   const env = baseEnv();
   const { status, json } = await mcpCall(env, "research_access",
-    { email: "Agent@Example.com", institution: "Agent University", use_case: "cohort retyping QC", source: "mcp" });
+    { tier: "lab", email: "Agent@Example.com", institution: "Agent University", use_case: "cohort retyping QC", source: "mcp" });
   assert.equal(status, 200);
   assert.equal(json.result.isError, false);
   assert.equal(json.result.structuredContent.status, "recorded");
@@ -415,7 +425,7 @@ test("MCP research_access: writes through the same path as the REST endpoint", a
 
   // Idempotent, exactly like the endpoint.
   const again = await mcpCall(env, "research_access",
-    { email: "agent@example.com", institution: "Agent University", use_case: "again" }, 2);
+    { tier: "lab", email: "agent@example.com", institution: "Agent University", use_case: "again" }, 2);
   assert.equal(again.json.result.structuredContent.status, "already_recorded");
   assert.equal(env.KEYS._puts.filter((p) => p.k.startsWith(RESEARCH_PREFIX)).length, 1);
 });
@@ -425,10 +435,11 @@ test("MCP research_access: validation failures are tool errors, not JSON-RPC err
   const bad = [
     {},
     { email: "nope", institution: "U", use_case: "x" },
-    { email: "a@b.cc" },
-    { email: "a@b.cc", institution: "U" },
-    { email: "a@b.cc", institution: "", use_case: "x" },
-    { email: "a@b.cc", institution: "U", use_case: "x".repeat(MAX_RESEARCH_USE_CASE + 1) },
+    { email: "someone@mailinator.com" },
+    { tier: "lab", email: "a@b.cc" },
+    { tier: "lab", email: "a@b.cc", institution: "U" },
+    { tier: "lab", email: "a@b.cc", institution: "", use_case: "x" },
+    { tier: "lab", email: "a@b.cc", institution: "U", use_case: "x".repeat(MAX_RESEARCH_USE_CASE + 1) },
   ];
   for (const args of bad) {
     const { status, json } = await mcpCall(env, "research_access", args);
@@ -452,19 +463,23 @@ test("MCP research_access is advertised with write annotations and an outputSche
   const t = tools.find((x) => x.name === "research_access");
   assert.ok(t, "research_access missing from tools/list");
   assert.deepEqual(t.annotations, { readOnlyHint: false, idempotentHint: true, openWorldHint: false });
-  assert.deepEqual(t.inputSchema.required, ["email", "institution", "use_case"]);
+  assert.deepEqual(t.inputSchema.required, ["email"]);
   assert.deepEqual(Object.keys(t.inputSchema.properties).sort(),
-    ["email", "expected_volume", "institution", "source", "use_case"]);
+    ["email", "expected_volume", "institution", "source", "tier", "use_case"]);
+  assert.deepEqual(t.inputSchema.properties.tier.enum, ["lab"]);
   assert.equal(t.inputSchema.additionalProperties, false);
   assert.equal(t.outputSchema.type, "object");
   assert.deepEqual(t.outputSchema.required, ["ok", "status", "message", "release"]);
-  assert.deepEqual(t.outputSchema.properties.status.enum, ["recorded", "already_recorded"]);
-  // The description is the only pitch an agent reads: it has to say what is
-  // verified and how long it usually takes, or an agent will promise an instant key.
-  assert.match(t.description, /free during early access/i);
-  assert.match(t.description, /verified/i);
-  assert.match(t.description, /within a few hours/i);
-  assert.match(t.description, /personal email addresses/i);
+  assert.deepEqual(t.outputSchema.properties.status.enum, ["issued", "already_issued", "recorded", "already_recorded"]);
+  assert.equal(t.outputSchema.properties.key.type, "string");
+  // The description is the only pitch an agent reads: it has to say the key is
+  // instant and shown once, what it allows, and that the Lab tier is reviewed.
+  assert.match(t.description, /instantly/i);
+  assert.match(t.description, /1,000 calls\/day/);
+  assert.match(t.description, /shown once/i);
+  assert.match(t.description, /X-API-Key/);
+  assert.match(t.description, /service notices only/i);
+  assert.match(t.description, /tier "lab"/);
   assert.doesNotMatch(t.description, /checkout|100% off|buy a tier/i);
   // research_access sits next to beta_signup, before about, and beta_signup
   // keeps its place: an agent's tool order is part of the catalog contract.
@@ -477,8 +492,9 @@ test("the about tool describes the research programme honestly", async () => {
   const { json } = await mcpCall(env, "about", {});
   const sc = json.result.structuredContent;
   assert.match(sc.research, /hlaverify\.com\/research/);
-  assert.match(sc.research, /within a few hours/i);
-  assert.match(sc.research, /not guaranteed/i);
+  assert.match(sc.research, /instantly/i);
+  assert.match(sc.research, /shown only once/i);
+  assert.match(sc.research, /Lab tier/);
   assert.match(sc.limits, /research_access/);
 });
 
@@ -630,19 +646,26 @@ test("/docs, /openapi.json and /pricing all describe the programme", async () =>
   const env = baseEnv();
   const docs = await (await call(env, "GET", "/docs")).text();
   assert.ok(docs.includes("/v1/research-access"));
-  assert.match(docs, /free Lab-tier key/i);
-  assert.match(docs, /within a few hours/i);
+  assert.ok(docs.includes("/v1/keys"));
+  assert.match(docs, /get a free key, instantly/i);
+  assert.match(docs, /One free key per email address/);
+  assert.match(docs, /At most 3 new keys a day from one connection/);
+  assert.match(docs, /service notices only/);
+  assert.doesNotMatch(docs, /within a few hours|early access/i);
   assert.doesNotMatch(docs, /promotion code/i);
 
   const pricing = await (await call(env, "GET", "/pricing")).text();
   assert.ok(pricing.includes("/v1/research-access"));
-  assert.match(pricing, /free during early access/i);
+  assert.match(pricing, /Free API key, instantly: 1,000 calls a day/);
   assert.match(pricing, /no card/i);
 
   const spec = await (await call(env, "GET", "/openapi.json")).json();
   const op = spec.paths["/v1/research-access"].post;
-  assert.deepEqual(op.requestBody.content["application/json"].schema.required, ["email", "institution", "use_case"]);
-  assert.match(op.description, /free Lab-tier key/);
+  assert.deepEqual(op.requestBody.content["application/json"].schema.required, ["email"]);
+  assert.match(op.description, /free API key \(tier free_key: 1,000 calls\/day/);
+  assert.deepEqual(op.responses[200].content["application/json"].schema.properties.status.enum,
+    ["issued", "already_issued", "recorded", "already_recorded"]);
+  assert.deepEqual(spec.paths["/v1/keys"].post.requestBody, op.requestBody);
   assert.doesNotMatch(op.description, /promotion code/);
   assert.ok(op.responses[422] && op.responses[429] && op.responses[503]);
   assert.match(spec.paths["/mcp"].post.description, /research_access/);

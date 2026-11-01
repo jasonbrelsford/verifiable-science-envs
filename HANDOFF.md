@@ -179,15 +179,23 @@ human picking this up should expect their footprints and leave them intact:
 
 ## What is not finished
 
-1. **Free during early access (2026-10).** Nothing is sold: `api.hlaverify.com/pricing`,
+1. **Free for anyone (2026-11-01).** Nothing is sold: `api.hlaverify.com/pricing`,
    `/docs`, `openapi.json`, the MCP `about` tool and the over-quota messages point at the
-   free-key request (`hlaverify.com/research`, `POST /v1/research-access`), whatever
-   Stripe's state. The Stripe checkout code (`pricing.js`, `stripe.js`, `POST /v1/checkout`)
+   instant free key (`hlaverify.com/research`, `POST /v1/research-access`, alias `/v1/keys`),
+   whatever Stripe's state. The Stripe checkout code (`pricing.js`, `stripe.js`, `POST /v1/checkout`)
    is intact but not advertised. The price strings in `TIER_LIMITS` are no longer published.
-2. **Free-key requests** (`POST /v1/research-access`) are approved by an automated job in
-   `jasonbrelsford/tower-ops`, which verifies the institution and emails a free Lab-tier key;
-   Jason reviews its decisions. `scripts/research_access.py` is the older manual path, which
-   minted a Stripe promotion code.
+2. **Free keys are self-serve and instant** (`handlers.js doResearchAccess`): an email address
+   gets a `free_key`-tier key (1,000 calls/day, 250 typings/call, 60/min) in the response, shown
+   once. One key per address (a repeat answers `already_issued`, never the key; lost keys go to
+   hello@hlaverify.com); 3 new keys per IP per UTC day (salted digest, `quota.js spendIssuance`);
+   disposable inboxes refused. KV: the key record AT the key with `provider: "self-serve"`, and
+   `research/<email>` with `status: "issued"` and `key_ref`. To revoke: list KV keys with the
+   `key_ref` prefix, set the matching record's `status` to `"revoked"`, and set the research
+   record's `status` to `"revoked"` too (that address then gets a 403 instead of a new key).
+   **Lab tier (10,000/day)** is by request: `{"tier": "lab", institution, use_case}` on the same
+   endpoint writes a `status: "pending"` application, which the automated job in
+   `jasonbrelsford/tower-ops` (`jobs/lab_access.py`, selects only `pending`) verifies and keys.
+   `scripts/research_access.py` is the older manual path, which minted a Stripe promotion code.
 3. **Per-key release pinning does not exist.** One release is compiled into the Worker.
    It is on the roadmap and marked as such; do not let it creep back into copy as shipped.
 4. **Usage is visible but not billed from.** `GET /v1/usage` and `/admin/usage` read

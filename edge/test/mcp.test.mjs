@@ -254,7 +254,7 @@ test("about tool carries the beta state", async () => {
   const sc = json.result.structuredContent;
   assert.equal(sc.name, "HLA-Verify");
   assert.equal(sc.release, manifest.release);
-  assert.match(sc.beta, /free during early access/i);
+  assert.match(sc.beta, /free for anyone/i);
   assert.match(sc.beta, new RegExp(manifest.release.replace(/\./g, "\\.")));
   assert.match(sc.beta_key, /hlaverify\.com\/research/);
   assert.match(sc.beta_key, /hello@hlaverify\.com/);
@@ -268,11 +268,12 @@ test("about tool never advertises buying during early access, even with Stripe l
   for (const pricing of [{ source: "stripe", prices: { starter: { amount: 4900 } }, live: true },
     { source: "table", prices: {}, live: false }]) {
     const sc = aboutBody(manifest, pricing);
-    assert.match(sc.beta, /free during early access/i);
+    assert.match(sc.beta, /free for anyone/i);
     assert.match(sc.beta, /hlaverify\.com\/research/);
-    assert.match(sc.beta_key, /free Lab-tier key/i);
+    assert.match(sc.beta_key, /free key \(1,000 calls\/day/i);
+    assert.match(sc.beta_key, /issued instantly/i);
     for (const v of [sc.beta, sc.beta_key, sc.limits, sc.research])
-      assert.doesNotMatch(v, /self-serve|checkout|\$\d|paid tier/i);
+      assert.doesNotMatch(v, /checkout|\$\d|paid tier/i);
   }
 });
 
@@ -296,7 +297,9 @@ test("about tool quotes the benchmark figures the artifacts support", async () =
 });
 
 test("INSTRUCTIONS mention early access and how to get a free key", () => {
-  assert.match(INSTRUCTIONS, /free during early access/i);
+  assert.match(INSTRUCTIONS, /The service is free/);
+  assert.match(INSTRUCTIONS, /free API key at once \(1,000 calls\/day\)/);
+  assert.match(INSTRUCTIONS, /X-API-Key/);
   assert.match(INSTRUCTIONS, /research_access/);
   assert.match(INSTRUCTIONS, /beta_signup/);
   assert.doesNotMatch(INSTRUCTIONS, /paid keys/i);
