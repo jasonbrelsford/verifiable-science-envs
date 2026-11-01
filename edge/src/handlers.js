@@ -282,7 +282,9 @@ export const KEY_USAGE = {
   curl: "curl -s https://api.hlaverify.com/v1/verify -H 'X-API-Key: YOUR_KEY' -H 'content-type: application/json' " +
     "-d '{\"text\": \"HLA-A*02:01, B*07:02\"}'",
   docs: "https://api.hlaverify.com/docs",
-  mcp: "https://hlaverify.com/mcp",
+  mcp: "https://hlaverify.com/product#mcp",
+  mcp_config: "{\"mcpServers\": {\"hla-verify\": {\"url\": \"https://api.hlaverify.com/mcp\", " +
+    "\"headers\": {\"Authorization\": \"Bearer YOUR_KEY\"}}}}",
   usage: "POST https://api.hlaverify.com/v1/usage with the key shows what it has used",
 };
 

@@ -121,7 +121,9 @@ test("an email address alone gets a free key at once, shown in the response", as
   assert.deepEqual(r.json.limits, { calls_per_day: 1000, typings_per_call: 250, burst: TIER_LIMITS.free_key.burst });
   assert.equal(r.json.usage.header, "X-API-Key");
   assert.match(r.json.usage.curl, /X-API-Key: YOUR_KEY/);
-  assert.match(r.json.usage.mcp, /^https:\/\/hlaverify\.com\/mcp/);
+  assert.equal(r.json.usage.mcp, "https://hlaverify.com/product#mcp");
+  assert.deepEqual(JSON.parse(r.json.usage.mcp_config).mcpServers["hla-verify"],
+    { url: "https://api.hlaverify.com/mcp", headers: { Authorization: "Bearer YOUR_KEY" } });
   assert.match(r.json.message, /shown once/i);
   assert.match(r.json.message, /1,000 calls a day/);
   assert.match(r.json.message, /Lab tier \(10,000 calls a day/);

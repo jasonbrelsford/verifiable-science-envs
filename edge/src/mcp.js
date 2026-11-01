@@ -396,7 +396,7 @@ const RESEARCH_OUT = {
     issued: { type: ["string", "null"] },
     tier: { type: "string" },
     limits: { type: "object", properties: { calls_per_day: { type: "integer" }, typings_per_call: { type: "integer" }, burst: STR } },
-    usage: { type: "object", properties: { header: STR, curl: STR, docs: STR, mcp: STR, usage: STR } },
+    usage: { type: "object", properties: { header: STR, curl: STR, docs: STR, mcp: STR, mcp_config: STR, usage: STR } },
     message: { type: "string", description: "What to tell the user." },
     release: RELEASE,
   },
