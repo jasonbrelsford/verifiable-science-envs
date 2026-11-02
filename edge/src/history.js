@@ -148,8 +148,9 @@ export function createHistory(load) {
       const loci = locus ? [locus] : (m.loci || []);
       if (locus && !(m.loci || []).includes(locus)) return bad(422, `locus must be one of ${(m.loci || []).join(", ")}`);
       const added = [], removed = [], renamed = [];
-      for (const l of loci) {
-        const file = await get(`history/ids/${l}.json`);
+      // every locus file requested at once: a cold isolate would otherwise fetch and parse them one by one
+      const files = await Promise.all(loci.map((l) => get(`history/ids/${l}.json`)));
+      for (const file of files) {
         if (!file) continue;
         for (const [id, rec] of Object.entries(file)) {
           const a = nameAt(rec, fi), b = nameAt(rec, ti);
