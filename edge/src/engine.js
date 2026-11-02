@@ -167,16 +167,46 @@ const sortedUnique = (arr) => Array.from(new Set(arr)).sort();
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 export function createEngine({ loadShard, manifest }) {
+  // shard -> Promise of its rows. The promise is cached, not the rows, so concurrent
+  // requests in one isolate share a single fetch+parse of a cold shard; a failed load is
+  // dropped so the next request retries it.
   const cache = new Map();
+  function shardRows(sh) {
+    let p = cache.get(sh);
+    if (p === undefined) {
+      p = Promise.resolve(loadShard(sh)).then((rows) => rows ?? {});
+      p.catch(() => { if (cache.get(sh) === p) cache.delete(sh); });
+      cache.set(sh, p);
+    }
+    return p;
+  }
   async function lookup(name) {
     const sh = shardOf(name);
     if (!sh) return null;
-    let rows = cache.get(sh);
-    if (rows === undefined) {
-      rows = (await loadShard(sh)) ?? {};
-      cache.set(sh, rows);
-    }
+    const rows = await shardRows(sh);
     return hasOwn(rows, name) ? rows[name] : null;
+  }
+  // Start the shard loads a set of reported names can need, all at once, so a cold
+  // batch pays one round of fetches instead of one per shard in turn. Only a speed-up:
+  // it covers the name itself and each shorthand's target, and whatever it misses is
+  // loaded by lookup() as before. Never throws; lookup() surfaces a load failure.
+  async function warm(names) {
+    const shards = new Set();
+    for (const raw of names) {
+      const s = stripPrefix(String(raw).trim());
+      const tc = cwToC(s);
+      for (const k of [s, tc, s.endsWith("g") ? s.slice(0, -1) : null, isLegacy(s) ? legacyToColon(s) : null]) {
+        const sh = k ? shardOf(k) : null;
+        if (sh) shards.add(sh);
+        const x = k ? XX_RE.exec(k) : null;
+        const xs = x ? shardOf(`${x[1]}*${x[2]}`) : null;
+        if (xs) shards.add(xs);
+        const g = k ? LG_RE.exec(k) : null;
+        const gs = g ? shardOf(`${g[1]}*${g[2]}:${g[3]}`) : null;
+        if (gs) shards.add(gs);
+      }
+    }
+    await Promise.allSettled([...shards].map(shardRows));
   }
 
   // normalize.resolve_name(): strip 'HLA-' -> Cw -> MAC -> XX -> lg -> row (allele, prefix,
@@ -277,6 +307,7 @@ export function createEngine({ loadShard, manifest }) {
     const macToks = new Set(text.match(MAC_TOKEN_RE) ?? []);
     const kirToks = new Set(text.match(KIR_TOKEN_RE) ?? []);
     const seen = { valid: [], deleted: [], group: [], fabricated_group: [], hallucinated: [], mac_code: [], out_of_scope: [] };
+    await warm([...toks, ...macToks]);
     const rowsByTok = new Map();   // token -> {row, flag, successor?}: the row that answers for it
     for (const tok of toks) {
       const t = stripPrefix(tok);
@@ -338,6 +369,7 @@ export function createEngine({ loadShard, manifest }) {
 
   // ------------------------------------------------------------- /v1/normalize
   async function normalizeBatch(typings) {
+    await warm(typings);
     const rows = [];
     for (const s of typings) {
       const [name] = await resolveName(s);
