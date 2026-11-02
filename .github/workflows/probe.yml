@@ -10,7 +10,19 @@
 name: probe
 on:
   schedule:
-    - cron: "40 5 * * *"    # 05:40 UTC daily, well before the 13:00 UTC reports
+    # The evaluations read the newest probe run, and they fire around 01:00-03:00 and
+    # 15:00-18:00 UTC. GitHub's cron queue runs late, by hours on a busy day (the
+    # "05:40" run of 2026-11-02 started 13:46), so each evaluation window gets its own
+    # early slot and the last probe is never a day old (#158). 3 scheduled runs
+    # plus one per deploy, 24 billable calls each, from shared GitHub runner IPs.
+    - cron: "17 0 * * *"
+    - cron: "47 5 * * *"
+    - cron: "17 14 * * *"
+  # A deploy changes what the probe would say, so read it again right after one.
+  workflow_run:
+    workflows: [edge-deploy]
+    types: [completed]
+    branches: [main]
   workflow_dispatch: {}
 permissions: { contents: read }
 
