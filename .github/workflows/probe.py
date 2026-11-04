@@ -24,6 +24,11 @@ What it checks
      and an empty-input POST /v1/report. Each must answer as documented and state the release
      /healthz states. The valid report stores one record in the REPORTS namespace, labelled as
      the probe (source hlaverify-probe, input says so): a daily record to ignore when triaging.
+  7. A cross-check of POST /v1/translate against HLAtools' validationByTranslation (#165): the
+     reference's own release table (data/alleleListHistory.rda in sjmack/HLAtools) is fetched, read
+     with a stdlib parser, and one /v1/translate call at the table's release (from = to) must agree
+     with it on a handful of full-length names. A disagreement is a failure; an unreachable or
+     unreadable reference, or a release the API does not cover, skips the check with a warning.
 
 Latency (#148): every call's wall time is kept (`latency` in the JSON: p50, max, slowest call,
 and the Cloudflare `cf-ray` / `cf-cache-status` / colo hint of each slow call). A call over its budget
@@ -31,7 +36,8 @@ is a WARNING (`warnings`, `::warning::`), never a failure: the 60-name batch ove
 other API call over SLOW_FACTOR x the median of this run's API calls (floor SLOW_FLOOR_MS). The
 trailing median across runs is not available to a stateless job, so the run's own median stands in.
 
-Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
+Budget: 25 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate, history and the
+cross-check's translate) out of
 the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
 
@@ -41,9 +47,13 @@ Usage: probe.py [--api URL] [--site URL] [--no-site] [--out FILE] [--no-fail]
 from __future__ import annotations
 
 import argparse
+import bz2
+import gzip
 import json
+import lzma
 import os
 import re
+import struct
 import sys
 import time
 import urllib.error
@@ -147,6 +157,16 @@ REPORT_VALID = {"kind": "other", "source": "hlaverify-probe",
                 "expected": "No action needed: this is the scheduled probe, not a user report."}
 REPORT_INVALID = {"kind": "other", "input": "", "expected": "an empty input must be refused"}
 
+# The independent reference for /v1/translate (#165). HLAtools >= 1.16 ships validationByTranslation(),
+# which translates a name from the newest release in its alleleListHistory table to that same release and
+# answers NA when the name is not an allele there. The table is a plain data file in the package repo, so
+# the probe reads it directly (no R on the runner) and applies the same test to full-length names. The
+# table lags IPD-IMGT/HLA, so the API is asked at the table's release, not the current one.
+HLATOOLS_TABLE = "https://raw.githubusercontent.com/sjmack/HLAtools/main/data/alleleListHistory.rda"
+XCHECK_VALID = ["A*01:01:01:01", "B*57:01:01:01", "C*07:02:01:03", "DPB1*04:01:01:01", "DRB1*08:03:03"]
+XCHECK_REFUSED = ["A*0101", "A*24:02:03", "C*04:09N", "A*01:99:99"]   # old spelling, retired, deleted, never assigned
+XCHECK_REFUSED_STATUS = {"unknown", "not_in_from_release"}
+
 
 def batch_names(path: str = FIXTURES, size: int = BATCH_SIZE) -> tuple[dict[str, str], str | None]:
     """{reported: current_name} for `size` fixture names in distinct 2-field groups, and the fixtures' release."""
@@ -248,6 +268,117 @@ def as_json(text: str):
         return json.loads(text)
     except Exception:
         return None
+
+
+class RdaReader:
+    """Just enough of R's XDR serialisation (RDX3) to read a data.frame of strings: pairlists, lists,
+    character, integer, logical and double vectors, symbols and back-references. Anything else raises."""
+
+    def __init__(self, raw: bytes):
+        if raw[:5] != b"RDX3\n" or raw[5:7] != b"X\n":
+            raise ValueError("not an XDR RDX3 file")
+        self.b, self.i, self.refs = raw, 7, []
+        self.int(); self.int(); self.int()   # format, writer and minimum reader versions
+        n = self.int()
+        self.i += n                          # native encoding name
+
+    def int(self) -> int:
+        v = struct.unpack_from(">i", self.b, self.i)[0]
+        self.i += 4
+        return v
+
+    def length(self) -> int:
+        n = self.int()
+        return (self.int() << 32) | (self.int() & 0xFFFFFFFF) if n == -1 else n
+
+    def item(self):
+        """One object. Vectors come back as (values, attributes); pairlists as dicts; strings as str|None."""
+        flags = self.int()
+        kind, has_attr, has_tag = flags & 0xFF, bool(flags & 0x200), bool(flags & 0x400)
+        if kind in (254, 253, 252, 251, 250, 242, 241):   # NULL and the singleton environments
+            return None
+        if kind == 255:                                    # back-reference to a symbol seen earlier
+            return self.refs[(flags >> 8 or self.int()) - 1]
+        if kind == 1:                                      # symbol
+            sym = self.item()
+            self.refs.append(sym)
+            return sym
+        if kind == 9:                                      # CHARSXP; length -1 is NA
+            n = self.int()
+            if n == -1:
+                return None
+            s = self.b[self.i:self.i + n].decode("utf-8", "replace")
+            self.i += n
+            return s
+        if kind == 2:                                      # pairlist (also how attributes are stored)
+            out = {}
+            while True:
+                if has_attr:
+                    self.item()
+                key = self.item() if has_tag else None
+                out[key] = self.item()
+                flags = self.int()
+                if flags & 0xFF == 254:
+                    return out
+                if flags & 0xFF != 2:
+                    raise ValueError(f"unexpected pairlist tail type {flags & 0xFF}")
+                has_attr, has_tag = bool(flags & 0x200), bool(flags & 0x400)
+        n = self.length()
+        if kind in (16, 19):                               # character / generic vector
+            vals = [self.item() for _ in range(n)]
+        elif kind in (10, 13):                             # logical / integer
+            vals = list(struct.unpack_from(f">{n}i", self.b, self.i))
+            self.i += 4 * n
+        elif kind == 14:                                   # double
+            vals = list(struct.unpack_from(f">{n}d", self.b, self.i))
+            self.i += 8 * n
+        else:
+            raise ValueError(f"unsupported R object type {kind}")
+        return vals, (self.item() if has_attr else None)
+
+
+def read_allele_list_history(blob: bytes) -> tuple[str, set[str]]:
+    """(newest release, its allele names) from HLAtools' alleleListHistory.rda. The release columns are
+    named for the release without dots (X3590 is 3.59.0); the newest is the one the table's Version names."""
+    for unpack in (gzip.decompress, lzma.decompress, bz2.decompress, lambda x: x):
+        try:
+            raw = unpack(blob)
+            if raw[:5] == b"RDX3\n":
+                break
+        except Exception:
+            continue
+    else:
+        raise ValueError("not a readable .rda file")
+    top = RdaReader(raw).item()["alleleListHistory"]
+    parts = dict(zip(top[1]["names"][0], top[0]))
+    release = parts["Version"][0][1][0][0]
+    frame, attrs = parts["AlleleListHistory"]
+    cols = dict(zip(attrs["names"][0], (c[0] for c in frame)))
+    return release, {x for x in cols["X" + release.replace(".", "")] if x}
+
+
+def fetch_reference(url: str = HLATOOLS_TABLE) -> tuple[str, set[str]]:
+    """The HLAtools table, or an exception for the caller to turn into a skip warning."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with OPENER.open(req, timeout=60) as resp:
+        if resp.status != 200:
+            raise ValueError(f"HTTP {resp.status}")
+        return read_allele_list_history(resp.read())
+
+
+def xcheck_translate(release: str, names: set[str], rows: list[dict]) -> list[str]:
+    """Disagreements between /v1/translate rows (asked from = to = `release`) and validationByTranslation
+    applied to the same names: a name is valid when it is in the release's table, and then translates to itself."""
+    problems = []
+    for row in rows:
+        name, status = row.get("name"), row.get("status")
+        if name in names:
+            if status != "unchanged" or row.get("to_name") != name:
+                problems.append(f"{name}: HLAtools says valid in {release}, /v1/translate says {status} -> {row.get('to_name')}")
+        elif status not in XCHECK_REFUSED_STATUS:
+            problems.append(f"{name}: HLAtools says not an allele in {release}, /v1/translate says {status} -> {row.get('to_name')}")
+    return problems
+
 
 
 def probe(api: str, site: str | None) -> dict:
@@ -459,6 +590,41 @@ def probe(api: str, site: str | None) -> dict:
         problems.append(f"detail does not name the input field: {str(b.get('detail'))[:80]!r}")
     check("report_invalid", "POST /v1/report (empty input)", r, 422, problems, b)
 
+    # 3d. cross-check /v1/translate against HLAtools' validationByTranslation (#165). One billable call.
+    # Unreachable or unreadable reference, or a release the API does not cover: a warning, never a failure.
+    xc: dict = {"reference": HLATOOLS_TABLE}
+    skip_warnings: list[str] = []
+    reason = None
+    try:
+        ref_release, ref_names = fetch_reference()
+        xc["release"] = ref_release
+    except Exception as e:
+        reason = f"reference unavailable ({type(e).__name__}: {str(e)[:120]})"
+    if not reason:
+        r = fetch(api + "/v1/translate", "POST", {"names": XCHECK_VALID + XCHECK_REFUSED, "from": ref_release, "to": ref_release})
+        out["billable_calls"] += 1
+        b = as_json(r["text"]) or {}
+        xc.update({"http": r["status"], "ms": r["ms"]})
+        if r["status"] == 422 and "release" in str(b.get("detail", "")):
+            reason = f"/v1/translate does not cover the reference's release {ref_release}"
+        elif r["status"] != 200 or not isinstance(b.get("rows"), list):
+            failures.append(f"translate cross-check: HTTP {r['status']} from /v1/translate at {ref_release}")
+            xc["ok"] = False
+        else:
+            invalid = [n for n in XCHECK_VALID if n not in ref_names] + [n for n in XCHECK_REFUSED if n in ref_names]
+            if invalid:
+                reason = f"panel names no longer behave as expected in the reference table: {invalid}"
+            else:
+                problems = xcheck_translate(ref_release, ref_names, [x for x in b["rows"] if isinstance(x, dict)])
+                if len(b["rows"]) != len(XCHECK_VALID) + len(XCHECK_REFUSED):
+                    problems.append(f"{len(b['rows'])} rows for {len(XCHECK_VALID) + len(XCHECK_REFUSED)} names")
+                xc.update({"ok": not problems, "names": len(b["rows"]), "problems": problems})
+                failures += [f"translate cross-check vs HLAtools: {p}" for p in problems]
+    if reason:
+        xc.update({"skipped": reason})
+        skip_warnings.append(f"translate cross-check skipped: {reason}")
+    out["translate_xcheck"] = xc
+
     # 4. the site
     if site:
         pages = []
@@ -478,6 +644,7 @@ def probe(api: str, site: str | None) -> dict:
 
     api_calls = [c for c in CALLS if c["host"] == urllib.parse.urlsplit(api).netloc]
     out["latency"], out["warnings"] = latency_report(api_calls)
+    out["warnings"] += skip_warnings
     out["failures"] = failures
     out["ok"] = not failures
     return out
@@ -494,7 +661,7 @@ def summary(res: dict) -> str:
         lines += [f"Latency: {lat['calls']} API calls, p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
                   f"slow limit {lat['slow_limit_ms']} ms, batch budget {lat['batch_budget_ms']} ms.", ""]
     if res.get("warnings"):
-        lines += ["**Latency warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
+        lines += ["**Warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
     lines += ["| document | HTTP | ms | release |", "|---|---:|---:|---|"]
     lines += [f"| `{d['path']}` | {d['http']} | {d['ms']} | {d['release'] or ''} |" for d in res["documents"]]
     lines += ["", "| allele | HTTP | status | flags | ms | ok |", "|---|---:|---|---|---:|---|"]
@@ -509,6 +676,10 @@ def summary(res: dict) -> str:
         x = res.get(key)
         if x:
             lines.append(f"- `{label}`: HTTP {x['http']}, {x['ms']} ms, {'ok' if x['ok'] else 'MISMATCH'}")
+    xc = res.get("translate_xcheck")
+    if xc:
+        what = f"skipped ({xc['skipped']})" if xc.get("skipped") else f"{'ok' if xc.get('ok') else 'DISAGREES'}, {xc.get('names')} names at {xc.get('release')}"
+        lines.append(f"- `/v1/translate` vs HLAtools `validationByTranslation`: {what}")
     nb, pg = res.get("normalize_batch"), res.get("pgx_screen")
     if nb:
         lines.append(f"- `/v1/normalize` batch of {nb['names']}: HTTP {nb['http']}, {nb['rows']} rows, {nb['ms']} ms, "
