@@ -1,0 +1,71 @@
+{
+  "_note": "Checks the HLA-Verify API Worker (edge/) after edge-deploy. GETs only, all free and unmetered; the deploy's own smoke test already covers /v1/verify and MCP. A rollback restores only the files edge-deploy builds from, so other work on main is untouched.",
+  "sites": [
+    {
+      "name": "api.hlaverify.com",
+      "base": "https://api.hlaverify.com",
+      "checks": [
+        {
+          "path": "/healthz",
+          "contains": [
+            "\"ok\""
+          ],
+          "json_has": [
+            "ok"
+          ]
+        },
+        {
+          "path": "/",
+          "contains": [
+            "HLA"
+          ]
+        },
+        {
+          "path": "/docs",
+          "contains": [
+            "HLA"
+          ]
+        },
+        {
+          "path": "/pricing"
+        },
+        {
+          "path": "/openapi.json",
+          "json_has": [
+            "paths"
+          ]
+        },
+        {
+          "path": "/llms.txt",
+          "contains": [
+            "HLA"
+          ]
+        },
+        {
+          "path": "/v1/pgx/table?format=csv",
+          "contains": [
+            "source,source_record_id,"
+          ]
+        }
+      ]
+    }
+  ],
+  "deployers": {
+    "workflows": [
+      "edge-deploy"
+    ]
+  },
+  "redeploy_workflows": [
+    "edge-deploy.yml"
+  ],
+  "rollback_paths": [
+    "edge/src",
+    "edge/wrangler.jsonc",
+    "sci_envs/service/edge_export.py",
+    "sci_envs/service/history_export.py",
+    ".github/workflows/edge-deploy.yml"
+  ],
+  "hold_paths": [
+    "^edge/wrangler\\.jsonc$"
+  ]
+}
