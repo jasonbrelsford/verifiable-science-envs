@@ -205,8 +205,47 @@ async function readJson(req, extra = {}) {
   return [body, null];
 }
 
-export default {
-  async fetch(req, env, ctx) {
+// Per-route time budgets (ms of Worker wall time, measured around the whole handler).
+// A request over its budget writes one `slow_request` line to Workers Logs (observability
+// is on in wrangler.jsonc), so a stall shows up server-side and not only as a client
+// timeout. The log line carries the route TEMPLATE, timings and Cloudflare's own ids —
+// never a path parameter, query string or body, so no allele name or text is recorded.
+// Heavy routes get a looser budget than a single lookup.
+export const SLOW_BUDGET_MS = { default: 1000, "/v1/normalize": 3000, "/v1/releases/diff": 3000,
+  "/v1/translate": 3000, "/v1/verify": 3000, "/v1/glstring": 3000, "/v1/pgx/screen": 3000, "/v1/pgx/pair": 3000 };
+export function routeLabel(path) {
+  if (path.startsWith("/v1/allele/")) return path.endsWith("/history") ? "/v1/allele/{name}/history" : "/v1/allele/{name}";
+  if (path.startsWith("/v1/report/")) return "/v1/report/{id}";
+  if (path.startsWith("/v1/") || path === "/mcp" || path === "/healthz") return path;
+  return "other";
+}
+let WORKER_BORN = 0; // wall time of this isolate's first request, for isolate age and cold-start flags
+let REQUESTS_SEEN = 0;
+
+async function timed(req, env, ctx) {
+  const t0 = Date.now();
+  if (!WORKER_BORN) WORKER_BORN = t0;
+  const nth = ++REQUESTS_SEEN;
+  const url = new URL(req.url);
+  const route = routeLabel(url.pathname.replace(/\/+$/, "") || "/");
+  let resp, threw = null;
+  try { resp = await handle(req, env, ctx); } catch (ex) { threw = ex; }
+  const ms = Date.now() - t0;
+  const budget = SLOW_BUDGET_MS[route] ?? SLOW_BUDGET_MS.default;
+  if (threw || ms > budget) {
+    try {
+      console.warn(JSON.stringify({ event: threw ? "request_threw" : "slow_request", route, method: req.method,
+        status: resp ? resp.status : 500, ms, budget_ms: budget, first_in_isolate: nth === 1,
+        isolate_age_s: Math.floor((t0 - WORKER_BORN) / 1000), isolate_requests: nth,
+        colo: req.cf?.colo || null, ray: req.headers.get("cf-ray") || null, error: threw ? String(threw.name || "Error") : undefined }));
+    } catch (_) { /* logging must never break a response */ }
+  }
+  if (threw) throw threw;
+  return resp;
+}
+
+async function handle(req, env, ctx) {
+  {
     if (!STARTED) STARTED = Date.now();
     const url = new URL(req.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -562,7 +601,11 @@ export default {
       meter(env, ctx, who, endpoint, 500, 0, Date.now() - t0);
       return err(500, "internal error computing the verdict; nothing was stored", hdrs);
     }
-  },
+  }
+}
+
+export default {
+  fetch: timed,
 };
 
 export { FRAMEWORKS };
