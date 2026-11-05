@@ -783,9 +783,10 @@ export function aboutBody(manifest, pricing) {
       "checked against a pinned IPD-IMGT/HLA release. Not a diagnostic aid, not clinical decision support, and it does not " +
       "recommend a donor.",
     differentiation: "Unlike an allele-lookup or sequence-database server, this checks whether a name is real rather than " +
-      "returning a best-effort match: an unrecognized name comes back 404 (hallucinated), not a guess; a deleted or renamed " +
-      "name resolves to its current successor instead of silently disappearing; a MAC code or G/P group is flagged as such, " +
-      "never expanded or treated as a single allele.",
+      "returning a best-effort match: an unrecognized name is refused, not answered with a guess — hallucinated in a batch " +
+      "result, 404 from a direct lookup; a deleted or renamed name is reported as deleted, with its current successor when " +
+      "the release records one (not every deletion has one) rather than silently dropped; a MAC code or G/P group is " +
+      "flagged as such and never expanded or treated as a single allele.",
     inputs: "Send allele names, typing strings, GL strings and report text about HLA typing. Never send patient identifiers: " +
       "this service neither needs nor wants names, medical record numbers, dates of birth, accession or case identifiers, or " +
       "other patient details. Request bodies are processed in memory and not stored; de-identifying before sending is the " +

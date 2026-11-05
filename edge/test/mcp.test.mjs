@@ -263,14 +263,38 @@ test("about tool carries the beta state", async () => {
 });
 
 // What sets this apart from a plain allele-lookup MCP server is the one line an
-// agent reads before picking between the two — pin the concrete behaviors, not
-// marketing language.
-test("about tool explains what sets it apart from a plain allele-lookup server", async () => {
+// agent reads before picking between the two. The wording is a product claim, so
+// each clause is pinned to the live tools actually behaving that way, not just to
+// the words appearing in the field — a keyword match would pass even if the API
+// disagreed with its own pitch.
+test("about tool's differentiation claims match what the live tools do", async () => {
   const { json } = await callTool("about", {});
   const d = json.result.structuredContent.differentiation;
-  assert.match(d, /404/, "unrecognized names must come back 404, not a guess");
-  assert.match(d, /successor/i, "deleted/renamed names must resolve to a successor");
-  assert.match(d, /MAC code/i, "MAC codes must be named as flagged, not expanded");
+  assert.match(d, /404/);
+  assert.match(d, /successor/i);
+  assert.match(d, /MAC code/i);
+
+  // An unrecognized name is refused, not guessed: 404 on a direct lookup...
+  const unknown = await engine.allele("A*99:99");
+  assert.equal(unknown.status, 404);
+  // ...and flagged hallucinated inside a batch result.
+  const batch = await callTool("verify_text", { text: "A*99:99" });
+  assert.equal(batch.json.result.structuredContent.tokens[0].status, "hallucinated");
+
+  // A deleted name carries its successor when the release records one...
+  const withSucc = await engine.allele("C*04:09N");
+  assert.equal(withSucc.body.status, "deleted");
+  assert.equal(withSucc.body.successor, "C*04:09L");
+  // ...and is still reported as deleted, not dropped, when it does not.
+  const noSucc = await engine.allele("A*02:100");
+  assert.equal(noSucc.body.status, "deleted");
+  assert.equal(noSucc.body.successor, null);
+
+  // A MAC code is flagged and nothing else — no expansion into the allele list it stands for.
+  const mac = await engine.allele("A*02:AB");
+  assert.equal(mac.body.status, "mac_code");
+  assert.equal("members" in mac.body, false);
+  assert.equal("alleles" in mac.body, false);
 });
 
 // Free during early access: `about` points an agent at the free-key request and
