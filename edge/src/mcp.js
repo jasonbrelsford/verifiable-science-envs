@@ -365,7 +365,7 @@ const GL_OUT = {
 const ABOUT_OUT = {
   type: "object",
   required: ["name", "release"],
-  properties: { name: STR, release: RELEASE, scope: STR, inputs: STR, why: STR, code: STR, api: STR, demo: STR,
+  properties: { name: STR, release: RELEASE, scope: STR, differentiation: STR, inputs: STR, why: STR, code: STR, api: STR, demo: STR,
     agents: STR, limits: STR, commercial: STR, disclaimer: STR, beta: STR, beta_key: STR, beta_signup: STR,
     research: STR },
 };
@@ -782,6 +782,10 @@ export function aboutBody(manifest, pricing) {
     scope: "Nomenclature and reference-release validation: allele names, typing-report consistency and match arithmetic, " +
       "checked against a pinned IPD-IMGT/HLA release. Not a diagnostic aid, not clinical decision support, and it does not " +
       "recommend a donor.",
+    differentiation: "Unlike an allele-lookup or sequence-database server, this checks whether a name is real rather than " +
+      "returning a best-effort match: an unrecognized name comes back 404 (hallucinated), not a guess; a deleted or renamed " +
+      "name resolves to its current successor instead of silently disappearing; a MAC code or G/P group is flagged as such, " +
+      "never expanded or treated as a single allele.",
     inputs: "Send allele names, typing strings, GL strings and report text about HLA typing. Never send patient identifiers: " +
       "this service neither needs nor wants names, medical record numbers, dates of birth, accession or case identifiers, or " +
       "other patient details. Request bodies are processed in memory and not stored; de-identifying before sending is the " +

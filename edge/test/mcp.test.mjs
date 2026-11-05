@@ -262,6 +262,17 @@ test("about tool carries the beta state", async () => {
   assert.equal(sc.beta_signup.startsWith("https://hlaverify.com/beta"), true);
 });
 
+// What sets this apart from a plain allele-lookup MCP server is the one line an
+// agent reads before picking between the two — pin the concrete behaviors, not
+// marketing language.
+test("about tool explains what sets it apart from a plain allele-lookup server", async () => {
+  const { json } = await callTool("about", {});
+  const d = json.result.structuredContent.differentiation;
+  assert.match(d, /404/, "unrecognized names must come back 404, not a guess");
+  assert.match(d, /successor/i, "deleted/renamed names must resolve to a successor");
+  assert.match(d, /MAC code/i, "MAC codes must be named as flagged, not expanded");
+});
+
 // Free during early access: `about` points an agent at the free-key request and
 // never at buying, whatever Stripe's state.
 test("about tool never advertises buying during early access, even with Stripe live", async () => {
