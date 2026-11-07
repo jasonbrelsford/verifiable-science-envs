@@ -31,6 +31,14 @@ is a WARNING (`warnings`, `::warning::`), never a failure: the 60-name batch ove
 other API call over SLOW_FACTOR x the median of this run's API calls (floor SLOW_FLOOR_MS). The
 trailing median across runs is not available to a stateless job, so the run's own median stands in.
 
+Retry (#162): a read-only call over its budget is repeated once (not POST /v1/report, which stores a
+record). The entry in `latency` keeps both timings (`first_ms`, `ms`); a warning says "repeated on retry"
+when the retry was over budget too (a real regression: a second consecutive run like that reopens #157)
+or "outlier" when it was not. A retried quota-spending call adds one to `billable_calls`.
+
+Hugging Face (#162): `hf_bench` carries the hla-bench dataset's `downloads_all_time` (all-time counter) and
+`downloads_30d` (rolling 30-day window) under those fixed labels, so reports never compare the two.
+
 Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
 the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
 dispatched run's conclusion is itself the signal.
@@ -131,7 +139,21 @@ PGX_ALLELES = ["B*5701"]
 BATCH_BUDGET_MS = 2000
 SLOW_FACTOR = 3
 SLOW_FLOOR_MS = 1000
-CALLS: list[dict] = []   # every fetch() of the run, in order
+CALLS: list[dict] = []   # every fetch() of the run, in order (a retried call is one entry, see fetch())
+RETRY_HOST: str | None = None   # host whose over-budget calls are retried once (the API, set by probe())
+
+# A call over its budget is retried once (#162) so a single edge outlier can be told apart from a
+# real regression. Only read-only calls are retried: POST /v1/report stores a record, so it is not.
+NO_RETRY_PATHS = ("/v1/report",)
+# Retried calls that spend anonymous quota (everything under /v1/ except the free routes).
+FREE_PATHS = ("/v1/releases", "/v1/report")
+
+# The Hugging Face dataset whose download counter the evaluation reports (#162). The Hub gives two
+# figures with different meanings; each is reported under its own fixed label so a 30-day window is
+# never compared with an all-time counter.
+HF_DATASET = "jason-brelsford/hla-bench"
+HF_LABELS = {"downloads": "downloads_30d", "downloadsAllTime": "downloads_all_time"}
+HF_WINDOWS = {"downloads_30d": "rolling 30-day window (can go down)", "downloads_all_time": "all-time counter (never goes down)"}
 
 # The release-history routes (#141) and the support report (#135). A1's first name, A*0101, was
 # renamed A*01:01:01:01 in 3.00.0 (HLA00001) and has kept that name since, so a translate from 1.05.0
@@ -183,18 +205,42 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 OPENER = urllib.request.build_opener(NoRedirect)
 
 
-def fetch(url: str, method: str = "GET", body: dict | None = None) -> dict:
-    """One request; never raises. Returns status, headers, elapsed ms and the body text."""
+def call_budget_ms() -> float:
+    """The budget a call is held to while the run is still going: SLOW_FACTOR x the median of the
+    API calls so far (needs three), floor SLOW_FLOOR_MS. The final report re-derives it from the whole run."""
+    done = [c["ms"] for c in CALLS if c["host"] == RETRY_HOST and c["http"] is not None]
+    return max(SLOW_FACTOR * median(done), SLOW_FLOOR_MS) if len(done) >= 3 else SLOW_FLOOR_MS
+
+
+def fetch(url: str, method: str = "GET", body: dict | None = None, budget_ms: float | None = None) -> dict:
+    """One request; never raises. Returns status, headers, elapsed ms and the body text.
+
+    A read-only call to RETRY_HOST that answers over its budget (budget_ms, else call_budget_ms())
+    is repeated once. The result returned and the CALLS entry carry the retry's timing as `ms` and the
+    first timing as `first_ms`; the entry also says whether the retry was over budget too.
+    """
     data = None
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/html;q=0.9, */*;q=0.8"}
     if body is not None:
         data = json.dumps(body).encode()
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
-    t0 = time.perf_counter()
-    result = _fetch(req, t0)
-    CALLS.append({"host": urllib.parse.urlsplit(url).netloc, "call": f"{method} {urllib.parse.urlsplit(url).path}", "ms": result["ms"], "http": result["status"],
-                  "cf_ray": result["headers"].get("cf-ray"), "cf_cache": result["headers"].get("cf-cache-status")})
+    parts = urllib.parse.urlsplit(url)
+    budget = budget_ms if budget_ms is not None else call_budget_ms()
+    result = _fetch(req, time.perf_counter())
+    entry = {"host": parts.netloc, "call": f"{method} {parts.path}", "ms": result["ms"], "http": result["status"],
+             "cf_ray": result["headers"].get("cf-ray"), "cf_cache": result["headers"].get("cf-cache-status")}
+    if (parts.netloc == RETRY_HOST and result["status"] is not None and result["ms"] > budget
+            and not parts.path.startswith(NO_RETRY_PATHS)):
+        first = result
+        result = _fetch(req, time.perf_counter())
+        result["first_ms"] = first["ms"]
+        entry.update(first_ms=first["ms"], ms=result["ms"], http=result["status"], retried=True,
+                     retry_over_budget=result["ms"] > budget, retry_budget_ms=round(budget),
+                     first_cf_ray=entry["cf_ray"], cf_ray=result["headers"].get("cf-ray"),
+                     cf_cache=result["headers"].get("cf-cache-status"),
+                     billable=parts.path.startswith("/v1/") and not parts.path.startswith(FREE_PATHS))
+    CALLS.append(entry)
     return result
 
 
@@ -230,9 +276,17 @@ def latency_report(api_calls: list[dict]) -> tuple[dict, list[str]]:
     for c in timed:
         budget = BATCH_BUDGET_MS if c.get("batch") else limit
         if c["ms"] > budget:
-            warnings.append(f"slow: {c['call']}{' (batch)' if c.get('batch') else ''} took {c['ms']} ms "
+            first = f"first try {c['first_ms']} ms, retry " if c.get("retried") else ""
+            kind = "repeated on retry" if c.get("retried") else "no retry"
+            warnings.append(f"slow ({kind}): {c['call']}{' (batch)' if c.get('batch') else ''} took {first}{c['ms']} ms "
                             f"(budget {round(budget)} ms; run p50 {round(p50)} ms; cf-ray {c['cf_ray'] or 'n/a'})")
-    return ({"calls": len(timed), "p50_ms": round(p50), "max_ms": slowest["ms"], "slowest": slowest["call"],
+        elif c.get("retried"):
+            warnings.append(f"outlier (retry was fine): {c['call']} took {c['first_ms']} ms first try, "
+                            f"{c['ms']} ms on retry (budget {c['retry_budget_ms']} ms at the time; run p50 {round(p50)} ms; "
+                            f"cf-ray {c.get('first_cf_ray') or 'n/a'})")
+    retried = [{k: c[k] for k in ("call", "first_ms", "ms", "retry_over_budget", "retry_budget_ms") if k in c}
+               for c in timed if c.get("retried")]
+    return ({"calls": len(timed), "retried": retried, "p50_ms": round(p50), "max_ms": slowest["ms"], "slowest": slowest["call"],
              "slow_limit_ms": round(limit), "batch_budget_ms": BATCH_BUDGET_MS,
              "slow": [c for c in timed if c["ms"] > (BATCH_BUDGET_MS if c.get("batch") else limit)]},
             warnings)
@@ -250,8 +304,34 @@ def as_json(text: str):
         return None
 
 
-def probe(api: str, site: str | None) -> dict:
+def hf_downloads(dataset: str, base: str = "https://huggingface.co") -> dict:
+    """The Hub's download figures for `dataset`, each under its fixed label (#162). Never raises, never fails the probe.
+
+    `downloads` is a rolling 30-day window and `downloadsAllTime` an all-time counter; the older
+    reports compared one with the other. The label and window travel with every number."""
+    url = f"{base}/api/datasets/{dataset}?expand%5B%5D=downloads&expand%5B%5D=downloadsAllTime"
+    r = fetch(url)
+    b = as_json(r["text"]) if r["status"] == 200 else None
+    out: dict = {"dataset": dataset, "http": r["status"], "ms": r["ms"], "windows": HF_WINDOWS}
+    if r.get("error"):
+        out["error"] = r["error"]
+    for key, label in HF_LABELS.items():
+        v = b.get(key) if isinstance(b, dict) else None
+        out[label] = v if isinstance(v, int) and not isinstance(v, bool) else None
+    return out
+
+
+def hf_line(hf: dict) -> str:
+    if hf["downloads_all_time"] is None and hf["downloads_30d"] is None:
+        return f"- Hugging Face `{hf['dataset']}`: figures unavailable (HTTP {hf['http']})."
+    return (f"- Hugging Face `{hf['dataset']}`: downloads_all_time = {hf['downloads_all_time']} ({HF_WINDOWS['downloads_all_time']}); "
+            f"downloads_30d = {hf['downloads_30d']} ({HF_WINDOWS['downloads_30d']}).")
+
+
+def probe(api: str, site: str | None, hf_dataset: str | None = None) -> dict:
+    global RETRY_HOST
     CALLS.clear()
+    RETRY_HOST = urllib.parse.urlsplit(api).netloc
     failures: list[str] = []
     out: dict = {"probed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                  "api": api, "site": site, "billable_calls": 0}
@@ -340,7 +420,7 @@ def probe(api: str, site: str | None) -> dict:
         names, fx_release = {}, None
         failures.append(f"/v1/normalize batch: cannot read fixtures ({type(e).__name__}: {e})")
     if names:
-        r = fetch(api + "/v1/normalize", "POST", {"typings": list(names)})
+        r = fetch(api + "/v1/normalize", "POST", {"typings": list(names)}, budget_ms=BATCH_BUDGET_MS)
         CALLS[-1]["batch"] = True
         out["billable_calls"] += 1
         b = as_json(r["text"]) or {}
@@ -477,6 +557,9 @@ def probe(api: str, site: str | None) -> dict:
         out["site_pages"] = pages
 
     api_calls = [c for c in CALLS if c["host"] == urllib.parse.urlsplit(api).netloc]
+    out["billable_calls"] += sum(1 for c in api_calls if c.get("retried") and c.get("billable"))
+    if hf_dataset:
+        out["hf_bench"] = hf_downloads(hf_dataset)
     out["latency"], out["warnings"] = latency_report(api_calls)
     out["failures"] = failures
     out["ok"] = not failures
@@ -491,7 +574,7 @@ def summary(res: dict) -> str:
         lines += ["**Failures**", ""] + [f"- {f}" for f in res["failures"]] + [""]
     lat = res.get("latency")
     if lat:
-        lines += [f"Latency: {lat['calls']} API calls, p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
+        lines += [f"Latency: {lat['calls']} API calls ({len(lat.get('retried', []))} retried once), p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
                   f"slow limit {lat['slow_limit_ms']} ms, batch budget {lat['batch_budget_ms']} ms.", ""]
     if res.get("warnings"):
         lines += ["**Latency warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
@@ -519,6 +602,9 @@ def summary(res: dict) -> str:
     if res.get("site_pages"):
         lines += ["", "| site page | HTTP | ms |", "|---|---:|---:|"]
         lines += [f"| `{p['path']}` | {p['http']} | {p['ms']} |" for p in res["site_pages"]]
+    hf = res.get("hf_bench")
+    if hf:
+        lines += ["", hf_line(hf)]
     return "\n".join(lines) + "\n"
 
 
@@ -528,10 +614,13 @@ def main() -> int:
     ap.add_argument("--site", default="https://hlaverify.com")
     ap.add_argument("--no-site", action="store_true", help="skip the site pages")
     ap.add_argument("--out", default="probe.json")
+    ap.add_argument("--hf-dataset", default=HF_DATASET, help="Hugging Face dataset whose download counts are reported")
+    ap.add_argument("--no-hf", action="store_true", help="skip the Hugging Face download figures")
     ap.add_argument("--no-fail", action="store_true", help="exit 0 even when something is off")
     a = ap.parse_args()
 
-    res = probe(a.api.rstrip("/"), None if a.no_site else a.site.rstrip("/"))
+    res = probe(a.api.rstrip("/"), None if a.no_site else a.site.rstrip("/"),
+                None if a.no_hf else a.hf_dataset)
     line = json.dumps(res, separators=(",", ":"), sort_keys=True)
     with open(a.out, "w") as f:
         f.write(line + "\n")
