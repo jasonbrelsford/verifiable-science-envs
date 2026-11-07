@@ -210,6 +210,12 @@ test("tools/list: exact tool names", async () => {
     assert.ok(t.description.length > 0);
     assert.equal(t.inputSchema.type, "object");
   }
+  // The pitch against lookup-only servers: what a verdict does that a lookup does not.
+  const desc = Object.fromEntries(json.result.tools.map((t) => [t.name, t.description]));
+  assert.match(desc.allele_info, /404/);
+  assert.match(desc.allele_info, /successor/);
+  assert.match(desc.verify_text, /hallucinated/);
+  assert.match(desc.normalize_allele, /UNRESOLVABLE/);
 });
 
 test("unknown method -> JSON-RPC -32601", async () => {
