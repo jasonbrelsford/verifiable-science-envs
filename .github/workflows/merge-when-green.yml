@@ -1,0 +1,134 @@
+# Merge bot: squash-merges a pull request into main once it is out of draft
+# and every check on it has passed. Drafts never merge. Pull requests from
+# forks are never merged.
+#
+# A merge made by this bot does not fire "on: push" workflows (GitHub rule for
+# merges made with the built-in token). So right after each merge the bot starts,
+# on main, every workflow that a push of those files would have started and that
+# can be started by hand (has workflow_dispatch). That is how the deploy runs, and
+# the after-deploy check then runs as usual (and rolls back if the site breaks).
+#
+# To turn it off: GitHub > Actions > "merge when green" > ... > Disable workflow,
+# or delete this file.
+name: merge when green
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+  check_suite:
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+  actions: write   # start the deploy on main after a merge
+
+concurrency:
+  group: merge-when-green
+  cancel-in-progress: false
+
+jobs:
+  merge-when-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      # This check must be present and green before anything merges.
+      REQUIRED_CHECK: "test"
+      SELF: merge-when-green
+    steps:
+      - name: Merge ready pull requests whose checks all passed
+        run: |
+          set -euo pipefail
+          : > merged.txt
+          prs=$(gh api "repos/$REPO/pulls?state=open&base=main&per_page=50" \
+            --jq ".[] | select(.draft == false and .head.repo.full_name == \"$REPO\") | \"\(.number) \(.head.sha)\"")
+          if [ -z "$prs" ]; then echo "No ready pull requests."; exit 0; fi
+          while read -r n sha; do
+            runs=$(gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" \
+              --jq "[.check_runs[] | select(.name != \"$SELF\")]")
+            has_required=$(jq --arg r "$REQUIRED_CHECK" '[.[] | select(.name == $r)] | length' <<<"$runs")
+            pending=$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")
+            failed=$(jq '[.[] | select(.status == "completed" and (.conclusion | IN("success","neutral","skipped") | not))] | length' <<<"$runs")
+            status=$(gh api "repos/$REPO/commits/$sha/status" --jq 'if .total_count == 0 then "success" else .state end')
+            if [ "$has_required" -eq 0 ]; then echo "#$n: waiting for $REQUIRED_CHECK"; continue; fi
+            if [ "$pending" -gt 0 ]; then echo "#$n: $pending check(s) still running"; continue; fi
+            if [ "$failed" -gt 0 ] || [ "$status" != "success" ]; then echo "#$n: a check did not pass, not merging"; continue; fi
+            echo "#$n: all checks green, merging"
+            if gh api -X PUT "repos/$REPO/pulls/$n/merge" -f merge_method=squash -f sha="$sha" >/dev/null; then
+              echo "$n" >> merged.txt
+            else
+              echo "#$n: GitHub would not merge it (conflict or new commits), leaving it"
+            fi
+          done <<<"$prs"
+
+      - name: Start the workflows a push to main would have started
+        run: |
+          set -euo pipefail
+          if [ ! -s merged.txt ]; then echo "Nothing merged."; exit 0; fi
+          python3 -c "import yaml" 2>/dev/null || pip install --quiet pyyaml
+          : > changed.txt
+          while read -r n; do
+            gh api --paginate "repos/$REPO/pulls/$n/files?per_page=100" --jq '.[] | .filename, (.previous_filename // empty)' >> changed.txt
+          done < merged.txt
+          gh api "repos/$REPO/contents/.github/workflows?ref=main" --jq '.[] | select(.name | test("\\.ya?ml$")) | .name' > workflows.txt
+          mkdir -p wf
+          while read -r f; do
+            gh api -H "Accept: application/vnd.github.raw" "repos/$REPO/contents/.github/workflows/$f?ref=main" > "wf/$f"
+          done < workflows.txt
+          python3 - <<'PY' > to_start.txt
+          import os, re, yaml
+          changed = [l.strip() for l in open("changed.txt") if l.strip()]
+
+          def rx(glob):
+              out, i = "", 0
+              while i < len(glob):
+                  if glob.startswith("**", i):
+                      out += ".*"; i += 2
+                      if glob.startswith("/", i): out = out[:-2] + "(?:.*/)?"; i += 1
+                  elif glob[i] == "*": out += "[^/]*"; i += 1
+                  elif glob[i] == "?": out += "[^/]"; i += 1
+                  else: out += re.escape(glob[i]); i += 1
+              return re.compile(out + r"\Z")
+
+          def included(name, pats):
+              hit = False
+              for p in pats:
+                  neg = p.startswith("!")
+                  if rx(p[1:] if neg else p).match(name): hit = not neg
+              return hit
+
+          for f in sorted(os.listdir("wf")):
+              if f.startswith("merge-when-green"): continue
+              try: doc = yaml.safe_load(open(os.path.join("wf", f))) or {}
+              except Exception as e: print(f"#skip {f}: unreadable ({e})"); continue
+              on = doc.get("on", doc.get(True))
+              if isinstance(on, str): on = {on: None}
+              elif isinstance(on, list): on = {e: None for e in on}
+              elif not isinstance(on, dict): continue
+              if "push" not in on: continue
+              push = on.get("push") or {}
+              if "branches" in push and not included("main", push["branches"]): continue
+              if "branches-ignore" in push and included("main", push["branches-ignore"]): continue
+              if "tags" in push and "branches" not in push: continue
+              if "paths" in push and not any(included(c, push["paths"]) for c in changed): continue
+              if "paths-ignore" in push and all(included(c, push["paths-ignore"]) for c in changed): continue
+              if "workflow_dispatch" not in on:
+                  print(f"#skip {f}: runs on push but cannot be started by hand"); continue
+              inputs = (on.get("workflow_dispatch") or {}).get("inputs") or {}
+              if any((v or {}).get("required") and "default" not in (v or {}) for v in inputs.values()):
+                  print(f"#skip {f}: needs inputs"); continue
+              print(f)
+          PY
+          cat to_start.txt
+          grep -v '^#' to_start.txt | while read -r f; do
+            echo "Starting $f on main"
+            gh workflow run "$f" --repo "$REPO" --ref main || echo "Could not start $f"
+          done
