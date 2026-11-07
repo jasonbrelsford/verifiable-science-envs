@@ -8,9 +8,6 @@
 # can be started by hand (has workflow_dispatch). That is how the deploy runs. When
 # those runs finish it starts the after-deploy check, which rolls back if the site breaks.
 #
-# GitHub doesn't let this bot merge a pull request that changes workflow files;
-# those it leaves for a person to merge.
-#
 # To turn it off: GitHub > Actions > "merge when green" > ... > Disable workflow,
 # or delete this file.
 name: merge when green
