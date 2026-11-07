@@ -472,7 +472,7 @@ function toolDefs() {
       description:
         "Scan HLA typing report text, or model output about HLA, for allele-shaped tokens and " +
         "classify each one: valid / legacy spelling such as A*0201 or Cw*0702 (valid, with modern form and flag deprecated_name) / G-P group / deleted (with successor) / " +
-        "fabricated / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked); a valid " +
+        "hallucinated (an invented name, never passed as real) / NMDP MAC code (seen, not expanded) / KIR name (out of scope, not checked); a valid " +
         "token with fewer than four fields carries resolution, what that field count does and does not distinguish. " +
         "Nomenclature checking against a pinned IPD-IMGT/HLA release, not " +
         "interpretation of a case. Use on any AI-generated or transcribed content mentioning " +
@@ -495,7 +495,8 @@ function toolDefs() {
         "Normalize one reported HLA allele name (any era or reporting shorthand: legacy A*0101, Cw*0702 or Cw*07:02, " +
         "G/P group names, A*02:XX, two-field A*02:01g, optional HLA- prefix) to current 2-field form, " +
         "with G group, P group, serologic equivalent, and flags. NMDP MAC codes (A*02:AB) are " +
-        "recognised but not expanded (flag mac_code).",
+        "recognised but not expanded (flag mac_code). A name that does not exist comes back UNRESOLVABLE " +
+        "(flag nonexistent_allele), never corrected to a nearby real one.",
       inputSchema: {
         type: "object",
         required: ["name"],
@@ -516,7 +517,9 @@ function toolDefs() {
         "spellings (A*0101, Cw*0702, Cw*07:02), the XX code (A*02:XX), two-field A*02:01g, an optional HLA- " +
         "prefix — and answer with the facts of the name they stand for plus resolves_to and a flag " +
         "(deprecated_name, xx_code, lg_notation); an NMDP multiple allele code (A*02:AB) returns mac_code, " +
-        "recognised but not expanded. Not found if the name has never existed in any release.",
+        "recognised but not expanded. A name that has never existed in any release is refused, not guessed at: " +
+        "the tool returns an error result (HTTP 404 on /v1/allele) and never a near match. A deleted name is " +
+        "answered as deleted, with its successor when the release records one.",
       inputSchema: {
         type: "object",
         required: ["name"],
@@ -693,7 +696,8 @@ function toolDefs() {
         "Every name the allele behind an HLA name has had, release by release since IPD-IMGT/HLA 1.05.0: its HLA ID, " +
         "current name, the first and last release that used this name, the full timeline of names, and the deletion " +
         "note if the name was retired. `as_of` adds what it was called in that release. Use it to answer when a name " +
-        "appeared, changed or disappeared. An allele string only, no patient identifiers.",
+        "appeared, changed or disappeared; a retired name is answered with its deletion note, and a name that " +
+        "never existed is refused with an error result, not guessed at. An allele string only, no patient identifiers.",
       inputSchema: {
         type: "object",
         required: ["name"],

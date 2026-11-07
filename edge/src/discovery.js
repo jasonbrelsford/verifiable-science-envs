@@ -34,7 +34,7 @@ export function serverCard() {
     $schema: CARD_SCHEMA,
     name: REGISTRY_NAME,
     version: SERVER_INFO.version,
-    description: "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
+    description: "Verdicts on HLA allele names: invented names refused, deleted names get successors. No patient data.",
     title: "HLA-Verify",
     websiteUrl: "https://hlaverify.com",
     repository: { url: "https://github.com/jasonbrelsford/verifiable-science-envs", source: "github", subfolder: "edge", id: "1350739538" },
@@ -75,7 +75,7 @@ export function ardManifest() {
       displayName: "HLA-Verify",
       type: CARD_TYPE,
       url: `${MCP_URL}/server-card`,
-      description: "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
+      description: "Checks HLA allele names and typings against a pinned IPD-IMGT/HLA release and gives a verdict, not a best-effort match: an invented or hallucinated name is reported as such (hallucinated in batch results, 404 on a direct lookup), a deleted name is answered with its successor when the release records one, and a MAC code or G/P group is flagged, never silently expanded. No patient identifiers.",
       version: SERVER_INFO.version,
       tags: ["hla", "immunogenetics", "mcp"],
       capabilities: ["verify_text", "normalize_allele", "allele_info", "match_score", "check_typing", "donor_compat", "validate_gl_string",
@@ -83,8 +83,9 @@ export function ardManifest() {
       representativeQueries: [
         "is DRB1*04:01:01 a valid HLA allele name in the current release",
         "normalize this HLA typing to two-field resolution",
-        "what G group does this HLA allele belong to",
         "check this donor and recipient HLA typing for a match",
+        "does this HLA allele name actually exist, or did a model make it up",
+        "this allele name was deleted from IPD-IMGT/HLA: what replaced it",
       ],
     }],
   };

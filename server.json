@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.hlaverify/hla-verify",
   "title": "HLA-Verify",
-  "description": "HLA nomenclature and match checks against a pinned IPD-IMGT/HLA release. No patient identifiers.",
+  "description": "Verdicts on HLA allele names: invented names refused, deleted names get successors. No patient data.",
   "version": "1.0.1",
   "websiteUrl": "https://hlaverify.com",
   "repository": {

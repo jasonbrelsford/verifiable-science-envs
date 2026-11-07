@@ -68,7 +68,10 @@ content before presenting it (`verify_text`, `normalize_allele`, `allele_info`,
 `match_score`, `check_typing`, `donor_compat`, `validate_gl_string`, `about`) —
 as a remote server, or self-hosted over stdio (every tool except `allele_info`).
 The remote server speaks MCP 2026-07-28 (`server/discover`) and the legacy
-`initialize` handshake.
+`initialize` handshake. The tools return verdicts, not best-effort lookups: a name that
+never existed is refused (`hallucinated` in `verify_text`, an error result from
+`allele_info`, 404 on REST), never matched to a near neighbour, and a deleted name is
+answered as deleted with its successor when the release records one.
 
 Remote (Streamable HTTP, JSON-RPC 2.0, stateless — nothing to install):
 
