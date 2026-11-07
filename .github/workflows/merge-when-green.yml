@@ -5,8 +5,11 @@
 # A merge made by this bot does not fire "on: push" workflows (GitHub rule for
 # merges made with the built-in token). So right after each merge the bot starts,
 # on main, every workflow that a push of those files would have started and that
-# can be started by hand (has workflow_dispatch). That is how the deploy runs, and
-# the after-deploy check then runs as usual (and rolls back if the site breaks).
+# can be started by hand (has workflow_dispatch). That is how the deploy runs. When
+# those runs finish it starts the after-deploy check, which rolls back if the site breaks.
+#
+# GitHub doesn't let this bot merge a pull request that changes workflow files;
+# those it leaves for a person to merge.
 #
 # To turn it off: GitHub > Actions > "merge when green" > ... > Disable workflow,
 # or delete this file.
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   merge-when-green:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -128,7 +131,21 @@ jobs:
               print(f)
           PY
           cat to_start.txt
-          grep -v '^#' to_start.txt | while read -r f; do
+          since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          grep -v '^#' to_start.txt > start.txt || true
+          while read -r f; do
             echo "Starting $f on main"
             gh workflow run "$f" --repo "$REPO" --ref main || echo "Could not start $f"
+          done < start.txt
+          # Runs started by the built-in token don't fire "workflow_run" either, so the
+          # after-deploy check won't start by itself. Wait for what we started, then start it.
+          if [ ! -s start.txt ] || [ ! -f wf/after-deploy.yml ]; then exit 0; fi
+          sleep 15
+          for i in $(seq 1 60); do
+            running=$(gh api "repos/$REPO/actions/runs?branch=main&event=workflow_dispatch&created=%3E%3D$since&per_page=50" \
+              --jq '[.workflow_runs[] | select(.name != "after-deploy" and .status != "completed")] | length')
+            [ "$running" -eq 0 ] && break
+            echo "Waiting for $running run(s) to finish"; sleep 30
           done
+          echo "Starting after-deploy (check the live site, roll back if broken)"
+          gh workflow run after-deploy.yml --repo "$REPO" --ref main -f mode=full
