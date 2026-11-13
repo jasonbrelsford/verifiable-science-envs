@@ -112,6 +112,7 @@ def test_hf_figures_carry_fixed_labels(probe):
     assert "all-time" in hf["windows"]["downloads_all_time"] and "30-day" in hf["windows"]["downloads_30d"]
     line = probe.hf_line(hf)
     assert "downloads_all_time = 188" in line and "downloads_30d = 13" in line
+    assert "not exposed" in hf["per_file_breakdown"] and "Per-file breakdown not exposed" in line
 
 
 def test_hf_failure_is_reported_not_raised(probe):

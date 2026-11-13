@@ -38,6 +38,7 @@ or "outlier" when it was not. A retried quota-spending call adds one to `billabl
 
 Hugging Face (#162): `hf_bench` carries the hla-bench dataset's `downloads_all_time` (all-time counter) and
 `downloads_30d` (rolling 30-day window) under those fixed labels, so reports never compare the two.
+Per-file breakdown (#175): the Hub API has none, and `per_file_breakdown` says so once per report.
 
 Budget: 24 billable anonymous calls per run (17 + 1 + 1 + 1 + 1, plus diff, translate and history) out of
 the 100/day the runner's IP gets; the documents, /v1/releases, both reports and site pages are free. Exit status is 1 when anything is off, so a
@@ -153,6 +154,8 @@ FREE_PATHS = ("/v1/releases", "/v1/report")
 # never compared with an all-time counter.
 HF_DATASET = "jason-brelsford/hla-bench"
 HF_LABELS = {"downloads": "downloads_30d", "downloadsAllTime": "downloads_all_time"}
+HF_BREAKDOWN = ("not exposed: the Hub API returns only the two dataset-level totals (no per-file or per-repo split; "
+                "checked 2026-11-13, #175), so a jump cannot be attributed to a file or a CI re-pull from here")
 HF_WINDOWS = {"downloads_30d": "rolling 30-day window (can go down)", "downloads_all_time": "all-time counter (never goes down)"}
 
 # The release-history routes (#141) and the support report (#135). A1's first name, A*0101, was
@@ -312,7 +315,8 @@ def hf_downloads(dataset: str, base: str = "https://huggingface.co") -> dict:
     url = f"{base}/api/datasets/{dataset}?expand%5B%5D=downloads&expand%5B%5D=downloadsAllTime"
     r = fetch(url)
     b = as_json(r["text"]) if r["status"] == 200 else None
-    out: dict = {"dataset": dataset, "http": r["status"], "ms": r["ms"], "windows": HF_WINDOWS}
+    out: dict = {"dataset": dataset, "http": r["status"], "ms": r["ms"], "windows": HF_WINDOWS,
+                 "per_file_breakdown": HF_BREAKDOWN}
     if r.get("error"):
         out["error"] = r["error"]
     for key, label in HF_LABELS.items():
@@ -325,7 +329,8 @@ def hf_line(hf: dict) -> str:
     if hf["downloads_all_time"] is None and hf["downloads_30d"] is None:
         return f"- Hugging Face `{hf['dataset']}`: figures unavailable (HTTP {hf['http']})."
     return (f"- Hugging Face `{hf['dataset']}`: downloads_all_time = {hf['downloads_all_time']} ({HF_WINDOWS['downloads_all_time']}); "
-            f"downloads_30d = {hf['downloads_30d']} ({HF_WINDOWS['downloads_30d']}).")
+            f"downloads_30d = {hf['downloads_30d']} ({HF_WINDOWS['downloads_30d']}). "
+            f"Per-file breakdown {HF_BREAKDOWN}.")
 
 
 def probe(api: str, site: str | None, hf_dataset: str | None = None) -> dict:
