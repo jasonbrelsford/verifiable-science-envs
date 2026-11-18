@@ -119,3 +119,24 @@ def test_hf_failure_is_reported_not_raised(probe):
     hf = probe.hf_downloads("x/y", base="http://127.0.0.1:1")
     assert hf["downloads_all_time"] is None and hf["downloads_30d"] is None and hf["error"]
     assert "unavailable" in probe.hf_line(hf)
+
+
+def test_every_call_records_first_try_retries_and_final_time(probe):
+    probe.SLOW_FLOOR_MS = 100
+    with Server(delays={"/v1/allele/X": [0.3]}) as s:
+        probe.CALLS.clear()
+        probe.RETRY_HOST = s.host
+        probe.fetch(s.base + "/healthz")
+        probe.fetch(s.base + "/healthz")
+        probe.fetch(s.base + "/healthz")
+        probe.fetch(s.base + "/v1/allele/X")      # slow first try, fine on retry
+        fast, slow = probe.CALLS[0], probe.CALLS[-1]
+        assert fast["retries"] == 0 and fast["first_ms"] == fast["ms"]
+        assert slow["retries"] == 1 and slow["first_ms"] >= 300 and slow["ms"] < slow["first_ms"]
+        rep, _ = probe.latency_report(list(probe.CALLS))
+        row = rep["per_call"][-1]
+        assert row == {"call": "GET /v1/allele/X", "first_ms": slow["first_ms"], "retries": 1, "ms": slow["ms"]}
+        assert len(rep["per_call"]) == 4
+        assert rep["first_try_max_ms"] == slow["first_ms"] >= 300
+        assert rep["max_ms"] < rep["first_try_max_ms"]    # the retry hid it from max_ms; first_try_max_ms keeps it
+        json.dumps(rep)
