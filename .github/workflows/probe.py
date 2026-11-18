@@ -25,7 +25,7 @@ What it checks
      /healthz states. The valid report stores one record in the REPORTS namespace, labelled as
      the probe (source hlaverify-probe, input says so): a daily record to ignore when triaging.
 
-Latency (#148): every call's wall time is kept (`latency` in the JSON: p50, max, slowest call,
+Latency (#148): every call's wall time is kept (`latency` in the JSON: p50, max, slowest call, `per_call` first-try ms / retries / final ms and first-try p50/max (#179),
 and the Cloudflare `cf-ray` / `cf-cache-status` / colo hint of each slow call). A call over its budget
 is a WARNING (`warnings`, `::warning::`), never a failure: the 60-name batch over BATCH_BUDGET_MS, any
 other API call over SLOW_FACTOR x the median of this run's API calls (floor SLOW_FLOOR_MS). The
@@ -231,14 +231,15 @@ def fetch(url: str, method: str = "GET", body: dict | None = None, budget_ms: fl
     parts = urllib.parse.urlsplit(url)
     budget = budget_ms if budget_ms is not None else call_budget_ms()
     result = _fetch(req, time.perf_counter())
-    entry = {"host": parts.netloc, "call": f"{method} {parts.path}", "ms": result["ms"], "http": result["status"],
+    entry = {"host": parts.netloc, "call": f"{method} {parts.path}", "first_ms": result["ms"], "retries": 0,
+             "ms": result["ms"], "http": result["status"],
              "cf_ray": result["headers"].get("cf-ray"), "cf_cache": result["headers"].get("cf-cache-status")}
     if (parts.netloc == RETRY_HOST and result["status"] is not None and result["ms"] > budget
             and not parts.path.startswith(NO_RETRY_PATHS)):
         first = result
         result = _fetch(req, time.perf_counter())
         result["first_ms"] = first["ms"]
-        entry.update(first_ms=first["ms"], ms=result["ms"], http=result["status"], retried=True,
+        entry.update(first_ms=first["ms"], retries=1, ms=result["ms"], http=result["status"], retried=True,
                      retry_over_budget=result["ms"] > budget, retry_budget_ms=round(budget),
                      first_cf_ray=entry["cf_ray"], cf_ray=result["headers"].get("cf-ray"),
                      cf_cache=result["headers"].get("cf-cache-status"),
@@ -289,7 +290,13 @@ def latency_report(api_calls: list[dict]) -> tuple[dict, list[str]]:
                             f"cf-ray {c.get('first_cf_ray') or 'n/a'})")
     retried = [{k: c[k] for k in ("call", "first_ms", "ms", "retry_over_budget", "retry_budget_ms") if k in c}
                for c in timed if c.get("retried")]
+    # Every call's first-try time, retry count and final time (#179), so a slow spell shows as a
+    # trend from day to day even when the retry hid it. The budget check above is unchanged.
+    per_call = [{"call": c["call"] + (" (batch)" if c.get("batch") else ""), "first_ms": c.get("first_ms", c["ms"]),
+                 "retries": c.get("retries", 0), "ms": c["ms"]} for c in timed]
+    firsts = [c["first_ms"] for c in per_call]
     return ({"calls": len(timed), "retried": retried, "p50_ms": round(p50), "max_ms": slowest["ms"], "slowest": slowest["call"],
+             "per_call": per_call, "first_try_p50_ms": round(median(firsts)), "first_try_max_ms": max(firsts),
              "slow_limit_ms": round(limit), "batch_budget_ms": BATCH_BUDGET_MS,
              "slow": [c for c in timed if c["ms"] > (BATCH_BUDGET_MS if c.get("batch") else limit)]},
             warnings)
@@ -580,6 +587,7 @@ def summary(res: dict) -> str:
     lat = res.get("latency")
     if lat:
         lines += [f"Latency: {lat['calls']} API calls ({len(lat.get('retried', []))} retried once), p50 {lat['p50_ms']} ms, max {lat['max_ms']} ms ({lat['slowest']}); "
+                  f"first-try p50 {lat['first_try_p50_ms']} ms, max {lat['first_try_max_ms']} ms; "
                   f"slow limit {lat['slow_limit_ms']} ms, batch budget {lat['batch_budget_ms']} ms.", ""]
     if res.get("warnings"):
         lines += ["**Latency warnings** (not failures)", ""] + [f"- {w}" for w in res["warnings"]] + [""]
