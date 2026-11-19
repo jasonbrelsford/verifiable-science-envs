@@ -1,6 +1,6 @@
 # py-ard concordance report
 
-*Generated 2026-11-17 20:02 UTC · IPD-IMGT/HLA v3.66.0-alpha · py-ard 2.4.4 (db 3660) · script: `scripts/pyard_concordance.py`*
+*Generated 2026-11-19 19:37 UTC · IPD-IMGT/HLA v3.66.0-alpha · py-ard 2.4.5 (db 3660) · script: `scripts/pyard_concordance.py`*
 
 py-ard is NMDP's reduction library for valid typing — the right tool inside a
 matching pipeline. HLA-Verify is a verifier for arbitrary (including AI-
